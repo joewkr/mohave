@@ -2,12 +2,12 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 module Data.Format.HDF.LowLevel.C.Definitions where
 
-import Foreign.C.Types
+import Data.Int
 
 #include <hdf.h>
 #include <mfhdf.h>
 
-newtype HDFOpenOption = HDFOpenOption { unHDFOpenOption :: CInt }
+newtype HDFOpenOption = HDFOpenOption { unHDFOpenOption :: Int32 }
 
 #{enum HDFOpenOption, HDFOpenOption
   , hdf_read                 = DFACC_READ
@@ -15,7 +15,7 @@ newtype HDFOpenOption = HDFOpenOption { unHDFOpenOption :: CInt }
   , hdf_create               = DFACC_CREATE
   }
 
-newtype HDFDataType = HDFDataType { unHDFDataType :: CInt }
+newtype HDFDataType = HDFDataType { unHDFDataType :: Int32 }
 
 #{enum HDFDataType, HDFDataType
   , hdf_char8                = DFNT_CHAR8

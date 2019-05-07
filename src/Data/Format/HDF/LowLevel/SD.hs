@@ -1,6 +1,7 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 module Data.Format.HDF.LowLevel.SD where
 
+import           Data.Int
 import           Foreign.C.String
 import           Foreign.C.Types
 import           Foreign.Marshal.Array
@@ -9,11 +10,11 @@ import           Foreign.Ptr
 import           Data.Format.HDF.LowLevel.C.Definitions
 
 -- Access
-foreign import ccall unsafe "SDstart" c_sdstart :: CString -> CInt -> IO CInt
-foreign import ccall unsafe "SDcreate" c_sdcreate :: CInt -> CString -> CInt -> CInt -> Ptr CInt -> IO CInt
-foreign import ccall unsafe "SDselect" c_sdselect :: CInt -> CInt -> IO CInt
-foreign import ccall unsafe "SDendaccess" c_sdendaccess :: CInt -> IO CInt
-foreign import ccall unsafe "SDend" c_sdend :: CInt -> IO CInt
+foreign import ccall unsafe "SDstart" c_sdstart :: CString -> Int32 -> IO Int32
+foreign import ccall unsafe "SDcreate" c_sdcreate :: Int32 -> CString -> Int32 -> Int32 -> Ptr Int32 -> IO Int32
+foreign import ccall unsafe "SDselect" c_sdselect :: Int32 -> Int32 -> IO Int32
+foreign import ccall unsafe "SDendaccess" c_sdendaccess :: Int32 -> IO CInt
+foreign import ccall unsafe "SDend" c_sdend :: Int32 -> IO CInt
 
 -- Read and write
 -- SDreaddata
@@ -91,15 +92,15 @@ foreign import ccall unsafe "SDend" c_sdend :: CInt -> IO CInt
 -- SDsetdimval_comp
 -- SDsetaccesstype
 
-newtype SDId = SDId CInt
-newtype SDataSetId = SDataSetId CInt
+newtype SDId = SDId Int32
+newtype SDataSetId = SDataSetId Int32
 
-sd_start :: String -> HDFOpenOption -> IO (CInt, SDId)
+sd_start :: String -> HDFOpenOption -> IO (Int32, SDId)
 sd_start fileName mode = withCString fileName $ \c_fileName -> do
     sd_id <- c_sdstart c_fileName (unHDFOpenOption mode)
     return $! (sd_id, SDId sd_id)
 
-sd_create :: SDId -> String -> HDFDataType -> [CInt] -> IO (CInt, SDataSetId)
+sd_create :: SDId -> String -> HDFDataType -> [Int32] -> IO (Int32, SDataSetId)
 sd_create (SDId sd_id) sds_name data_type dim_sizes =
     withCString sds_name $ \c_sds_name ->
     withArray dim_sizes $ \c_dim_sizes -> do
@@ -108,17 +109,17 @@ sd_create (SDId sd_id) sds_name data_type dim_sizes =
   where
     rank = fromIntegral $! length dim_sizes
 
-sd_select :: SDId -> CInt -> IO (CInt, SDataSetId)
+sd_select :: SDId -> Int32 -> IO (Int32, SDataSetId)
 sd_select (SDId sd_id) sds_index = do
     sds_id <- c_sdselect sd_id sds_index
     return $! (sds_id, SDataSetId sds_id)
 
-sd_endaccess :: SDataSetId -> IO (CInt, ())
+sd_endaccess :: SDataSetId -> IO (Int32, ())
 sd_endaccess (SDataSetId sds_id) = do
     h_result <- c_sdendaccess sds_id
-    return $! (h_result, ())
+    return $! (fromIntegral h_result, ())
 
-sd_end :: SDId -> IO (CInt, ())
+sd_end :: SDId -> IO (Int32, ())
 sd_end (SDId sd_id) = do
     h_result <- c_sdend sd_id
-    return $! (h_result, ())
+    return $! (fromIntegral h_result, ())
