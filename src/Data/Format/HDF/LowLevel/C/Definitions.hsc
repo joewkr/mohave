@@ -2,7 +2,9 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 module Data.Format.HDF.LowLevel.C.Definitions where
 
-import Data.Int
+import           Data.Int
+import           Data.Word
+import           Foreign.Storable
 
 #include <hdf.h>
 #include <mfhdf.h>
@@ -29,3 +31,23 @@ newtype HDFDataType = HDFDataType { unHDFDataType :: Int32 }
   , hdf_float32              = DFNT_FLOAT32
   , hdf_float64              = DFNT_FLOAT64
   }
+
+hdfMaxVarDims :: Int32
+hdfMaxVarDims = #const MAX_VAR_DIMS
+
+
+data HDFVarList = HDFVarList {
+    hdf_var_index :: Int32
+  , hdf_var_type  :: #{type hdf_vartype_t}
+} deriving (Eq, Show)
+
+instance Storable HDFVarList where
+  alignment _ = #{alignment hdf_varlist_t}
+  sizeOf _ = #{size hdf_varlist_t}
+  peek ptr = do
+    var_index <- #{peek hdf_varlist_t, var_index} ptr
+    var_type  <- #{peek hdf_varlist_t, var_type} ptr
+    return $! HDFVarList var_index var_type
+  poke ptr (HDFVarList var_index var_type) = do
+    #{poke hdf_varlist_t, var_index} ptr var_index
+    #{poke hdf_varlist_t, var_type}  ptr var_type
