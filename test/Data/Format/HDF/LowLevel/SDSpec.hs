@@ -108,7 +108,17 @@ spec = do
                 getnamelen_status `shouldNotBe` (-1)
                 fileNameLength `shouldBe` 12
             it "dimension name length" $ do
-                pendingWith "dimension id is not implemented yet"
+                (open_status, sd_id) <- sd_start "test-data/sd/test1.hdf" hdf_read
+                (select_status, sds_id) <- sd_select sd_id 0
+                (getdimid_status, dim_id) <- sd_getdimid sds_id 0
+                (getnamelen_status, fileNameLength) <- sd_getnamelen dim_id
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                getdimid_status `shouldNotBe` (-1)
+                getnamelen_status `shouldNotBe` (-1)
+                fileNameLength `shouldBe` 5
         context "SDgetfilename" $ do
             it "gets file name of correctly opened dataset" $ do
                 (open_status, sd_id) <- sd_start "test-data/sd/test1.hdf" hdf_read
@@ -287,3 +297,71 @@ spec = do
                 [   reset_maxopenfiles_status_1
                   , reset_maxopenfiles_status_2
                   , reset_maxopenfiles_status_3 ] `shouldNotContain`[-1]
+    describe "Dimensions" $ do
+        context "SDgetdimid" $ do
+            it "returns dimension id" $ do
+                (open_status, sd_id) <- sd_start "test-data/sd/test1.hdf" hdf_read
+                (select_status, sds_id) <- sd_select sd_id 0
+                (getdimid_status, _) <- sd_getdimid sds_id 0
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                getdimid_status `shouldNotBe` (-1)
+            it "reports error on missing dimension" $ do
+                (open_status, sd_id) <- sd_start "test-data/sd/test1.hdf" hdf_read
+                (select_status, sds_id) <- sd_select sd_id 0
+                (getdimid_status, _) <- sd_getdimid sds_id 999
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                getdimid_status `shouldBe` (-1)
+        context "SDdiminfo" $ do
+            it "returns dimension information" $ do
+                (open_status, sd_id) <- sd_start "test-data/sd/test1.hdf" hdf_read
+                (select_status, sds_id) <- sd_select sd_id 0
+                (getdimid_status, dim_id) <- sd_getdimid sds_id 0
+                (diminfo_status, dimInfo) <- sd_diminfo dim_id
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                getdimid_status `shouldNotBe` (-1)
+                diminfo_status `shouldNotBe` (-1)
+                dimInfo `shouldBe` (SDimensionInfoRaw
+                                    "MyDim"
+                                    4 (unHDFDataType hdf_int32) 4)
+            it "returns unlimited dimension information" $ do
+                (open_status, sd_id) <- sd_start "test-data/sd/test1.hdf" hdf_read
+                (nametoindex_status, sds_index) <- sd_nametoindex sd_id "dimval_1_compat"
+                (select_status, sds_id) <- sd_select sd_id sds_index
+                (getdimid_status, dim_id) <- sd_getdimid sds_id 0
+                (diminfo_status, dimInfo) <- sd_diminfo dim_id
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                nametoindex_status `shouldNotBe` (-1)
+                getdimid_status `shouldNotBe` (-1)
+                diminfo_status `shouldNotBe` (-1)
+                dimInfo `shouldBe` (SDimensionInfoRaw
+                                    "fakeDim8"
+                                    0 0 0)
+        context "SDsetdimname" $ do
+            it "sets new dimension name" $ do
+                (open_status, sd_id) <- sd_start "empty_sds.hdf" hdf_create
+                (create_status, sds_id) <- sd_create sd_id "emptyDataSet" hdf_float64 [1,2,3]
+                (getdimid_status, dim_id) <- sd_getdimid sds_id 0
+                (setdimname_status, _) <- sd_setdimname dim_id "MyDim"
+                (diminfo_status, dimInfo) <- sd_diminfo dim_id
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [create_status, endaccess_status] `shouldNotContain`[-1]
+                getdimid_status `shouldNotBe` (-1)
+                setdimname_status `shouldNotBe` (-1)
+                diminfo_status `shouldNotBe` (-1)
+                dimInfo `shouldBe` (SDimensionInfoRaw
+                                    "MyDim"
+                                    1 0 0)

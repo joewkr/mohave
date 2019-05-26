@@ -42,9 +42,9 @@ foreign import ccall unsafe "SDreftoindex" c_sdreftoindex :: Int32 -> Int32 -> I
 foreign import ccall unsafe "SDreset_maxopenfiles" c_sdreset_maxopenfiles :: CInt -> IO CInt
 
 -- Dimensions
--- SDdiminfo
--- SDgetdimid
--- SDsetdimname
+foreign import ccall unsafe "SDdiminfo" c_sddiminfo :: Int32 -> CString -> Ptr Int32 -> Ptr Int32 -> Ptr Int32 -> IO CInt
+foreign import ccall unsafe "SDgetdimid" c_sdgetdimid :: Int32 -> CInt -> IO Int32
+foreign import ccall unsafe "SDsetdimname" c_sdsetdimname :: Int32 -> CString -> IO CInt
 
 -- Dimension scales
 -- SDgetdimscale
@@ -98,6 +98,7 @@ foreign import ccall unsafe "SDreset_maxopenfiles" c_sdreset_maxopenfiles :: CIn
 newtype SDId = SDId Int32 deriving Eq
 newtype SDataSetId = SDataSetId Int32 deriving Eq
 newtype SDataSetRef = SDataSetRef Int32 deriving Eq
+newtype SDimensionId = SDimensionId Int32 deriving Eq
 
 class SDObjectId id where
     getRawObjectId :: id -> Int32
@@ -107,6 +108,9 @@ instance SDObjectId SDId where
 
 instance SDObjectId SDataSetId where
     getRawObjectId (SDataSetId sds_id) = sds_id
+
+instance SDObjectId SDimensionId where
+    getRawObjectId (SDimensionId dimension_id) = dimension_id
 
 data HdfStatus = Succeed | Fail deriving Eq
 
@@ -284,3 +288,46 @@ sd_reset_maxopenfiles :: Int32 -> IO (Int32, Int32)
 sd_reset_maxopenfiles newLimit = do
     current_limit <- c_sdreset_maxopenfiles (fromIntegral newLimit)
     return $! (fromIntegral current_limit, fromIntegral current_limit)
+
+sd_getdimid :: SDataSetId -> Int32 -> IO (Int32, SDimensionId)
+sd_getdimid (SDataSetId sds_id) dim_index = do
+    dimension_id <- c_sdgetdimid sds_id (fromIntegral dim_index)
+    return $! (dimension_id, SDimensionId dimension_id)
+
+data SDimensionInfoRaw = SDimensionInfoRaw {
+      sDimensionName     :: String
+    , sDimensionSize     :: Int32
+    , sDimensionDataType :: Int32
+    , sDimensionNumAttrs :: Int32
+} deriving (Show, Eq)
+
+sd_diminfo :: SDimensionId -> IO (Int32, SDimensionInfoRaw)
+sd_diminfo sDimensionId@(SDimensionId dimension_id) = do
+    (h_result_getnamelen, nameLen) <- sd_getnamelen sDimensionId
+    if h_result_getnamelen == (-1)
+        then return (-1, emptySDimensionInfo)
+        else
+            alloca $ \dimSizePtr ->
+            alloca $ \dataTypePtr ->
+            alloca $ \numAttributesPtr ->
+            allocaArray (fromIntegral $ nameLen + 1) $ \dimNamePtr -> do
+                h_result <- c_sddiminfo
+                                dimension_id
+                                dimNamePtr
+                                dimSizePtr
+                                dataTypePtr
+                                numAttributesPtr
+                dimName <- peekCString dimNamePtr
+                dimSize <- peek dimSizePtr
+                dataType <- peek dataTypePtr
+                numAttributes <- peek numAttributesPtr
+                return $! (fromIntegral h_result, SDimensionInfoRaw dimName dimSize dataType numAttributes)
+  where
+    emptySDimensionInfo :: SDimensionInfoRaw
+    emptySDimensionInfo = SDimensionInfoRaw "" 0 0 0
+
+sd_setdimname :: SDimensionId -> String -> IO (Int32, ())
+sd_setdimname (SDimensionId dimension_id) dimension_name =
+    withCString dimension_name $ \c_dimension_name -> do
+        h_result <- c_sdsetdimname dimension_id c_dimension_name
+        return $! (fromIntegral h_result, ())
