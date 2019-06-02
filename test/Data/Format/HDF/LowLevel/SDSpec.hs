@@ -1,5 +1,6 @@
 module Data.Format.HDF.LowLevel.SDSpec(spec) where
 
+import           Data.Int (Int32)
 import           Test.Hspec
 
 import           Data.Format.HDF.LowLevel.C.Definitions
@@ -139,7 +140,7 @@ spec = do
                 getinfo_status `shouldNotBe` (-1)
                 sdsInfo `shouldBe` (SDataSetInfoRaw
                     "DataSetAlpha"
-                    2 [4,8] (unHDFDataType hdf_float32) 6)
+                    2 [4,8] (unHDFDataTypeTag hdf_float32) 6)
             it "long name SDS" $ do
                 (open_status, sd_id) <- sd_start "test-data/sd/SDSlongname.hdf" hdf_read
                 (select_status, sds_id) <- sd_select sd_id 0
@@ -151,7 +152,7 @@ spec = do
                 getinfo_status `shouldNotBe` (-1)
                 sdsInfo `shouldBe` (SDataSetInfoRaw
                     "The name of this dataset is long, and it is used to test the new variable length name feature"
-                    2 [10,10] (unHDFDataType hdf_int32) 0)
+                    2 [10,10] (unHDFDataTypeTag hdf_int32) 0)
         context "SDget_maxopenfiles" $ do
             it "reports reasonable limits" $ do
                 (get_maxopenfiles_status, limits@(curr_max, sys_limit)) <- sd_get_maxopenfiles
@@ -331,7 +332,7 @@ spec = do
                 diminfo_status `shouldNotBe` (-1)
                 dimInfo `shouldBe` (SDimensionInfoRaw
                                     "MyDim"
-                                    4 (unHDFDataType hdf_int32) 4)
+                                    4 (unHDFDataTypeTag hdf_int32) 4)
             it "returns unlimited dimension information" $ do
                 (open_status, sd_id) <- sd_start "test-data/sd/test1.hdf" hdf_read
                 (nametoindex_status, sds_index) <- sd_nametoindex sd_id "dimval_1_compat"
@@ -365,3 +366,279 @@ spec = do
                 dimInfo `shouldBe` (SDimensionInfoRaw
                                     "MyDim"
                                     1 0 0)
+    context "User-defined attributes" $ do
+        context "SDfindattr" $ do
+            it "finds global attribute" $ do
+                (open_status, sd_id) <- sd_start "test-data/sd/test1.hdf" hdf_read
+                (findattr_status, attr_index) <- sd_findattr sd_id "F-attr"
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                findattr_status `shouldNotBe` (-1)
+                attr_index `shouldBe` 0
+            it "finds SDS attribute" $ do
+                (open_status, sd_id) <- sd_start "test-data/sd/test1.hdf" hdf_read
+                (select_status, sds_id) <- sd_select sd_id 0
+                (findattr_status, attr_index) <- sd_findattr sds_id "units"
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                findattr_status `shouldNotBe` (-1)
+                attr_index `shouldBe` 4
+            it "finds dimension attribute" $ do
+                (open_status, sd_id) <- sd_start "test-data/sd/test1.hdf" hdf_read
+                (select_status, sds_id) <- sd_select sd_id 0
+                (getdimid_status, dim_id) <- sd_getdimid sds_id 0
+                (findattr_status, attr_index) <- sd_findattr dim_id "format"
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                getdimid_status `shouldNotBe` (-1)
+                findattr_status `shouldNotBe` (-1)
+                attr_index `shouldBe` 2
+        context "SDattrinfo" $ do
+            it "returns global attribute information" $ do
+                (open_status, sd_id) <- sd_start "test-data/sd/test1.hdf" hdf_read
+                (findattr_status, attr_index) <- sd_findattr sd_id "F-attr"
+                (attrinfo_status, attrInfo) <- sd_attrinfo sd_id attr_index
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                findattr_status `shouldNotBe` (-1)
+                attrinfo_status `shouldNotBe` (-1)
+                attrInfo `shouldBe` (SAttributeInfoRaw
+                                     "F-attr"
+                                     10
+                                     (unHDFDataTypeTag hdf_char8))
+            it "returns SDS attribute information" $ do
+                (open_status, sd_id) <- sd_start "test-data/sd/test1.hdf" hdf_read
+                (select_status, sds_id) <- sd_select sd_id 0
+                (findattr_status, attr_index) <- sd_findattr sds_id "valid_range"
+                (attrinfo_status, attrInfo) <- sd_attrinfo sds_id attr_index
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                findattr_status `shouldNotBe` (-1)
+                attrinfo_status `shouldNotBe` (-1)
+                attrInfo `shouldBe` (SAttributeInfoRaw
+                                     "valid_range"
+                                     2
+                                     (unHDFDataTypeTag hdf_float32))
+            it "returns dimension attribute information" $ do
+                (open_status, sd_id) <- sd_start "test-data/sd/test1.hdf" hdf_read
+                (select_status, sds_id) <- sd_select sd_id 0
+                (getdimid_status, dim_id) <- sd_getdimid sds_id 0
+                (findattr_status, attr_index) <- sd_findattr dim_id "DimAttr"
+                (attrinfo_status, attrInfo) <- sd_attrinfo dim_id attr_index
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                getdimid_status `shouldNotBe` (-1)
+                findattr_status `shouldNotBe` (-1)
+                attrinfo_status `shouldNotBe` (-1)
+                attrInfo `shouldBe` (SAttributeInfoRaw
+                                     "DimAttr"
+                                     1
+                                     (unHDFDataTypeTag hdf_float32))
+    context "Predefined attributes" $ do
+        context "SDgetcal" $ do
+            it "reports calibration parameters" $ do
+                (open_status, sd_id) <- sd_start "test-data/sd/test1.hdf" hdf_read
+                (select_status, sds_id) <- sd_select sd_id 1
+                (getcal_status, calibrationParams) <- sd_getcal sds_id
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                getcal_status `shouldNotBe` (-1)
+                calibrationParams `shouldBe`
+                    (SCalibrationParametersRaw 1.0 5.0 3.0 2.5 (unHDFDataTypeTag hdf_int8))
+            it "handles missing calibration parameters" $ do
+                (open_status, sd_id) <- sd_start "test-data/sd/test1.hdf" hdf_read
+                (select_status, sds_id) <- sd_select sd_id 0
+                (getcal_status, _) <- sd_getcal sds_id
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                getcal_status `shouldBe` (-1)
+        context "SDgetdatastrs" $ do
+            it "returns predefined string attributes" $ do
+                (open_status, sd_id) <- sd_start "test-data/sd/tdfsdatts.hdf" hdf_read
+                (select_status, sds_id) <- sd_select sd_id 0
+                (getdatastrs_status, defaultStringAttrs) <- sd_getdatastrs sds_id
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                getdatastrs_status `shouldNotBe` (-1)
+                defaultStringAttrs `shouldBe`
+                    (SDsetDescStringsRaw
+                        "Datalabel"
+                        "Dataunit"
+                        "Datafmt"
+                        "coordsys")
+        context "SDgetdimstrs" $ do
+            it "returns predefined string attributes" $ do
+                (open_status, sd_id) <- sd_start "test-data/sd/dim.hdf" hdf_read
+                (nametoindex_status, sds_index) <- sd_nametoindex sd_id "HDF Data 2"
+                (select_status, sds_id) <- sd_select sd_id sds_index
+                (getdimid_status, dim_id) <- sd_getdimid sds_id 0
+                (getdimstrs_status, defaultStringAttrs) <- sd_getdimstrs dim_id
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                nametoindex_status `shouldNotBe` (-1)
+                getdimid_status `shouldNotBe` (-1)
+                getdimstrs_status `shouldNotBe` (-1)
+                defaultStringAttrs `shouldBe`
+                    (SDimDescStringsRaw
+                        "DimLabel"
+                        "Units"
+                        "TheFormat")
+        context "SDgetfillvalue" $ do
+            it "returns correct Float fill value" $ do
+                (open_status, sd_id) <- sd_start "test-data/sd/test1.hdf" hdf_read
+                (select_status, sds_id) <- sd_select sd_id 0
+                (getfillvalue_status, fillValue) <- sd_getfillvalue sds_id
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                getfillvalue_status `shouldNotBe` (-1)
+                fillValue `shouldBe` (-17.5 :: Float)
+            it "returns correct Int fill value" $ do
+                (open_status, sd_id) <- sd_start "test-data/sd/test1.hdf" hdf_read
+                (nametoindex_status, sds_index) <- sd_nametoindex sd_id "FIXED1"
+                (select_status, sds_id) <- sd_select sd_id sds_index
+                (getfillvalue_status, fillValue) <- sd_getfillvalue sds_id
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                nametoindex_status `shouldNotBe` (-1)
+                getfillvalue_status `shouldNotBe` (-1)
+                fillValue `shouldBe` (-300 :: Int32)
+        context "SDgetrange" $ do
+            it "returns correct range" $ do
+                (open_status, sd_id) <- sd_start "test-data/sd/test1.hdf" hdf_read
+                (select_status, sds_id) <- sd_select sd_id 0
+                (getrange_status, validRange) <- sd_getrange sds_id
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                getrange_status `shouldNotBe` (-1)
+                validRange `shouldBe` ((4.6, 10.0) :: (Float, Float))
+        context "SDsetcal" $ do
+            it "sets calibration parameters" $ do
+                let calibrationParamsNew = SCalibrationParametersRaw 1.0 5.0 3.0 2.5 (unHDFDataTypeTag hdf_float64)
+                (open_status, sd_id) <- sd_start "empty_sds.hdf" hdf_create
+                (create_status, sds_id) <- sd_create sd_id "emptyDataSet" hdf_uint8 [1,2,3]
+                (setcal_status, dim_id) <- sd_setcal sds_id calibrationParamsNew
+                (getcal_status, calibrationParams) <- sd_getcal sds_id
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [create_status, endaccess_status] `shouldNotContain`[-1]
+                setcal_status `shouldNotBe` (-1)
+                getcal_status `shouldNotBe` (-1)
+                calibrationParams `shouldBe` calibrationParamsNew
+        context "SDsetdatastrs" $ do
+            it "sets all predefined string attributes" $ do
+                let defaultStringAttrsNew = SDsetDescStringsRaw "Label" "Unit" "Format" "Coordinate system"
+                (open_status, sd_id) <- sd_start "empty_sds.hdf" hdf_create
+                (create_status, sds_id) <- sd_create sd_id "emptyDataSet" hdf_uint8 [1,2,3]
+                (setdatastrs_status, _) <- sd_setdatastrs sds_id defaultStringAttrsNew
+                (getdatastrs_status, defaultStringAttrs) <- sd_getdatastrs sds_id
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [create_status, endaccess_status] `shouldNotContain`[-1]
+                setdatastrs_status `shouldNotBe` (-1)
+                getdatastrs_status `shouldNotBe` (-1)
+                defaultStringAttrs `shouldBe` defaultStringAttrsNew
+            it "sets some predefined string attributes" $ do
+                let defaultStringAttrsNew = SDsetDescStringsRaw "Label" "Unit" "" ""
+                (open_status, sd_id) <- sd_start "empty_sds.hdf" hdf_create
+                (create_status, sds_id) <- sd_create sd_id "emptyDataSet" hdf_uint8 [1,2,3]
+                (setdatastrs_status, _) <- sd_setdatastrs sds_id defaultStringAttrsNew
+                (getdatastrs_status, defaultStringAttrs) <- sd_getdatastrs sds_id
+                -- Check that we don't create empty attribute
+                (findattr_status, _) <- sd_findattr sds_id "format"
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [create_status, endaccess_status] `shouldNotContain`[-1]
+                setdatastrs_status `shouldNotBe` (-1)
+                getdatastrs_status `shouldNotBe` (-1)
+                findattr_status `shouldBe` (-1)
+                defaultStringAttrs `shouldBe` defaultStringAttrsNew
+        context "SDsetdimstrs" $ do
+            it "sets all predefined string attributes" $ do
+                let defaultStringAttrsNew = SDimDescStringsRaw "Label" "Unit" "Format"
+                (open_status, sd_id) <- sd_start "empty_sds.hdf" hdf_create
+                (create_status, sds_id) <- sd_create sd_id "emptyDataSet" hdf_uint8 [1,2,3]
+                (getdimid_status, dim_id) <- sd_getdimid sds_id 0
+                (setdimstrs_status, _) <- sd_setdimstrs dim_id defaultStringAttrsNew
+                (getdimstrs_status, defaultStringAttrs) <- sd_getdimstrs dim_id
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [create_status, endaccess_status] `shouldNotContain`[-1]
+                getdimid_status `shouldNotBe` (-1)
+                setdimstrs_status `shouldNotBe` (-1)
+                getdimstrs_status `shouldNotBe` (-1)
+                defaultStringAttrs `shouldBe` defaultStringAttrsNew
+            it "sets some predefined string attributes" $ do
+                let defaultStringAttrsNew = SDimDescStringsRaw "Label" "Unit" ""
+                (open_status, sd_id) <- sd_start "empty_sds.hdf" hdf_create
+                (create_status, sds_id) <- sd_create sd_id "emptyDataSet" hdf_uint8 [1,2,3]
+                (getdimid_status, dim_id) <- sd_getdimid sds_id 0
+                (setdimstrs_status, _) <- sd_setdimstrs dim_id defaultStringAttrsNew
+                (getdimstrs_status, defaultStringAttrs) <- sd_getdimstrs dim_id
+                -- Check that we don't create empty attribute
+                (findattr_status, _) <- sd_findattr sds_id "format"
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [create_status, endaccess_status] `shouldNotContain`[-1]
+                getdimid_status `shouldNotBe` (-1)
+                setdimstrs_status `shouldNotBe` (-1)
+                getdimstrs_status `shouldNotBe` (-1)
+                findattr_status `shouldBe` (-1)
+                defaultStringAttrs `shouldBe` defaultStringAttrsNew
+        context "SDsetfillvalue" $ do
+            it "sets fill value" $ do
+                (open_status, sd_id) <- sd_start "empty_sds.hdf" hdf_create
+                (create_status, sds_id) <- sd_create sd_id "emptyDataSet" hdf_int32 [1,2,3]
+                (setfillvalue_status, _) <- sd_setfillvalue sds_id (-777 :: Int32)
+                (getfillvalue_status, fillValue) <- sd_getfillvalue sds_id
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [create_status, endaccess_status] `shouldNotContain`[-1]
+                setfillvalue_status `shouldNotBe` (-1)
+                getfillvalue_status `shouldNotBe` (-1)
+                fillValue `shouldBe` (-777 :: Int32)
+        context "SDsetfillmode" $ do
+            it "sets fill mode" $ do
+                pendingWith "reading and writing SDS is not implemented"
+            it "sets no-fill mode" $ do
+                pendingWith "reading and writing SDS is not implemented"
+        context "SDsetrange" $ do
+            it "sets valid range for dataset" $ do
+                (open_status, sd_id) <- sd_start "empty_sds.hdf" hdf_create
+                (create_status, sds_id) <- sd_create sd_id "emptyDataSet" hdf_int32 [1,2,3]
+                (setrange_status, _) <- sd_setrange sds_id (0 :: Int32) (100 :: Int32)
+                (getrange_status, validRange) <- sd_getrange sds_id
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [create_status, endaccess_status] `shouldNotContain`[-1]
+                setrange_status `shouldNotBe` (-1)
+                getrange_status `shouldNotBe` (-1)
+                validRange `shouldBe` ((0, 100) :: (Int32, Int32))

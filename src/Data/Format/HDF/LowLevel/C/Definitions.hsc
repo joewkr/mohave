@@ -35,6 +35,9 @@ newtype HDFDataTypeTag = HDFDataTypeTag { unHDFDataTypeTag :: Int32 }
 hdfMaxVarDims :: Int32
 hdfMaxVarDims = #const MAX_VAR_DIMS
 
+hdfMaxNcNameLen :: Int32
+hdfMaxNcNameLen = #const MAX_NC_NAME
+
 
 data HDFVarList = HDFVarList {
     hdf_var_index :: Int32
@@ -51,3 +54,10 @@ instance Storable HDFVarList where
   poke ptr (HDFVarList var_index var_type) = do
     #{poke hdf_varlist_t, var_index} ptr var_index
     #{poke hdf_varlist_t, var_type}  ptr var_type
+
+newtype HDFFillModeTag = HDFFillModeTag { unHDFFillModeTag :: Int32 }
+
+#{enum HDFFillModeTag, HDFFillModeTag
+  , hdf_fill                 = SD_FILL
+  , hdf_nofill               = SD_NOFILL
+  }
