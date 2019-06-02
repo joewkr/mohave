@@ -121,11 +121,11 @@ sd_start fileName mode = withCString fileName $ \c_fileName -> do
     sd_id <- c_sdstart c_fileName (unHDFOpenOption mode)
     return $! (sd_id, SDId sd_id)
 
-sd_create :: SDId -> String -> HDFDataType -> [Int32] -> IO (Int32, SDataSetId)
+sd_create :: SDId -> String -> HDFDataTypeTag -> [Int32] -> IO (Int32, SDataSetId)
 sd_create (SDId sd_id) sds_name data_type dim_sizes =
     withCString sds_name $ \c_sds_name ->
     withArray dim_sizes $ \c_dim_sizes -> do
-        sds_id <- c_sdcreate sd_id c_sds_name (unHDFDataType data_type) rank c_dim_sizes
+        sds_id <- c_sdcreate sd_id c_sds_name (unHDFDataTypeTag data_type) rank c_dim_sizes
         return $! (sds_id, SDataSetId sds_id)
   where
     rank = fromIntegral $! length dim_sizes

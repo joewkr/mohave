@@ -17,9 +17,9 @@ newtype HDFOpenOption = HDFOpenOption { unHDFOpenOption :: Int32 }
   , hdf_create               = DFACC_CREATE
   }
 
-newtype HDFDataType = HDFDataType { unHDFDataType :: Int32 }
+newtype HDFDataTypeTag = HDFDataTypeTag { unHDFDataTypeTag :: Int32 }
 
-#{enum HDFDataType, HDFDataType
+#{enum HDFDataTypeTag, HDFDataTypeTag
   , hdf_char8                = DFNT_CHAR8
   , hdf_uchar8               = DFNT_UCHAR8
   , hdf_int8                 = DFNT_INT8
