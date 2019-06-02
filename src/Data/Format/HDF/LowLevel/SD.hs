@@ -215,7 +215,14 @@ sd_getinfo sDataSetId@(SDataSetId sds_id) = do
                 dimSizes <- peekArray (fromIntegral rank) dimSizesPtr
                 dataType <- peek dataTypePtr
                 numAttributes <- peek numAttributesPtr
-                return $! (fromIntegral h_result, SDataSetInfoRaw sdsName rank dimSizes dataType numAttributes)
+                return $!
+                    ( fromIntegral h_result
+                    , SDataSetInfoRaw
+                        sdsName
+                        rank
+                        dimSizes
+                        dataType
+                        numAttributes)
   where
     emptySDataSetInfo :: SDataSetInfoRaw
     emptySDataSetInfo = SDataSetInfoRaw "" 0 [] 0 0
@@ -320,7 +327,13 @@ sd_diminfo sDimensionId@(SDimensionId dimension_id) = do
                 dimSize <- peek dimSizePtr
                 dataType <- peek dataTypePtr
                 numAttributes <- peek numAttributesPtr
-                return $! (fromIntegral h_result, SDimensionInfoRaw dimName dimSize dataType numAttributes)
+                return $!
+                    ( fromIntegral h_result
+                    , SDimensionInfoRaw
+                        dimName
+                        dimSize
+                        dataType
+                        numAttributes)
   where
     emptySDimensionInfo :: SDimensionInfoRaw
     emptySDimensionInfo = SDimensionInfoRaw "" 0 0 0
