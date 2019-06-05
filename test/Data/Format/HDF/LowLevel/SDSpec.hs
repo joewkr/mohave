@@ -642,3 +642,32 @@ spec = do
                 setrange_status `shouldNotBe` (-1)
                 getrange_status `shouldNotBe` (-1)
                 validRange `shouldBe` ((0, 100) :: (Int32, Int32))
+    context "Compression" $ do
+        context "SDsetcompress/SDgetcompinfo" $ do
+            it "sets compression parameters" $ do
+                let compParamsNew = HDFCompDeflate 9
+                (open_status, sd_id) <- sd_start "empty_sds.hdf" hdf_create
+                (create_status, sds_id) <- sd_create sd_id "emptyDataSet" hdf_int32 [1,2,3]
+                (setcompress_status, _) <- sd_setcompress sds_id compParamsNew
+                (getcompinfo_status, compParams) <- sd_getcompinfo sds_id
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [create_status, endaccess_status] `shouldNotContain`[-1]
+                setcompress_status `shouldNotBe` (-1)
+                getcompinfo_status `shouldNotBe` (-1)
+                compParams `shouldBe` compParamsNew
+        context "SDsetnbitdataset" $ do
+            it "sets n-bit compression parameters" $ do
+                let compParamsNew = SDNBitCompParams 0 3 False False
+                (open_status, sd_id) <- sd_start "empty_sds.hdf" hdf_create
+                (create_status, sds_id) <- sd_create sd_id "emptyDataSet" hdf_int32 [1,2,3]
+                (setnbitdataset_status, _) <- sd_setnbitdataset sds_id compParamsNew
+                (getcompinfo_status, compParams) <- sd_getcompinfo sds_id
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [create_status, endaccess_status] `shouldNotContain`[-1]
+                setnbitdataset_status `shouldNotBe` (-1)
+                getcompinfo_status `shouldNotBe` (-1)
+                compParams `shouldBe` HDFCompNBit (unHDFDataTypeTag hdf_int32) 0 0 0 3

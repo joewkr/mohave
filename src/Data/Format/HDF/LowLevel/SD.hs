@@ -7,7 +7,7 @@ import           Foreign.C.String
 import           Foreign.C.Types
 import           Foreign.Marshal.Alloc
 import           Foreign.Marshal.Array
-import           Foreign.Marshal.Utils (with)
+import           Foreign.Marshal.Utils (with, fromBool)
 import           Foreign.Ptr
 import           Foreign.Storable (peek)
 
@@ -72,9 +72,9 @@ foreign import ccall unsafe "SDsetfillmode" c_sdsetfillmode :: Int32 -> CInt -> 
 foreign import ccall unsafe "SDsetrange" c_sdsetrange :: Int32 -> Ptr HDFData -> Ptr HDFData -> IO CInt
 
 -- Compression
--- SDsetcompress
--- SDsetnbitdataset
--- SDgetcompinfo
+foreign import ccall unsafe "SDsetcompress" c_sdsetcompress :: Int32 -> HDFCompType -> Ptr HDFCompParams -> IO CInt
+foreign import ccall unsafe "SDsetnbitdataset" c_sdsetnbitdataset :: Int32 -> CInt -> CInt -> CInt -> CInt -> IO CInt
+foreign import ccall unsafe "SDgetcompinfo" c_sdgetcompinfo :: Int32 -> Ptr HDFCompType -> Ptr HDFCompParams -> IO CInt
 
 -- Chunking/Tiling
 -- SDgetchunkinfo
@@ -563,3 +563,44 @@ sd_setrange (SDataSetId sds_id) minValue maxValue =
     with maxValue $ \maxValuePtr -> do
         h_result <- c_sdsetrange sds_id (castPtr maxValuePtr) (castPtr minValuePtr)
         return $! (fromIntegral h_result, ())
+
+sd_setcompress :: SDataSetId -> HDFCompParams -> IO (Int32, ())
+sd_setcompress (SDataSetId sds_id) compParams =
+    with compParams $ \compParamsPtr -> do
+        h_result <- c_sdsetcompress
+                        sds_id
+                        (unHDFCompModeTag $ selectCompMode compParams)
+                        compParamsPtr
+        return $! (fromIntegral h_result, ())
+
+sd_getcompinfo :: SDataSetId -> IO (Int32, HDFCompParams)
+sd_getcompinfo (SDataSetId sds_id) =
+    alloca $ \compTypePtr ->
+    alloca $ \compParamsPtr -> do
+        h_result <- c_sdgetcompinfo sds_id compTypePtr compParamsPtr
+        peek compTypePtr >>= embedCompTag compParamsPtr
+        compParams <- peek compParamsPtr
+        return $! (fromIntegral h_result, compParams)
+
+data SDNBitCompParams = SDNBitCompParams {
+      nBitCompStartBit :: Int32
+    , nBitCompBitLen   :: Int32
+    , nBitCompSignExt  :: Bool
+    , nBitCompFillOne  :: Bool
+} deriving (Show, Eq)
+
+sd_setnbitdataset :: SDataSetId -> SDNBitCompParams -> IO (Int32, ())
+sd_setnbitdataset
+    (SDataSetId sds_id)
+    (SDNBitCompParams
+        startBit
+        bitLen
+        signExt
+        fillOne) = do
+    h_result <- c_sdsetnbitdataset
+                    sds_id
+                    (fromIntegral startBit)
+                    (fromIntegral bitLen)
+                    (fromBool signExt)
+                    (fromBool fillOne)
+    return $! (fromIntegral h_result, ())
