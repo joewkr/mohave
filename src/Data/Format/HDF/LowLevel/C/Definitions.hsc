@@ -133,8 +133,8 @@ instance Storable HDFCompParams where
           bits_per_pixel
           pixels
       _ -> error "HDFCompParams: Undefined tag"
-  poke ptr HDFCompNone = embedCompTag ptr #{const COMP_CODE_NONE}
-  poke ptr HDFCompRLE = embedCompTag ptr #{const COMP_CODE_RLE}
+  poke _ HDFCompNone = return ()
+  poke _ HDFCompRLE = return ()
   poke ptr
     (HDFCompNBit
       rawType
@@ -147,13 +147,10 @@ instance Storable HDFCompParams where
         #{poke comp_info, nbit.fill_one} ptr fillOne
         #{poke comp_info, nbit.start_bit} ptr startBit
         #{poke comp_info, nbit.bit_len} ptr bitLen
-        embedCompTag ptr #{const COMP_CODE_NBIT}
   poke ptr (HDFCompSkHuff skp_size) = do
     #{poke comp_info, skphuff.skp_size} ptr skp_size
-    embedCompTag ptr #{const COMP_CODE_SKPHUFF}
   poke ptr (HDFCompDeflate comp_level) = do
     #{poke comp_info, deflate.level} ptr comp_level
-    embedCompTag ptr #{const COMP_CODE_DEFLATE}
   poke ptr
     (HDFCompSZip
       options_mask
@@ -166,7 +163,6 @@ instance Storable HDFCompParams where
         #{poke comp_info, szip.pixels_per_scanline} ptr pixels_per_scanline
         #{poke comp_info, szip.bits_per_pixel} ptr bits_per_pixel
         #{poke comp_info, szip.pixels} ptr pixels
-        embedCompTag ptr #{const COMP_CODE_SZIP}
 
 newtype HDFCompModeTag = HDFCompModeTag { unHDFCompModeTag :: #{type comp_coder_t} }
 
