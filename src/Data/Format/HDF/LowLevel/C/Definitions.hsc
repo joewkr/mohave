@@ -116,7 +116,7 @@ instance Storable HDFCompParams where
           bitLen
       #{const COMP_CODE_SKPHUFF} -> do
         skp_size <- #{peek comp_info, skphuff.skp_size} ptr
-        return $! HDFCompDeflate skp_size
+        return $! HDFCompSkHuff skp_size
       #{const COMP_CODE_DEFLATE} -> do
         comp_level <- #{peek comp_info, deflate.level} ptr
         return $! HDFCompDeflate comp_level
