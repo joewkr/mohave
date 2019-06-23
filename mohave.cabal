@@ -21,6 +21,7 @@ library mohave-internal
   other-extensions:    BangPatterns
                      , CPP
                      , ForeignFunctionInterface
+                     , ScopedTypeVariables
   ghc-options:        -Wall
   build-depends:       base >=4.11 && <4.12
   build-tool-depends:  hsc2hs:hsc2hs

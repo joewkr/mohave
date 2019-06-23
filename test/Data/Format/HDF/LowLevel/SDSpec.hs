@@ -671,3 +671,58 @@ spec = do
                 setnbitdataset_status `shouldNotBe` (-1)
                 getcompinfo_status `shouldNotBe` (-1)
                 compParams `shouldBe` HDFCompNBit (unHDFDataTypeTag hdf_int32) 0 0 0 3
+    context "Chunking/Tiling" $ do
+        context "SDgetchunkinfo" $ do
+            it "handles empty SDS" $ do
+                (open_status, sd_id) <- sd_start "empty_sds.hdf" hdf_create
+                (create_status, sds_id) <- sd_create sd_id "emptyDataSet" hdf_int32 [1,2,3]
+                (getchunkinfo_status, chunkParams) <- sd_getchunkinfo sds_id
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [create_status, endaccess_status] `shouldNotContain`[-1]
+                getchunkinfo_status `shouldNotBe` (-1)
+                chunkParams `shouldBe` (HDFChunkParams [] HDFCompNone)
+            it "returns correct chunking information" $ do
+                (open_status, sd_id) <- sd_start "test-data/sd/chktst.hdf" hdf_read
+                (select_status, sds_id) <- sd_select sd_id 0
+                (getchunkinfo_status, chunkParams) <- sd_getchunkinfo sds_id
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                getchunkinfo_status `shouldNotBe` (-1)
+                chunkParams `shouldBe` (HDFChunkParams [3,2] HDFCompNone)
+            it "returns correct chunking information from compressed SDS - 1" $ do
+                (open_status, sd_id) <- sd_start "test-data/sd/chktst.hdf" hdf_read
+                (select_status, sds_id) <- sd_select sd_id 5
+                (getchunkinfo_status, chunkParams) <- sd_getchunkinfo sds_id
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                getchunkinfo_status `shouldNotBe` (-1)
+                chunkParams `shouldBe` (HDFChunkParams [1,1,4] $ HDFCompSkHuff 2)
+            it "returns correct chunking information from compressed SDS - 2" $ do
+                (open_status, sd_id) <- sd_start "test-data/sd/chktst.hdf" hdf_read
+                (select_status, sds_id) <- sd_select sd_id 6
+                (getchunkinfo_status, chunkParams) <- sd_getchunkinfo sds_id
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                getchunkinfo_status `shouldNotBe` (-1)
+                chunkParams `shouldBe` (HDFChunkParams [3,2] $ HDFCompDeflate 6)
+            it "returns correct chunking information from compressed SDS - 3" $ do
+                (open_status, sd_id) <- sd_start "test-data/sd/chknbit.hdf" hdf_read
+                (select_status, sds_id) <- sd_select sd_id 0
+                (getchunkinfo_status, chunkParams) <- sd_getchunkinfo sds_id
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                getchunkinfo_status `shouldNotBe` (-1)
+                chunkParams `shouldBe` (HDFChunkParams [2,2] $ HDFCompNBit 0 0 0 6 7)
+        context "SDsetchunk" $ do
+            it "converts SDS to chunked SDS" $ do
+                pendingWith "reading and writing SDS is not implemented"

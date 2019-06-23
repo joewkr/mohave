@@ -1,10 +1,14 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Data.Format.HDF.LowLevel.C.Definitions where
 
 import           Data.Int
 import           Data.Word
 import           Foreign.C.Types
+import           Foreign.Marshal.Alloc
+import           Foreign.Marshal.Array
+import           Foreign.Marshal.Utils
 import           Foreign.Ptr
 import           Foreign.Storable
 
@@ -83,12 +87,22 @@ data HDFCompParams =
     , hdfCompPixels :: Int32}
   deriving (Show, Eq)
 
+class TaggedData a where
+  rawDataSize :: a -> Int
+
 tagAlignement, tagSize :: Int
 tagAlignement = alignment (undefined :: #{type comp_coder_t})
 tagSize = sizeOf (undefined :: #{type comp_coder_t})
 
-tagPtr :: Ptr HDFCompParams -> Ptr #{type comp_coder_t}
-tagPtr compParamsPtr = (flip alignPtr) tagAlignement $ plusPtr compParamsPtr #{size comp_info}
+tagPtr :: forall a.TaggedData a => Ptr a -> Ptr #{type comp_coder_t}
+tagPtr taggedPtr =
+  (flip alignPtr) tagAlignement . plusPtr taggedPtr $ rawDataSize (undefined :: a)
+
+embedCompTag :: TaggedData a => Ptr a -> #{type comp_coder_t} -> IO ()
+embedCompTag compParamsPtr tag = poke (tagPtr compParamsPtr) tag
+
+instance TaggedData HDFCompParams where
+  rawDataSize _ = #{size comp_info}
 
 instance Storable HDFCompParams where
   alignment _ = #{alignment comp_info}
@@ -185,6 +199,79 @@ selectCompMode HDFCompSkHuff{}  = hdf_comp_skphuff
 selectCompMode HDFCompDeflate{} = hdf_comp_deflate
 selectCompMode HDFCompSZip{}    = hdf_comp_szip
 
-embedCompTag :: Ptr HDFCompParams -> #{type comp_coder_t} -> IO ()
-embedCompTag compParamsPtr tag =
-  poke (tagPtr compParamsPtr) tag
+data HDFChunkParams = HDFChunkParams {
+    hdfChunkSizes       :: [Int32]
+  , hdfChunkCompression :: HDFCompParams}
+  deriving (Show, Eq)
+
+instance TaggedData HDFChunkParams where
+  rawDataSize _ = #{size HDF_CHUNK_DEF}
+
+instance Storable HDFChunkParams where
+  alignment _ = #{alignment HDF_CHUNK_DEF}
+  sizeOf _ =
+    ((#{size HDF_CHUNK_DEF} + #{alignment HDF_CHUNK_DEF} + tagAlignement - 1)
+    `div` tagAlignement)*tagSize - #{alignment HDF_CHUNK_DEF} + tagSize
+  peek ptr = do
+    tag <- peek (tagPtr ptr)
+    case tag of
+      #{const HDF_NONE} -> do
+        return $! HDFChunkParams [] HDFCompNone
+      #{const HDF_CHUNK} -> do
+        let chunksPtr = plusPtr ptr #{offset HDF_CHUNK_DEF, chunk_lengths}
+        chunks <- filter (/= 0) <$> peekArray #{const H4_MAX_VAR_DIMS} chunksPtr
+        return $! HDFChunkParams chunks HDFCompNone
+      #{const HDF_CHUNK|HDF_COMP} -> do
+        let chunksPtr = plusPtr ptr #{offset HDF_CHUNK_DEF, comp.chunk_lengths}
+        chunks <- filter (/= 0) <$> peekArray #{const H4_MAX_VAR_DIMS} chunksPtr
+        -- We need to embed tag to be able to peek HDFCompParams, so
+        -- allocate memory for new HDFCompParams, copy raw data from
+        -- the input pointer and attach the tag.
+        compParams <- alloca $ \compParamsPtr -> do
+          let
+            cinfoPtr = #{ptr HDF_CHUNK_DEF, comp.cinfo} ptr
+            cinfoSize = rawDataSize (undefined :: HDFCompParams)
+          copyBytes compParamsPtr cinfoPtr cinfoSize
+          #{peek HDF_CHUNK_DEF, comp.comp_type} ptr >>= embedCompTag compParamsPtr
+          peek compParamsPtr
+        return $! HDFChunkParams chunks compParams
+      #{const HDF_CHUNK|HDF_NBIT} -> do
+        let chunksPtr = plusPtr ptr #{offset HDF_CHUNK_DEF, nbit.chunk_lengths}
+        chunks <- filter (/= 0) <$> peekArray #{const H4_MAX_VAR_DIMS} chunksPtr
+        signExt  <- #{peek HDF_CHUNK_DEF, nbit.sign_ext} ptr
+        fillOne  <- #{peek HDF_CHUNK_DEF, nbit.fill_one} ptr
+        startBit <- #{peek HDF_CHUNK_DEF, nbit.start_bit} ptr
+        bitLen   <- #{peek HDF_CHUNK_DEF, nbit.bit_len} ptr
+        return $! HDFChunkParams chunks $
+          HDFCompNBit
+            0
+            signExt
+            fillOne
+            startBit
+            bitLen
+      _ -> error "HDFChunkParams: Undefined tag"
+  poke ptr (HDFChunkParams chunks compParams) = case compParams of
+    HDFCompNone -> do
+      let chunksPtr = plusPtr ptr #{offset HDF_CHUNK_DEF, chunk_lengths}
+      pokeArray chunksPtr chunksPadded
+    (HDFCompNBit _ signExt fillOne startBit bitLen) -> do
+      let chunksPtr = plusPtr ptr #{offset HDF_CHUNK_DEF, nbit.chunk_lengths}
+      pokeArray chunksPtr chunksPadded
+      #{poke HDF_CHUNK_DEF, nbit.sign_ext} ptr signExt
+      #{poke HDF_CHUNK_DEF, nbit.fill_one} ptr fillOne
+      #{poke HDF_CHUNK_DEF, nbit.start_bit} ptr startBit
+      #{poke HDF_CHUNK_DEF, nbit.bit_len} ptr bitLen
+    _ -> do
+      let
+        chunksPtr = plusPtr ptr #{offset HDF_CHUNK_DEF, comp.chunk_lengths}
+        compTag = (fromIntegral . unHDFCompModeTag $ selectCompMode compParams) :: Int32
+      pokeArray chunksPtr chunksPadded
+      #{poke HDF_CHUNK_DEF, comp.comp_type} ptr compTag
+      #{poke HDF_CHUNK_DEF, comp.cinfo} ptr compParams
+    where
+      chunksPadded = take #{const H4_MAX_VAR_DIMS} $ chunks ++ repeat 0
+
+selectChunkingMode :: HDFChunkParams -> Int32
+selectChunkingMode (HDFChunkParams _ HDFCompNone  ) = #{const HDF_CHUNK}
+selectChunkingMode (HDFChunkParams _ HDFCompNBit{}) = #{const HDF_CHUNK | HDF_NBIT}
+selectChunkingMode (HDFChunkParams _ _            ) = #{const HDF_CHUNK | HDF_COMP}

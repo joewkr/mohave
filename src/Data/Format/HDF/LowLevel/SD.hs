@@ -7,9 +7,9 @@ import           Foreign.C.String
 import           Foreign.C.Types
 import           Foreign.Marshal.Alloc
 import           Foreign.Marshal.Array
-import           Foreign.Marshal.Utils (with, fromBool)
+import           Foreign.Marshal.Utils (with, fromBool, fillBytes)
 import           Foreign.Ptr
-import           Foreign.Storable (peek)
+import           Foreign.Storable (peek, sizeOf)
 
 import           Data.Format.HDF.LowLevel.C.Definitions
 import           Data.Format.HDF.LowLevel.Definitions
@@ -77,10 +77,10 @@ foreign import ccall unsafe "SDsetnbitdataset" c_sdsetnbitdataset :: Int32 -> CI
 foreign import ccall unsafe "SDgetcompinfo" c_sdgetcompinfo :: Int32 -> Ptr HDFCompType -> Ptr HDFCompParams -> IO CInt
 
 -- Chunking/Tiling
--- SDgetchunkinfo
+foreign import ccall unsafe "SDgetchunkinfo" c_sdgetchunkinfo :: Int32 -> Ptr HDFChunkParams -> Ptr Int32 -> IO CInt
 -- SDreadchunk
--- SDsetchunk
--- SDsetchunkcache
+foreign import ccall unsafe "SDsetchunk" c_sdsetchunk :: Int32 -> Ptr HDFChunkParams -> Int32 -> IO CInt
+foreign import ccall unsafe "SDsetchunkcache" c_sdsetchunkcache :: Int32 -> Int32 -> Int32 -> IO CInt
 -- SDwritechunk
 
 -- Raw data information
@@ -604,3 +604,27 @@ sd_setnbitdataset
                     (fromBool signExt)
                     (fromBool fillOne)
     return $! (fromIntegral h_result, ())
+
+sd_setchunkcache :: SDataSetId -> Int32 -> IO (Int32, ())
+sd_setchunkcache (SDataSetId sds_id) cacheSize = do
+    h_result <- c_sdsetchunkcache sds_id cacheSize 0
+    return $! (fromIntegral h_result, ())
+
+sd_setchunk :: SDataSetId -> HDFChunkParams -> IO (Int32, ())
+sd_setchunk (SDataSetId sds_id) chunkParams =
+    with chunkParams $ \chunkParamsPtr -> do
+        h_result <- c_sdsetchunk sds_id chunkParamsPtr (selectChunkingMode chunkParams)
+        return $! (fromIntegral h_result, ())
+
+sd_getchunkinfo :: SDataSetId -> IO (Int32, HDFChunkParams)
+sd_getchunkinfo (SDataSetId sds_id) =
+    alloca $ \chunkModePtr ->
+    alloca $ \chunkParamsPtr -> do
+        -- Clear memory for HDFChunkParams because SDgetchunkinfo would set
+        -- chunk_lengths according to the number of dimension in current SDS
+        -- and leave the rest of the chunk_lengths array untouched.
+        fillBytes chunkParamsPtr 0 $ sizeOf (undefined :: HDFChunkParams)
+        h_result <- c_sdgetchunkinfo sds_id chunkParamsPtr chunkModePtr
+        (fromIntegral <$> peek chunkModePtr) >>= embedCompTag chunkParamsPtr
+        chunkParams <- peek chunkParamsPtr
+        return $! (fromIntegral h_result, chunkParams)
