@@ -93,8 +93,8 @@ tagPtr compParamsPtr = (flip alignPtr) tagAlignement $ plusPtr compParamsPtr #{s
 instance Storable HDFCompParams where
   alignment _ = #{alignment comp_info}
   sizeOf _ =
-    (#{size comp_info} + #{alignment comp_info} + tagAlignement - 1)
-    `div` tagAlignement - #{alignment comp_info} + tagSize
+    ((#{size comp_info} + #{alignment comp_info} + tagAlignement - 1)
+    `div` tagAlignement)*tagSize - #{alignment comp_info} + tagSize
   peek ptr = do
     tag <- peek (tagPtr ptr)
     case tag of
