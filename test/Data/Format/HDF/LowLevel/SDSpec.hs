@@ -1,10 +1,13 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Data.Format.HDF.LowLevel.SDSpec(spec) where
 
 import           Data.Int (Int32)
 import           Test.Hspec
 
+import qualified Data.ByteString as BS
 import           Data.Format.HDF.LowLevel.C.Definitions
 import           Data.Format.HDF.LowLevel.SD
+import           System.IO
 
 spec :: Spec
 spec = do
@@ -726,3 +729,202 @@ spec = do
         context "SDsetchunk" $ do
             it "converts SDS to chunked SDS" $ do
                 pendingWith "reading and writing SDS is not implemented"
+    context "Raw data information" $ do
+        context "SDgetanndatainfo" $ do
+            it "gets SD label raw offset and length" $ do
+                let filePath = "test-data/sd/tdfanndg.hdf"
+                (open_status, sd_id) <- sd_start filePath hdf_read
+                (getanndatainfo_status, annOffsetLen) <- sd_getanndatainfo sd_id hdf_ann_file_label
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                getanndatainfo_status `shouldNotBe` (-1)
+                let
+                    (ann2Ofst,ann2Len) = annOffsetLen !! 0
+                    (ann1Ofst,ann1Len) = annOffsetLen !! 1
+                hndl <- openBinaryFile filePath ReadMode
+                hSeek hndl AbsoluteSeek (fromIntegral ann1Ofst)
+                ann1 <- BS.hGet hndl (fromIntegral ann1Len)
+                hSeek hndl AbsoluteSeek (fromIntegral ann2Ofst)
+                ann2 <- BS.hGet hndl (fromIntegral ann2Len)
+                hClose hndl
+                ann1 `shouldBe` "File Label #1"
+                ann2 `shouldBe` "File Label #2"
+            it "gets SD description raw offset and length" $ do
+                let filePath = "test-data/sd/tdfanndg.hdf"
+                (open_status, sd_id) <- sd_start filePath hdf_read
+                (getanndatainfo_status, annOffsetLen) <- sd_getanndatainfo sd_id hdf_ann_file_desc
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                getanndatainfo_status `shouldNotBe` (-1)
+                let
+                    (ann2Ofst,ann2Len) = annOffsetLen !! 0
+                    (ann1Ofst,ann1Len) = annOffsetLen !! 1
+                hndl <- openBinaryFile filePath ReadMode
+                hSeek hndl AbsoluteSeek (fromIntegral ann1Ofst)
+                ann1 <- BS.hGet hndl (fromIntegral ann1Len)
+                hSeek hndl AbsoluteSeek (fromIntegral ann2Ofst)
+                ann2 <- BS.hGet hndl (fromIntegral ann2Len)
+                hClose hndl
+                ann1 `shouldBe` "File Descr #1: This is a file label, added\n       by the DFAN interface...**END SDS 1 DESCR**\n"
+                ann2 `shouldBe` "File Descr #2: This is another file label added\n       by the DFAN API as well.**END SDS 2 DESCR**\n"
+            it "gets SDS label raw offset and length" $ do
+                let filePath = "test-data/sd/tdfanndg.hdf"
+                (open_status, sd_id) <- sd_start filePath hdf_read
+                (nametoindex_status, sds_index) <- sd_nametoindex sd_id "Data-Set-3"
+                (select_status, sds_id) <- sd_select sd_id sds_index
+                (getanndatainfo_status, annOffsetLen) <- sd_getanndatainfo sds_id hdf_ann_data_label
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                nametoindex_status `shouldNotBe` (-1)
+                getanndatainfo_status `shouldNotBe` (-1)
+                let (annOfst,annLen) = annOffsetLen !! 0
+                hndl <- openBinaryFile filePath ReadMode
+                hSeek hndl AbsoluteSeek (fromIntegral annOfst)
+                ann <- BS.hGet hndl (fromIntegral annLen)
+                hClose hndl
+                ann `shouldBe` "Object label #1: sds"
+            it "gets SDS description raw offset and length" $ do
+                let filePath = "test-data/sd/tdfanndg.hdf"
+                (open_status, sd_id) <- sd_start filePath hdf_read
+                (nametoindex_status, sds_index) <- sd_nametoindex sd_id "Data-Set-3"
+                (select_status, sds_id) <- sd_select sd_id sds_index
+                (getanndatainfo_status, annOffsetLen) <- sd_getanndatainfo sds_id hdf_ann_data_desc
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                nametoindex_status `shouldNotBe` (-1)
+                getanndatainfo_status `shouldNotBe` (-1)
+                let (annOfst,annLen) = annOffsetLen !! 0
+                hndl <- openBinaryFile filePath ReadMode
+                hSeek hndl AbsoluteSeek (fromIntegral annOfst)
+                ann <- BS.hGet hndl (fromIntegral annLen)
+                hClose hndl
+                ann `shouldBe` "Object Descr #1: 1 2 3 4 5 6 7 8 9 10 11 12 \n       13 14 15 16 17 18 19 20 **END SDS 1 DESCR**\n"
+        context "SDgetattdatainfo" $ do
+            it "gets SD attribute raw offset and length" $ do
+                let filePath = "test-data/sd/test1.hdf"
+                (open_status, sd_id) <- sd_start filePath hdf_read
+                (getattdatainfo_status, annOffsetLen) <- sd_getattdatainfo sd_id 0
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                getattdatainfo_status `shouldNotBe` (-1)
+                let (attrOfst,attrLen) = annOffsetLen
+                hndl <- openBinaryFile filePath ReadMode
+                hSeek hndl AbsoluteSeek (fromIntegral attrOfst)
+                attr <- BS.hGet hndl (fromIntegral attrLen)
+                hClose hndl
+                attr `shouldBe` "globulator"
+            it "gets SDS attribute raw offset and length" $ do
+                let filePath = "test-data/sd/test1.hdf"
+                (open_status, sd_id) <- sd_start filePath hdf_read
+                (nametoindex_status, sds_index) <- sd_nametoindex sd_id "DataSetAlpha"
+                (select_status, sds_id) <- sd_select sd_id sds_index
+                (getattdatainfo_status, annOffsetLen) <- sd_getattdatainfo sds_id 3
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                nametoindex_status `shouldNotBe` (-1)
+                getattdatainfo_status `shouldNotBe` (-1)
+                let (attrOfst,attrLen) = annOffsetLen
+                hndl <- openBinaryFile filePath ReadMode
+                hSeek hndl AbsoluteSeek (fromIntegral attrOfst)
+                attr <- BS.hGet hndl (fromIntegral attrLen)
+                hClose hndl
+                attr `shouldBe` "TheLabel"
+            it "gets dimension attribute raw offset and length" $ do
+                let filePath = "test-data/sd/test1.hdf"
+                (open_status, sd_id) <- sd_start filePath hdf_read
+                (nametoindex_status, sds_index) <- sd_nametoindex sd_id "DataSetGamma"
+                (select_status, sds_id) <- sd_select sd_id sds_index
+                (getdimid_status, dim_id) <- sd_getdimid sds_id 0
+                (getattdatainfo_status, annOffsetLen) <- sd_getattdatainfo dim_id 1
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                nametoindex_status `shouldNotBe` (-1)
+                getdimid_status `shouldNotBe` (-1)
+                getattdatainfo_status `shouldNotBe` (-1)
+                let (attrOfst,attrLen) = annOffsetLen
+                hndl <- openBinaryFile filePath ReadMode
+                hSeek hndl AbsoluteSeek (fromIntegral attrOfst)
+                attr <- BS.hGet hndl (fromIntegral attrLen)
+                hClose hndl
+                attr `shouldBe` "DimLabel"
+        context "SDgetoldattdatainfo" $ do
+            it "gets old style SDS attribute raw offset and length" $ do
+                let filePath = "test-data/sd/tdfsdatts.hdf"
+                (open_status, sd_id) <- sd_start filePath hdf_read
+                (select_status, sds_id) <- sd_select sd_id 0
+                (getoldattdatainfo_status, annOffsetLen) <- sd_getoldattdatainfo sds_id Nothing "long_name"
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                getoldattdatainfo_status `shouldNotBe` (-1)
+                let (attrOfst,attrLen) = annOffsetLen
+                hndl <- openBinaryFile filePath ReadMode
+                hSeek hndl AbsoluteSeek (fromIntegral attrOfst)
+                attr <- BS.hGet hndl (fromIntegral attrLen)
+                hClose hndl
+                attr `shouldBe` "Datalabel"
+            it "gets old style dimension attribute raw offset and length" $ do
+                let filePath = "test-data/sd/tdfsdatts.hdf"
+                (open_status, sd_id) <- sd_start filePath hdf_read
+                (select_status, sds_id) <- sd_select sd_id 0
+                (getdimid_status, dim_id) <- sd_getdimid sds_id 1
+                (getoldattdatainfo_status, annOffsetLen) <- sd_getoldattdatainfo sds_id (Just dim_id) "format"
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                getdimid_status `shouldNotBe` (-1)
+                getoldattdatainfo_status `shouldNotBe` (-1)
+                let (attrOfst,attrLen) = annOffsetLen
+                hndl <- openBinaryFile filePath ReadMode
+                hSeek hndl AbsoluteSeek (fromIntegral attrOfst)
+                attr <- BS.hGet hndl (fromIntegral attrLen)
+                hClose hndl
+                attr `shouldBe` "c_dim2_fmt"
+            it "handles missing old style attribute" $ do
+                let filePath = "test-data/sd/tdfsdatts.hdf"
+                (open_status, sd_id) <- sd_start filePath hdf_read
+                (select_status, sds_id) <- sd_select sd_id 0
+                (getdimid_status, dim_id) <- sd_getdimid sds_id 0
+                (getoldattdatainfo_status, annOffsetLen) <- sd_getoldattdatainfo sds_id (Just dim_id) "long_name"
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                getdimid_status `shouldNotBe` (-1)
+                getoldattdatainfo_status `shouldNotBe` (-1)
+                let (attrOfst,attrLen) = annOffsetLen
+                attrLen `shouldBe` 0
+        context "SDgetdatainfo" $ do
+            it "gets SDS raw data offsets and lengths" $ do
+                let filePath = "test-data/sd/test1.hdf"
+                    expected = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
+                               \\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
+                               \\x00\x00\x00\x64\x00\x00\x00\x65\x00\x00\x00\x66\x00\x00\x00\x67\x00\x00\x00\x68\x00\x00\x00\x69\
+                               \\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
+                               \\x00\x00\x00\x64\x00\x00\x00\x65\x00\x00\x00\x66\x00\x00\x00\x67\x00\x00\x00\x68\x00\x00\x00\x69"
+                (open_status, sd_id) <- sd_start filePath hdf_read
+                (nametoindex_status, sds_index) <- sd_nametoindex sd_id "FIXED"
+                (select_status, sds_id) <- sd_select sd_id sds_index
+                (getdatainfo_status, annOffsetLen) <- sd_getdatainfo sds_id [] 0
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                nametoindex_status `shouldNotBe` (-1)
+                getdatainfo_status `shouldNotBe` (-1)
+                let (dataOfst,dataLen) = head annOffsetLen
+                hndl <- openBinaryFile filePath ReadMode
+                hSeek hndl AbsoluteSeek (fromIntegral dataOfst)
+                attr <- BS.hGet hndl (fromIntegral dataLen)
+                hClose hndl
+                attr `shouldBe` expected

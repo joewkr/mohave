@@ -1,7 +1,12 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
 module Data.Format.HDF.LowLevel.SD where
 
 import           Data.Int
+import           Data.Maybe (fromMaybe)
 import           Data.Word
 import           Foreign.C.String
 import           Foreign.C.Types
@@ -9,7 +14,7 @@ import           Foreign.Marshal.Alloc
 import           Foreign.Marshal.Array
 import           Foreign.Marshal.Utils (with, fromBool, fillBytes)
 import           Foreign.Ptr
-import           Foreign.Storable (peek, sizeOf)
+import           Foreign.Storable (Storable, peek, sizeOf)
 
 import           Data.Format.HDF.LowLevel.C.Definitions
 import           Data.Format.HDF.LowLevel.Definitions
@@ -84,10 +89,10 @@ foreign import ccall unsafe "SDsetchunkcache" c_sdsetchunkcache :: Int32 -> Int3
 -- SDwritechunk
 
 -- Raw data information
--- SDgetanndatainfo
--- SDgetattdatainfo
--- SDgetdatainfo
--- SDgetoldattdatainfo
+foreign import ccall unsafe "SDgetanndatainfo" c_sdgetanndatainfo :: Int32 -> CAnnType -> CUInt -> Ptr Int32 -> Ptr Int32 -> IO CInt
+foreign import ccall unsafe "SDgetattdatainfo" c_sdgetattdatainfo :: Int32 -> Int32 -> Ptr Int32 -> Ptr Int32 -> IO CInt
+foreign import ccall unsafe "SDgetdatainfo" c_sdgetdatainfo :: Int32 -> Ptr Int32 -> CUInt -> CUInt -> Ptr Int32 -> Ptr Int32 -> IO CInt
+foreign import ccall unsafe "SDgetoldattdatainfo" c_sdgetoldattdatainfo :: Int32 -> Int32 -> CString -> Ptr Int32 -> Ptr Int32 -> IO CInt
 
 -- Miscellaneous
 -- SDgetexternalinfo
@@ -628,3 +633,79 @@ sd_getchunkinfo (SDataSetId sds_id) =
         (fromIntegral <$> peek chunkModePtr) >>= embedCompTag chunkParamsPtr
         chunkParams <- peek chunkParamsPtr
         return $! (fromIntegral h_result, chunkParams)
+
+type RawDataInfo = (Int32, Int32)
+
+sd_getanndatainfo :: (SDObjectId id, id `OneOf` '[SDataSetId, SDId] ~ 'True) =>
+    id -> AnnTypeTag -> IO (Int32, [RawDataInfo])
+sd_getanndatainfo objId annType =
+    allocaArray 128 $ \offsetArrayPtr ->
+    allocaArray 128 $ \lengthArrayPtr -> do
+        h_result <- c_sdgetanndatainfo
+                        (getRawObjectId objId)
+                        (unAnnTypeTag annType)
+                        128
+                        offsetArrayPtr
+                        lengthArrayPtr
+        if h_result /= (-1) then do
+            offsets <- peekArray (fromIntegral h_result) offsetArrayPtr
+            lens <- peekArray (fromIntegral h_result) lengthArrayPtr
+            return $! (fromIntegral h_result, zip offsets lens)
+        else return $! (fromIntegral h_result, [])
+
+sd_getattdatainfo :: SDObjectId id => id -> Int32 -> IO (Int32, RawDataInfo)
+sd_getattdatainfo objId attrId =
+    alloca $ \offsetPtr ->
+    alloca $ \lengthPtr -> do
+        h_result <-c_sdgetattdatainfo (getRawObjectId objId) attrId offsetPtr lengthPtr
+        if h_result /= (-1) then do
+            offset <- peek offsetPtr
+            len <- peek lengthPtr
+            return $! (fromIntegral h_result, (offset, len))
+        else return $! (fromIntegral h_result, (0, 0))
+
+sd_getoldattdatainfo :: SDataSetId -> Maybe SDimensionId -> String -> IO (Int32, RawDataInfo)
+sd_getoldattdatainfo (SDataSetId sds_id) dimId attrName =
+    withCString attrName $ \c_attrName ->
+    alloca $ \offsetPtr ->
+    alloca $ \lengthPtr -> do
+        h_result <- c_sdgetoldattdatainfo
+                        (fromMaybe 0 $ getRawObjectId <$> dimId)
+                        sds_id
+                        c_attrName
+                        offsetPtr
+                        lengthPtr
+        if h_result /= (-1) then do
+            offset <- peek offsetPtr
+            len <- peek lengthPtr
+            return $! (fromIntegral h_result, (offset, len))
+        else return $! (fromIntegral h_result, (0, 0))
+
+sd_getdatainfo :: SDataSetId -> [Int32] -> Int32 -> IO (Int32, [RawDataInfo])
+sd_getdatainfo (SDataSetId sds_id) chunkCoords startBlock = do
+    -- First, get the total number of blocks by calling SDgetdatainfo with dummy
+    -- arguments, and then allocate required memory and call SDgetdatainfo for the
+    -- second time to get offsets and lengths of the SDS blocks.
+    num_blocks <- fromIntegral <$> c_sdgetdatainfo sds_id nullPtr 0 0 nullPtr nullPtr
+    if num_blocks == (-1)
+        then return $! (-1, [])
+        else
+            withArrayOrNull chunkCoords $ \chunkCoordsPtr ->
+            allocaArray num_blocks $ \offsetArrayPtr ->
+            allocaArray num_blocks $ \lengthArrayPtr -> do
+                h_result <- c_sdgetdatainfo
+                                sds_id
+                                chunkCoordsPtr
+                                (fromIntegral startBlock)
+                                (fromIntegral num_blocks)
+                                offsetArrayPtr
+                                lengthArrayPtr
+                if h_result /= (-1) then do
+                    offsets <- peekArray (fromIntegral h_result) offsetArrayPtr
+                    lens <- peekArray (fromIntegral h_result) lengthArrayPtr
+                    return $! (fromIntegral h_result, zip offsets lens)
+                else return $! (-1, [])
+
+withArrayOrNull :: Storable a => [a] -> (Ptr a -> IO b) -> IO b
+withArrayOrNull []   fun = fun nullPtr
+withArrayOrNull vals fun = withArray vals fun

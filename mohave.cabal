@@ -20,8 +20,14 @@ library mohave-internal
 -- other-modules:       Data.Format.HDF.LowLevel.C.Definitions
   other-extensions:    BangPatterns
                      , CPP
+                     , DataKinds
                      , ForeignFunctionInterface
+                     , PolyKinds
+                     , RankNTypes
                      , ScopedTypeVariables
+                     , TypeFamilies
+                     , TypeOperators
+                     , UndecidableInstances
   ghc-options:        -Wall
   build-depends:       base >=4.11 && <4.12
   build-tool-depends:  hsc2hs:hsc2hs
@@ -46,7 +52,9 @@ test-suite test-main
   hs-source-dirs:      test
   main-is:             Spec.hs
   other-modules:       Data.Format.HDF.LowLevel.SDSpec
+  other-extensions:    OverloadedStrings
   build-depends:       mohave-internal
                      , base
+                     , bytestring
                      , hspec >= 2.6
   default-language:    Haskell2010

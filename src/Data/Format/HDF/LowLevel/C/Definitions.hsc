@@ -275,3 +275,15 @@ selectChunkingMode :: HDFChunkParams -> Int32
 selectChunkingMode (HDFChunkParams _ HDFCompNone  ) = #{const HDF_CHUNK}
 selectChunkingMode (HDFChunkParams _ HDFCompNBit{}) = #{const HDF_CHUNK | HDF_NBIT}
 selectChunkingMode (HDFChunkParams _ _            ) = #{const HDF_CHUNK | HDF_COMP}
+
+type CAnnType = #{type ann_type}
+
+newtype AnnTypeTag = AnnTypeTag { unAnnTypeTag :: CAnnType }
+
+#{enum AnnTypeTag, AnnTypeTag
+  , hdf_ann_undef      = AN_UNDEF
+  , hdf_ann_data_label = AN_DATA_LABEL
+  , hdf_ann_data_desc  = AN_DATA_DESC
+  , hdf_ann_file_label = AN_FILE_LABEL
+  , hdf_ann_file_desc  = AN_FILE_DESC
+  }
