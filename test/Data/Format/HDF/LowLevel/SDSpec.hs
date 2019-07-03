@@ -240,7 +240,7 @@ spec = do
                 [select_status, endaccess_status] `shouldNotContain`[-1]
                 isisrecord_status `shouldNotBe` (-1)
                 isRecord `shouldBe` True
-            it "detects variable withou unlimited dimension" $ do
+            it "detects variable without unlimited dimension" $ do
                 (open_status, sd_id) <- sd_start "test-data/sd/test1.hdf" hdf_read
                 (select_status, sds_id) <- sd_select sd_id 0
                 (isisrecord_status, isRecord) <- sd_isisrecord sds_id
