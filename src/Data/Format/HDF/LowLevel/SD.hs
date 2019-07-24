@@ -12,9 +12,9 @@ import           Foreign.C.String
 import           Foreign.C.Types
 import           Foreign.Marshal.Alloc
 import           Foreign.Marshal.Array
-import           Foreign.Marshal.Utils (with, fromBool, fillBytes)
+import           Foreign.Marshal.Utils (with, fromBool, toBool, fillBytes)
 import           Foreign.Ptr
-import           Foreign.Storable (Storable, peek, sizeOf)
+import           Foreign.Storable (Storable, peek, poke, sizeOf)
 
 import           Data.Format.HDF.LowLevel.C.Definitions
 import           Data.Format.HDF.LowLevel.Definitions
@@ -95,12 +95,12 @@ foreign import ccall unsafe "SDgetdatainfo" c_sdgetdatainfo :: Int32 -> Ptr Int3
 foreign import ccall unsafe "SDgetoldattdatainfo" c_sdgetoldattdatainfo :: Int32 -> Int32 -> CString -> Ptr Int32 -> Ptr Int32 -> IO CInt
 
 -- Miscellaneous
--- SDgetexternalinfo
--- SDsetblocksize
--- SDsetexternalfile
--- SDisdimval_bwcomp
--- SDsetdimval_comp
--- SDsetaccesstype
+foreign import ccall unsafe "SDgetexternalinfo" c_sdgetexternalinfo :: Int32 -> CUInt -> CString -> Ptr Int32 -> Ptr Int32 -> IO CInt
+foreign import ccall unsafe "SDsetblocksize" c_sdsetblocksize :: Int32 -> Int32 -> IO CInt
+foreign import ccall unsafe "SDsetexternalfile" c_sdsetexternalfile :: Int32 -> CString -> Int32 -> IO CInt
+foreign import ccall unsafe "SDisdimval_bwcomp" c_sdisdimval_bwcomp :: Int32 -> IO CInt
+foreign import ccall unsafe "SDsetdimval_comp" c_sdsetdimval_comp :: Int32 -> CInt -> IO CInt
+-- SDsetaccesstype {- this function does not seem to do any useful work as in HDF-4.2.14 -}
 
 newtype SDId = SDId Int32 deriving Eq
 newtype SDataSetId = SDataSetId Int32 deriving Eq
@@ -709,3 +709,49 @@ sd_getdatainfo (SDataSetId sds_id) chunkCoords startBlock = do
 withArrayOrNull :: Storable a => [a] -> (Ptr a -> IO b) -> IO b
 withArrayOrNull []   fun = fun nullPtr
 withArrayOrNull vals fun = withArray vals fun
+
+sd_getexternalinfo :: SDataSetId -> IO (Int32, (String, RawDataInfo))
+sd_getexternalinfo (SDataSetId sds_id) = do
+    name_length <- fromIntegral <$> c_sdgetexternalinfo sds_id 0 nullPtr nullPtr nullPtr
+    if name_length == (-1) || name_length == 0
+        then return $! (fromIntegral name_length, ("", (0, 0)))
+        else
+            alloca $ \offsetPtr ->
+            alloca $ \lengthPtr ->
+            allocaArray (name_length + 1) $ \fileNamePtr -> do
+                -- HDF library does not put zero terminator to the returned string,
+                -- so we put it before calling the C function to avoid problems.
+                poke (advancePtr fileNamePtr name_length) 0
+                h_result <- c_sdgetexternalinfo
+                                sds_id
+                                (fromIntegral name_length)
+                                fileNamePtr
+                                offsetPtr
+                                lengthPtr
+                if h_result /= (-1) then do
+                    offset <- peek offsetPtr
+                    len <- peek lengthPtr
+                    fileName <- peekCString fileNamePtr
+                    return $! (fromIntegral h_result, (fileName, (offset, len)))
+                else return $! (-1, ("", (0, 0)))
+
+sd_setblocksize :: SDataSetId -> Int32 -> IO (Int32, ())
+sd_setblocksize (SDataSetId sds_id) blockSize = do
+    h_result <- c_sdsetblocksize sds_id blockSize
+    return $! (fromIntegral h_result, ())
+
+sd_setexternalfile :: SDataSetId -> String -> Int32 -> IO (Int32, ())
+sd_setexternalfile (SDataSetId sds_id) fileName offset =
+    withCString fileName $ \fileNamePtr -> do
+        h_result <- c_sdsetexternalfile sds_id fileNamePtr offset
+        return $! (fromIntegral h_result, ())
+
+sd_isdimval_bwcomp :: SDimensionId -> IO (Int32, Bool)
+sd_isdimval_bwcomp (SDimensionId dimension_id) = do
+    h_result <- c_sdisdimval_bwcomp dimension_id
+    return $! (fromIntegral h_result, toBool h_result)
+
+sd_setdimval_comp :: SDimensionId -> Bool -> IO (Int32, ())
+sd_setdimval_comp (SDimensionId dimension_id) bwCompatible = do
+    h_result <- c_sdsetdimval_comp dimension_id (fromBool bwCompatible)
+    return $! (fromIntegral h_result, ())

@@ -8,6 +8,7 @@ import qualified Data.ByteString as BS
 import           Data.Format.HDF.LowLevel.C.Definitions
 import           Data.Format.HDF.LowLevel.SD
 import           System.IO
+import           System.Directory (copyFileWithMetadata)
 
 spec :: Spec
 spec = do
@@ -932,3 +933,165 @@ spec = do
                 rawData <- BS.hGet hndl (fromIntegral dataLen)
                 hClose hndl
                 rawData `shouldBe` expected
+    context "Miscellaneous" $ do
+        context "SDgetexternalinfo" $ do
+            it "handles SDS without external file" $ do
+                let filePath = "test-data/sd/test1.hdf"
+                    expected = ("", (0, 0))
+                (open_status, sd_id) <- sd_start filePath hdf_read
+                (nametoindex_status, sds_index) <- sd_nametoindex sd_id "DataSetAlpha"
+                (select_status, sds_id) <- sd_select sd_id sds_index
+                (getexternalinfo_status, externFileInfo) <- sd_getexternalinfo sds_id
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                nametoindex_status `shouldNotBe` (-1)
+                getexternalinfo_status `shouldNotBe` (-1)
+                externFileInfo `shouldBe` expected
+            it "handles SDS with external file" $ do
+                let filePath = "test-data/sd/exttst.hdf"
+                    expected = ("ExternalSDSexisting", (1600,560))
+                    expectedData =
+                        "\x00\x00\x00\x03\x00\x00\x00\x04\x00\x00\x00\x05\x00\x00\x00\x06\
+                        \\x00\x00\x00\x04\x00\x00\x00\x05\x00\x00\x00\x06\x00\x00\x00\x07\
+                        \\x00\x00\x00\x05\x00\x00\x00\x06\x00\x00\x00\x07\x00\x00\x00\x08\
+                        \\x00\x00\x00\x06\x00\x00\x00\x07\x00\x00\x00\x08\x00\x00\x00\x09\
+                        \\x00\x00\x00\x07\x00\x00\x00\x08\x00\x00\x00\x09\x00\x00\x00\x0a\
+                        \\x00\x00\x00\x04\x00\x00\x00\x05\x00\x00\x00\x06\x00\x00\x00\x07\
+                        \\x00\x00\x00\x05\x00\x00\x00\x06\x00\x00\x00\x07\x00\x00\x00\x08\
+                        \\x00\x00\x00\x06\x00\x00\x00\x07\x00\x00\x00\x08\x00\x00\x00\x09\
+                        \\x00\x00\x00\x07\x00\x00\x00\x08\x00\x00\x00\x09\x00\x00\x00\x0a\
+                        \\x00\x00\x00\x08\x00\x00\x00\x09\x00\x00\x00\x0a\x00\x00\x00\x0b\
+                        \\x00\x00\x00\x05\x00\x00\x00\x06\x00\x00\x00\x07\x00\x00\x00\x08\
+                        \\x00\x00\x00\x06\x00\x00\x00\x07\x00\x00\x00\x08\x00\x00\x00\x09\
+                        \\x00\x00\x00\x07\x00\x00\x00\x08\x00\x00\x00\x09\x00\x00\x00\x0a\
+                        \\x00\x00\x00\x08\x00\x00\x00\x09\x00\x00\x00\x0a\x00\x00\x00\x0b\
+                        \\x00\x00\x00\x09\x00\x00\x00\x0a\x00\x00\x00\x0b\x00\x00\x00\x0c\
+                        \\x00\x00\x00\x06\x00\x00\x00\x07\x00\x00\x00\x08\x00\x00\x00\x09\
+                        \\x00\x00\x00\x07\x00\x00\x00\x08\x00\x00\x00\x09\x00\x00\x00\x0a\
+                        \\x00\x00\x00\x08\x00\x00\x00\x09\x00\x00\x00\x0a\x00\x00\x00\x0b\
+                        \\x00\x00\x00\x09\x00\x00\x00\x0a\x00\x00\x00\x0b\x00\x00\x00\x0c\
+                        \\x00\x00\x00\x0a\x00\x00\x00\x0b\x00\x00\x00\x0c\x00\x00\x00\x0d\
+                        \\x00\x00\x00\x07\x00\x00\x00\x08\x00\x00\x00\x09\x00\x00\x00\x0a\
+                        \\x00\x00\x00\x08\x00\x00\x00\x09\x00\x00\x00\x0a\x00\x00\x00\x0b\
+                        \\x00\x00\x00\x09\x00\x00\x00\x0a\x00\x00\x00\x0b\x00\x00\x00\x0c\
+                        \\x00\x00\x00\x0a\x00\x00\x00\x0b\x00\x00\x00\x0c\x00\x00\x00\x0d\
+                        \\x00\x00\x00\x0b\x00\x00\x00\x0c\x00\x00\x00\x0d\x00\x00\x00\x0e\
+                        \\x00\x00\x00\x08\x00\x00\x00\x09\x00\x00\x00\x0a\x00\x00\x00\x0b\
+                        \\x00\x00\x00\x09\x00\x00\x00\x0a\x00\x00\x00\x0b\x00\x00\x00\x0c\
+                        \\x00\x00\x00\x0a\x00\x00\x00\x0b\x00\x00\x00\x0c\x00\x00\x00\x0d\
+                        \\x00\x00\x00\x0b\x00\x00\x00\x0c\x00\x00\x00\x0d\x00\x00\x00\x0e\
+                        \\x00\x00\x00\x0c\x00\x00\x00\x0d\x00\x00\x00\x0e\x00\x00\x00\x0f\
+                        \\x00\x00\x00\x03\x00\x00\x00\x04\x00\x00\x00\x05\x00\x00\x00\x06\
+                        \\x00\x00\x00\x04\x00\x00\x00\x05\x00\x00\x00\x06\x00\x00\x00\x07\
+                        \\x00\x00\x00\x05\x00\x00\x00\x06\x00\x00\x00\x07\x00\x00\x00\x08\
+                        \\x00\x00\x00\x06\x00\x00\x00\x07\x00\x00\x00\x08\x00\x00\x00\x09\
+                        \\x00\x00\x00\x07\x00\x00\x00\x08\x00\x00\x00\x09\x00\x00\x00\x0a"
+                (open_status, sd_id) <- sd_start filePath hdf_read
+                (nametoindex_status, sds_index) <- sd_nametoindex sd_id "Dataset 2"
+                (select_status, sds_id) <- sd_select sd_id sds_index
+                (getexternalinfo_status, externFileInfo) <- sd_getexternalinfo sds_id
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                nametoindex_status `shouldNotBe` (-1)
+                getexternalinfo_status `shouldNotBe` (-1)
+                externFileInfo `shouldBe` expected
+                let extFileName        = fst externFileInfo
+                    (dataOfst,dataLen) = snd externFileInfo
+                hndl <- openBinaryFile ("test-data/sd/" ++ extFileName) ReadMode
+                hSeek hndl AbsoluteSeek (fromIntegral dataOfst)
+                rawData <- BS.hGet hndl (fromIntegral dataLen)
+                hClose hndl
+                rawData `shouldBe` expectedData
+        context "SDsetexternalfile" $ do
+            it "moves existing SDS to an external file" $ do
+                let origFilePath     = "test-data/sd/test1.hdf"
+                    filePath         = "test1.primary.hdf"
+                    externalFilePath = "test1.external.hdf"
+                    expected         = (externalFilePath, (0,120))
+                    expectedData     =
+                        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
+                        \\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
+                        \\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
+                        \\x00\x00\x00\x64\x00\x00\x00\x65\x00\x00\x00\x66\x00\x00\x00\x67\
+                        \\x00\x00\x00\x68\x00\x00\x00\x69\x00\x00\x00\x00\x00\x00\x00\x00\
+                        \\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
+                        \\x00\x00\x00\x64\x00\x00\x00\x65\x00\x00\x00\x66\x00\x00\x00\x67\
+                        \\x00\x00\x00\x68\x00\x00\x00\x69"
+                copyFileWithMetadata origFilePath filePath
+                (open_status, sd_id) <- sd_start filePath hdf_write
+                (nametoindex_status, sds_index) <- sd_nametoindex sd_id "FIXED"
+                (select_status, sds_id) <- sd_select sd_id sds_index
+                (setexternalinfo_status, _) <- sd_setexternalfile sds_id externalFilePath 0
+                (getexternalinfo_status, externFileInfo) <- sd_getexternalinfo sds_id
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                nametoindex_status `shouldNotBe` (-1)
+                setexternalinfo_status `shouldNotBe` (-1)
+                getexternalinfo_status `shouldNotBe` (-1)
+                externFileInfo `shouldBe` expected
+                let extFileName        = fst externFileInfo
+                    (dataOfst,dataLen) = snd externFileInfo
+                hndl <- openBinaryFile extFileName ReadMode
+                hSeek hndl AbsoluteSeek (fromIntegral dataOfst)
+                rawData <- BS.hGet hndl (fromIntegral dataLen)
+                hClose hndl
+                rawData `shouldBe` expectedData
+            it "creates new SDS in external file" $ do
+                pendingWith "reading and writing SDS is not implemented"
+        context "SDisdimval_bwcomp" $ do
+            it "detects backward incompatible dimension" $ do
+                let filePath     = "test-data/sd/test1.hdf"
+                (open_status, sd_id) <- sd_start filePath hdf_read
+                (nametoindex_status, sds_index) <- sd_nametoindex sd_id "DataSetAlpha"
+                (select_status, sds_id) <- sd_select sd_id sds_index
+                (getdimid_status, dim_id) <- sd_getdimid sds_id 0
+                (isdimval_bwcomp_status, bwCompat) <- sd_isdimval_bwcomp dim_id
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                nametoindex_status `shouldNotBe` (-1)
+                getdimid_status `shouldNotBe` (-1)
+                isdimval_bwcomp_status `shouldNotBe` (-1)
+                bwCompat `shouldBe` False
+            it "detects backward compatible dimension" $ do
+                let filePath     = "test-data/sd/test1.hdf"
+                (open_status, sd_id) <- sd_start filePath hdf_read
+                (nametoindex_status, sds_index) <- sd_nametoindex sd_id "dimval_1_compat"
+                (select_status, sds_id) <- sd_select sd_id sds_index
+                (getdimid_status, dim_id) <- sd_getdimid sds_id 1
+                (isdimval_bwcomp_status, bwCompat) <- sd_isdimval_bwcomp dim_id
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                nametoindex_status `shouldNotBe` (-1)
+                getdimid_status `shouldNotBe` (-1)
+                isdimval_bwcomp_status `shouldNotBe` (-1)
+                bwCompat `shouldBe` True
+        context "SDsetdimval_comp" $ do
+            it "set backward compatible mode for dimension" $ do
+                let origFilePath     = "test-data/sd/test1.hdf"
+                    filePath         = "test1.compat.hdf"
+                copyFileWithMetadata origFilePath filePath
+                (open_status, sd_id) <- sd_start filePath hdf_write
+                (nametoindex_status, sds_index) <- sd_nametoindex sd_id "DataSetAlpha"
+                (select_status, sds_id) <- sd_select sd_id sds_index
+                (getdimid_status, dim_id) <- sd_getdimid sds_id 0
+                (setdimval_comp_status, _) <- sd_setdimval_comp dim_id True
+                (isdimval_bwcomp_status, bwCompat) <- sd_isdimval_bwcomp dim_id
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                nametoindex_status `shouldNotBe` (-1)
+                getdimid_status `shouldNotBe` (-1)
+                setdimval_comp_status `shouldNotBe` (-1)
+                isdimval_bwcomp_status `shouldNotBe` (-1)
+                bwCompat `shouldBe` True

@@ -56,5 +56,6 @@ test-suite test-main
   build-depends:       mohave-internal
                      , base
                      , bytestring
+                     , directory >= 1.3.1
                      , hspec >= 2.6
   default-language:    Haskell2010
