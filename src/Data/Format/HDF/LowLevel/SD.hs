@@ -702,8 +702,8 @@ sd_getdatainfo (SDataSetId sds_id) chunkCoords startBlock = do
                                 lengthArrayPtr
                 if h_result /= (-1) then do
                     offsets <- peekArray (fromIntegral h_result) offsetArrayPtr
-                    lens <- peekArray (fromIntegral h_result) lengthArrayPtr
-                    return $! (fromIntegral h_result, zip offsets lens)
+                    lengths <- peekArray (fromIntegral h_result) lengthArrayPtr
+                    return $! (fromIntegral h_result, zip offsets lengths)
                 else return $! (-1, [])
 
 withArrayOrNull :: Storable a => [a] -> (Ptr a -> IO b) -> IO b
