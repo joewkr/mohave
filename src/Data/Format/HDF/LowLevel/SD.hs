@@ -186,7 +186,7 @@ sd_getfilename sdFileId@(SDId sd_id) = do
     (h_result_getnamelen, nameLen) <- sd_getnamelen sdFileId
     if h_result_getnamelen == (-1)
         then return (-1, "")
-        else allocaArray (fromIntegral $ nameLen + 1) $ \fileNamePtr -> do
+        else allocaArray0 (fromIntegral nameLen) $ \fileNamePtr -> do
             h_result <- c_sdgetfilename sd_id fileNamePtr
             fileName <- peekCString fileNamePtr
             return $! (fromIntegral h_result, fileName)
@@ -208,8 +208,8 @@ sd_getinfo sDataSetId@(SDataSetId sds_id) = do
             alloca $ \rankPtr ->
             alloca $ \dataTypePtr ->
             alloca $ \numAttributesPtr ->
-            allocaArray (fromIntegral $ nameLen + 1) $ \sdsNamePtr -> do
-            allocaArray (fromIntegral hdfMaxVarDims) $ \dimSizesPtr -> do
+            allocaArray0 (fromIntegral nameLen) $ \sdsNamePtr -> do
+            allocaArray  (fromIntegral hdfMaxVarDims) $ \dimSizesPtr -> do
                 h_result <- c_sdgetinfo
                                 sds_id
                                 sdsNamePtr
@@ -323,7 +323,7 @@ sd_diminfo sDimensionId@(SDimensionId dimension_id) = do
             alloca $ \dimSizePtr ->
             alloca $ \dataTypePtr ->
             alloca $ \numAttributesPtr ->
-            allocaArray (fromIntegral $ nameLen + 1) $ \dimNamePtr -> do
+            allocaArray0 (fromIntegral nameLen) $ \dimNamePtr -> do
                 h_result <- c_sddiminfo
                                 dimension_id
                                 dimNamePtr
@@ -367,7 +367,7 @@ sd_attrinfo :: SDObjectId id => id -> Int32 -> IO (Int32, SAttributeInfoRaw)
 sd_attrinfo objId attrId =
     alloca $ \attrNValuesPtr ->
     alloca $ \dataTypePtr ->
-    allocaArray (fromIntegral $ hdfMaxNcNameLen + 1) $ \attrNamePtr -> do
+    allocaArray0 (fromIntegral hdfMaxNcNameLen) $ \attrNamePtr -> do
         h_result <- c_sdattrinfo
                         (getRawObjectId objId)
                         attrId
@@ -718,7 +718,7 @@ sd_getexternalinfo (SDataSetId sds_id) = do
         else
             alloca $ \offsetPtr ->
             alloca $ \lengthPtr ->
-            allocaArray (name_length + 1) $ \fileNamePtr -> do
+            allocaArray0 name_length $ \fileNamePtr -> do
                 -- HDF library does not put zero terminator to the returned string,
                 -- so we put it before calling the C function to avoid problems.
                 poke (advancePtr fileNamePtr name_length) 0
