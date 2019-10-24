@@ -6,6 +6,7 @@ import           Test.Hspec
 
 import qualified Data.ByteString as BS
 import           Data.Format.HDF.LowLevel.C.Definitions
+import           Data.Format.HDF.LowLevel.Definitions
 import           Data.Format.HDF.LowLevel.SD
 import           System.IO
 import           System.Directory (copyFileWithMetadata)
@@ -144,7 +145,7 @@ spec = do
                 getinfo_status `shouldNotBe` (-1)
                 sdsInfo `shouldBe` (SDataSetInfoRaw
                     "DataSetAlpha"
-                    2 [4,8] (unHDFDataTypeTag hdf_float32) 6)
+                    2 [4,8] (HDFValue HFloat ()) 6)
             it "long name SDS" $ do
                 (open_status, sd_id) <- sd_start "test-data/sd/SDSlongname.hdf" hdf_read
                 (select_status, sds_id) <- sd_select sd_id 0
@@ -156,7 +157,7 @@ spec = do
                 getinfo_status `shouldNotBe` (-1)
                 sdsInfo `shouldBe` (SDataSetInfoRaw
                     "The name of this dataset is long, and it is used to test the new variable length name feature"
-                    2 [10,10] (unHDFDataTypeTag hdf_int32) 0)
+                    2 [10,10] (HDFValue HInt32 ()) 0)
         context "SDget_maxopenfiles" $ do
             it "reports reasonable limits" $ do
                 (get_maxopenfiles_status, limits@(curr_max, sys_limit)) <- sd_get_maxopenfiles
@@ -336,7 +337,7 @@ spec = do
                 diminfo_status `shouldNotBe` (-1)
                 dimInfo `shouldBe` (SDimensionInfoRaw
                                     "MyDim"
-                                    4 (unHDFDataTypeTag hdf_int32) 4)
+                                    4 (HDFValue HInt32 ()) 4)
             it "returns unlimited dimension information" $ do
                 (open_status, sd_id) <- sd_start "test-data/sd/test1.hdf" hdf_read
                 (nametoindex_status, sds_index) <- sd_nametoindex sd_id "dimval_1_compat"
@@ -352,7 +353,7 @@ spec = do
                 diminfo_status `shouldNotBe` (-1)
                 dimInfo `shouldBe` (SDimensionInfoRaw
                                     "fakeDim8"
-                                    0 0 0)
+                                    0 (HDFValue HNone ()) 0)
         context "SDsetdimname" $ do
             it "sets new dimension name" $ do
                 (open_status, sd_id) <- sd_start "empty_sds.hdf" hdf_create
@@ -369,7 +370,7 @@ spec = do
                 diminfo_status `shouldNotBe` (-1)
                 dimInfo `shouldBe` (SDimensionInfoRaw
                                     "MyDim"
-                                    1 0 0)
+                                    1 (HDFValue HNone ()) 0)
     context "User-defined attributes" $ do
         context "SDfindattr" $ do
             it "finds global attribute" $ do
@@ -413,7 +414,7 @@ spec = do
                 attrInfo `shouldBe` (SAttributeInfoRaw
                                      "F-attr"
                                      10
-                                     (unHDFDataTypeTag hdf_char8))
+                                     (HDFValue HInt8 ()))
             it "returns SDS attribute information" $ do
                 (open_status, sd_id) <- sd_start "test-data/sd/test1.hdf" hdf_read
                 (select_status, sds_id) <- sd_select sd_id 0
@@ -428,7 +429,7 @@ spec = do
                 attrInfo `shouldBe` (SAttributeInfoRaw
                                      "valid_range"
                                      2
-                                     (unHDFDataTypeTag hdf_float32))
+                                     (HDFValue HFloat ()))
             it "returns dimension attribute information" $ do
                 (open_status, sd_id) <- sd_start "test-data/sd/test1.hdf" hdf_read
                 (select_status, sds_id) <- sd_select sd_id 0
@@ -445,7 +446,7 @@ spec = do
                 attrInfo `shouldBe` (SAttributeInfoRaw
                                      "DimAttr"
                                      1
-                                     (unHDFDataTypeTag hdf_float32))
+                                     (HDFValue HFloat ()))
     context "Predefined attributes" $ do
         context "SDgetcal" $ do
             it "reports calibration parameters" $ do
@@ -458,7 +459,7 @@ spec = do
                 [select_status, endaccess_status] `shouldNotContain`[-1]
                 getcal_status `shouldNotBe` (-1)
                 calibrationParams `shouldBe`
-                    (SCalibrationParametersRaw 1.0 5.0 3.0 2.5 (unHDFDataTypeTag hdf_int8))
+                    (SCalibrationParametersRaw 1.0 5.0 3.0 2.5 (HDFValue HInt8 ()))
             it "handles missing calibration parameters" $ do
                 (open_status, sd_id) <- sd_start "test-data/sd/test1.hdf" hdf_read
                 (select_status, sds_id) <- sd_select sd_id 0
@@ -539,7 +540,7 @@ spec = do
                 validRange `shouldBe` ((4.6, 10.0) :: (Float, Float))
         context "SDsetcal" $ do
             it "sets calibration parameters" $ do
-                let calibrationParamsNew = SCalibrationParametersRaw 1.0 5.0 3.0 2.5 (unHDFDataTypeTag hdf_float64)
+                let calibrationParamsNew = SCalibrationParametersRaw 1.0 5.0 3.0 2.5 (HDFValue HDouble ())
                 (open_status, sd_id) <- sd_start "empty_sds.hdf" hdf_create
                 (create_status, sds_id) <- sd_create sd_id "emptyDataSet" hdf_uint8 [1,2,3]
                 (setcal_status, dim_id) <- sd_setcal sds_id calibrationParamsNew

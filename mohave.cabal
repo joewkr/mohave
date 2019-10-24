@@ -21,10 +21,13 @@ library mohave-internal
   other-extensions:    BangPatterns
                      , CPP
                      , DataKinds
+                     , FlexibleContexts
                      , ForeignFunctionInterface
+                     , GADTs
                      , PolyKinds
                      , RankNTypes
                      , ScopedTypeVariables
+                     , StandaloneDeriving
                      , TypeFamilies
                      , TypeOperators
                      , UndecidableInstances

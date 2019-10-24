@@ -195,7 +195,7 @@ data SDataSetInfoRaw = SDataSetInfoRaw {
       sDataSetName     :: String
     , sDataSetRank     :: Int32
     , sDataSetDimSizes :: [Int32]
-    , sDataSetDataType :: Int32
+    , sDataSetDataType :: HDFType
     , sDataSetNumAttrs :: Int32
 } deriving (Show, Eq)
 
@@ -228,11 +228,11 @@ sd_getinfo sDataSetId@(SDataSetId sds_id) = do
                         sdsName
                         rank
                         dimSizes
-                        dataType
+                        (fromHDFTypeTag dataType)
                         numAttributes)
   where
     emptySDataSetInfo :: SDataSetInfoRaw
-    emptySDataSetInfo = SDataSetInfoRaw "" 0 [] 0 0
+    emptySDataSetInfo = SDataSetInfoRaw "" 0 [] (HDFValue HNone ()) 0
 
 sd_get_maxopenfiles :: IO (Int32, (Int32, Int32))
 sd_get_maxopenfiles =
@@ -310,7 +310,7 @@ sd_getdimid (SDataSetId sds_id) dim_index = do
 data SDimensionInfoRaw = SDimensionInfoRaw {
       sDimensionName     :: String
     , sDimensionSize     :: Int32
-    , sDimensionDataType :: Int32
+    , sDimensionDataType :: HDFType
     , sDimensionNumAttrs :: Int32
 } deriving (Show, Eq)
 
@@ -339,11 +339,11 @@ sd_diminfo sDimensionId@(SDimensionId dimension_id) = do
                     , SDimensionInfoRaw
                         dimName
                         dimSize
-                        dataType
+                        (fromHDFTypeTag dataType)
                         numAttributes)
   where
     emptySDimensionInfo :: SDimensionInfoRaw
-    emptySDimensionInfo = SDimensionInfoRaw "" 0 0 0
+    emptySDimensionInfo = SDimensionInfoRaw "" 0 (HDFValue HNone ()) 0
 
 sd_setdimname :: SDimensionId -> String -> IO (Int32, ())
 sd_setdimname (SDimensionId dimension_id) dimension_name =
@@ -360,7 +360,7 @@ sd_findattr objId attribute_name =
 data SAttributeInfoRaw = SAttributeInfoRaw {
       sAttributeName     :: String
     , sAttributeNValues  :: Int32
-    , sAttributeDataType :: Int32
+    , sAttributeDataType :: HDFType
 } deriving (Show, Eq)
 
 sd_attrinfo :: SDObjectId id => id -> Int32 -> IO (Int32, SAttributeInfoRaw)
@@ -385,17 +385,17 @@ sd_attrinfo objId attrId =
                     , SAttributeInfoRaw
                         attrName
                         attrNValues
-                        dataType)
+                        (fromHDFTypeTag dataType))
   where
     emptySAttributeInfo :: SAttributeInfoRaw
-    emptySAttributeInfo = SAttributeInfoRaw "" 0 0
+    emptySAttributeInfo = SAttributeInfoRaw "" 0 (HDFValue HNone ())
 
 data SCalibrationParametersRaw = SCalibrationParametersRaw {
       sCalibrationFactor       :: Double
     , sCalibrationScalingError :: Double
     , sUncalibratedOffset      :: Double
     , sCalibrationOffsetError  :: Double
-    , sUncalibratedDataType    :: Int32
+    , sUncalibratedDataType    :: HDFType
 } deriving (Show, Eq)
 
 sd_getcal :: SDataSetId -> IO (Int32, SCalibrationParametersRaw)
@@ -427,10 +427,10 @@ sd_getcal (SDataSetId sds_id) =
                         calibrationScalingError
                         uncalibratedOffset
                         calibrationOffsetError
-                        uncalibratedDataType)
+                        (fromHDFTypeTag uncalibratedDataType))
   where
     emptySCalibrationParameters :: SCalibrationParametersRaw
-    emptySCalibrationParameters = SCalibrationParametersRaw 1.0 0.0 0.0 0.0 0
+    emptySCalibrationParameters = SCalibrationParametersRaw 1.0 0.0 0.0 0.0 (HDFValue HNone ())
 
 data SDsetDescStringsRaw = SDsetDescStringsRaw {
       sDSLabel            :: String
@@ -527,7 +527,7 @@ sd_getrange (SDataSetId sds_id) =
 
 sd_setcal :: SDataSetId -> SCalibrationParametersRaw -> IO (Int32, ())
 sd_setcal (SDataSetId sds_id) (SCalibrationParametersRaw s sE o oE dtype) = do
-    h_result <- c_sdsetcal sds_id s sE o oE dtype
+    h_result <- c_sdsetcal sds_id s sE o oE (toHDFTypeTag dtype)
     return $! (fromIntegral h_result, ())
 
 withCStringOrNull :: String -> (CString -> IO a) -> IO a

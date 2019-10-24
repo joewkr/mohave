@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE GADTs #-}
 module Data.Format.HDF.LowLevel.C.Definitions where
 
 import           Data.Int
@@ -11,6 +12,8 @@ import           Foreign.Marshal.Array
 import           Foreign.Marshal.Utils
 import           Foreign.Ptr
 import           Foreign.Storable
+
+import           Data.Format.HDF.LowLevel.Definitions
 
 #include <hdf.h>
 #include <mfhdf.h>
@@ -37,6 +40,34 @@ newtype HDFDataTypeTag = HDFDataTypeTag { unHDFDataTypeTag :: Int32 }
   , hdf_float32              = DFNT_FLOAT32
   , hdf_float64              = DFNT_FLOAT64
   }
+
+fromHDFTypeTag :: Int32 -> HDFType
+fromHDFTypeTag tag = case tag of
+    #{const DFNT_UINT8  } -> HDFValue HWord8  ()
+    #{const DFNT_UINT16 } -> HDFValue HWord16 ()
+    #{const DFNT_UINT32 } -> HDFValue HWord32 ()
+    #{const DFNT_INT8   } -> HDFValue HInt8   ()
+    #{const DFNT_INT16  } -> HDFValue HInt16  ()
+    #{const DFNT_INT32  } -> HDFValue HInt32  ()
+    #{const DFNT_FLOAT32} -> HDFValue HFloat  ()
+    #{const DFNT_FLOAT64} -> HDFValue HDouble ()
+
+    #{const DFNT_CHAR8  } -> HDFValue HInt8   ()
+    #{const DFNT_UCHAR8 } -> HDFValue HWord8  ()
+
+    0                     -> HDFValue HNone   ()
+
+toHDFTypeTag :: HDFType -> Int32
+toHDFTypeTag (HDFValue t _) = case t of
+    HNone   -> 0
+    HWord8  -> #{const DFNT_UINT8  }
+    HWord16 -> #{const DFNT_UINT16 }
+    HWord32 -> #{const DFNT_UINT32 }
+    HInt8   -> #{const DFNT_INT8   }
+    HInt16  -> #{const DFNT_INT16  }
+    HInt32  -> #{const DFNT_INT32  }
+    HFloat  -> #{const DFNT_FLOAT32}
+    HDouble -> #{const DFNT_FLOAT64}
 
 hdfMaxVarDims :: Int32
 hdfMaxVarDims = #const MAX_VAR_DIMS
