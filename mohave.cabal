@@ -29,6 +29,7 @@ library mohave-internal
                      , ScopedTypeVariables
                      , StandaloneDeriving
                      , TypeFamilies
+                     , TypeInType
                      , TypeOperators
                      , UndecidableInstances
   ghc-options:        -Wall

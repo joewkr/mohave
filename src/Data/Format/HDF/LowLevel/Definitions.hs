@@ -17,24 +17,6 @@ import           GHC.TypeLits (TypeError, ErrorMessage(..))
 
 data HDFData
 
-class Storable a => HDFDataType a
-
-instance HDFDataType Word8
-
-instance HDFDataType Word16
-
-instance HDFDataType Word32
-
-instance HDFDataType Int8
-
-instance HDFDataType Int16
-
-instance HDFDataType Int32
-
-instance HDFDataType Float
-
-instance HDFDataType Double
-
 data HDataType a where
     HNone :: HDataType ()
     HWord8 :: HDataType Word8
@@ -43,8 +25,8 @@ data HDataType a where
     HInt8 :: HDataType Int8
     HInt16 :: HDataType Int16
     HInt32 :: HDataType Int32
-    HFloat :: HDataType Float
-    HDouble :: HDataType Double
+    HFloat32 :: HDataType Float
+    HFloat64 :: HDataType Double
 
 deriving instance Show (HDataType a)
 
@@ -71,11 +53,11 @@ instance TestEquality HDataType where
       HInt32 -> case b of
         HInt32 -> Just Refl
         _ -> Nothing
-      HFloat -> case b of
-        HFloat -> Just Refl
+      HFloat32 -> case b of
+        HFloat32 -> Just Refl
         _ -> Nothing
-      HDouble -> case b of
-        HDouble -> Just Refl
+      HFloat64 -> case b of
+        HFloat64 -> Just Refl
         _ -> Nothing
 
 data HKind where

@@ -26,48 +26,71 @@ newtype HDFOpenOption = HDFOpenOption { unHDFOpenOption :: Int32 }
   , hdf_create               = DFACC_CREATE
   }
 
-newtype HDFDataTypeTag = HDFDataTypeTag { unHDFDataTypeTag :: Int32 }
-
-#{enum HDFDataTypeTag, HDFDataTypeTag
-  , hdf_char8                = DFNT_CHAR8
-  , hdf_uchar8               = DFNT_UCHAR8
-  , hdf_int8                 = DFNT_INT8
-  , hdf_uint8                = DFNT_UINT8
-  , hdf_int16                = DFNT_INT16
-  , hdf_uint16               = DFNT_UINT16
-  , hdf_int32                = DFNT_INT32
-  , hdf_uint32               = DFNT_UINT32
-  , hdf_float32              = DFNT_FLOAT32
-  , hdf_float64              = DFNT_FLOAT64
-  }
-
 fromHDFTypeTag :: Int32 -> HDFType
 fromHDFTypeTag tag = case tag of
-    #{const DFNT_UINT8  } -> HDFValue HWord8  ()
-    #{const DFNT_UINT16 } -> HDFValue HWord16 ()
-    #{const DFNT_UINT32 } -> HDFValue HWord32 ()
-    #{const DFNT_INT8   } -> HDFValue HInt8   ()
-    #{const DFNT_INT16  } -> HDFValue HInt16  ()
-    #{const DFNT_INT32  } -> HDFValue HInt32  ()
-    #{const DFNT_FLOAT32} -> HDFValue HFloat  ()
-    #{const DFNT_FLOAT64} -> HDFValue HDouble ()
+    #{const (DFNT_HDF    | DFNT_UINT8  )} -> HDFValue HWord8   ()
+    #{const (DFNT_HDF    | DFNT_UINT16 )} -> HDFValue HWord16  ()
+    #{const (DFNT_HDF    | DFNT_UINT32 )} -> HDFValue HWord32  ()
+    #{const (DFNT_HDF    | DFNT_INT8   )} -> HDFValue HInt8    ()
+    #{const (DFNT_HDF    | DFNT_INT16  )} -> HDFValue HInt16   ()
+    #{const (DFNT_HDF    | DFNT_INT32  )} -> HDFValue HInt32   ()
+    #{const (DFNT_HDF    | DFNT_FLOAT32)} -> HDFValue HFloat32 ()
+    #{const (DFNT_HDF    | DFNT_FLOAT64)} -> HDFValue HFloat64 ()
 
-    #{const DFNT_CHAR8  } -> HDFValue HInt8   ()
-    #{const DFNT_UCHAR8 } -> HDFValue HWord8  ()
+    #{const (DFNT_HDF    | DFNT_CHAR8  )} -> HDFValue HInt8    ()
+    #{const (DFNT_HDF    | DFNT_UCHAR8 )} -> HDFValue HWord8   ()
 
-    0                     -> HDFValue HNone   ()
+    #{const (DFNT_NATIVE | DFNT_UINT8  )} -> HDFValue HWord8   ()
+    #{const (DFNT_NATIVE | DFNT_UINT16 )} -> HDFValue HWord16  ()
+    #{const (DFNT_NATIVE | DFNT_UINT32 )} -> HDFValue HWord32  ()
+    #{const (DFNT_NATIVE | DFNT_INT8   )} -> HDFValue HInt8    ()
+    #{const (DFNT_NATIVE | DFNT_INT16  )} -> HDFValue HInt16   ()
+    #{const (DFNT_NATIVE | DFNT_INT32  )} -> HDFValue HInt32   ()
+    #{const (DFNT_NATIVE | DFNT_FLOAT32)} -> HDFValue HFloat32 ()
+    #{const (DFNT_NATIVE | DFNT_FLOAT64)} -> HDFValue HFloat64 ()
+
+    #{const (DFNT_NATIVE | DFNT_CHAR8  )} -> HDFValue HInt8    ()
+    #{const (DFNT_NATIVE | DFNT_UCHAR8 )} -> HDFValue HWord8   ()
+
+    #{const (DFNT_CUSTOM | DFNT_UINT8  )} -> HDFValue HWord8   ()
+    #{const (DFNT_CUSTOM | DFNT_UINT16 )} -> HDFValue HWord16  ()
+    #{const (DFNT_CUSTOM | DFNT_UINT32 )} -> HDFValue HWord32  ()
+    #{const (DFNT_CUSTOM | DFNT_INT8   )} -> HDFValue HInt8    ()
+    #{const (DFNT_CUSTOM | DFNT_INT16  )} -> HDFValue HInt16   ()
+    #{const (DFNT_CUSTOM | DFNT_INT32  )} -> HDFValue HInt32   ()
+    #{const (DFNT_CUSTOM | DFNT_FLOAT32)} -> HDFValue HFloat32 ()
+    #{const (DFNT_CUSTOM | DFNT_FLOAT64)} -> HDFValue HFloat64 ()
+
+    #{const (DFNT_CUSTOM | DFNT_CHAR8  )} -> HDFValue HInt8    ()
+    #{const (DFNT_CUSTOM | DFNT_UCHAR8 )} -> HDFValue HWord8   ()
+
+    #{const (DFNT_LITEND | DFNT_UINT8  )} -> HDFValue HWord8   ()
+    #{const (DFNT_LITEND | DFNT_UINT16 )} -> HDFValue HWord16  ()
+    #{const (DFNT_LITEND | DFNT_UINT32 )} -> HDFValue HWord32  ()
+    #{const (DFNT_LITEND | DFNT_INT8   )} -> HDFValue HInt8    ()
+    #{const (DFNT_LITEND | DFNT_INT16  )} -> HDFValue HInt16   ()
+    #{const (DFNT_LITEND | DFNT_INT32  )} -> HDFValue HInt32   ()
+    #{const (DFNT_LITEND | DFNT_FLOAT32)} -> HDFValue HFloat32 ()
+    #{const (DFNT_LITEND | DFNT_FLOAT64)} -> HDFValue HFloat64 ()
+
+    #{const (DFNT_LITEND | DFNT_CHAR8  )} -> HDFValue HInt8    ()
+    #{const (DFNT_LITEND | DFNT_UCHAR8 )} -> HDFValue HWord8   ()
+
+    _                     -> HDFValue HNone    ()
 
 toHDFTypeTag :: HDFType -> Int32
-toHDFTypeTag (HDFValue t _) = case t of
-    HNone   -> 0
-    HWord8  -> #{const DFNT_UINT8  }
-    HWord16 -> #{const DFNT_UINT16 }
-    HWord32 -> #{const DFNT_UINT32 }
-    HInt8   -> #{const DFNT_INT8   }
-    HInt16  -> #{const DFNT_INT16  }
-    HInt32  -> #{const DFNT_INT32  }
-    HFloat  -> #{const DFNT_FLOAT32}
-    HDouble -> #{const DFNT_FLOAT64}
+toHDFTypeTag (HDFValue t _) = fromHDataType t
+
+fromHDataType :: HDataType a -> Int32
+fromHDataType HNone    = 0
+fromHDataType HWord8   = #{const DFNT_UINT8  }
+fromHDataType HWord16  = #{const DFNT_UINT16 }
+fromHDataType HWord32  = #{const DFNT_UINT32 }
+fromHDataType HInt8    = #{const DFNT_INT8   }
+fromHDataType HInt16   = #{const DFNT_INT16  }
+fromHDataType HInt32   = #{const DFNT_INT32  }
+fromHDataType HFloat32 = #{const DFNT_FLOAT32}
+fromHDataType HFloat64 = #{const DFNT_FLOAT64}
 
 hdfMaxVarDims :: Int32
 hdfMaxVarDims = #const MAX_VAR_DIMS
