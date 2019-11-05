@@ -67,7 +67,7 @@ data HKind where
 
 data HDFValue (a :: HKind) where
     HDFValue :: (Show (SelectKind a t), Eq (SelectKind a t), Storable (SelectKind a t)) =>
-        HDataType t -> (SelectKind a t) -> HDFValue a
+        {hValueType :: HDataType t, hValue :: SelectKind a t} -> HDFValue a
 
 deriving instance Show (HDFValue a)
 

@@ -8,6 +8,7 @@
 {-# LANGUAGE TypeOperators #-}
 module Data.Format.HDF.LowLevel.SD where
 
+import           Control.Arrow (second)
 import           Data.Int
 import           Data.Kind
 import           Data.Maybe (fromMaybe)
@@ -148,8 +149,8 @@ sd_create (SDId sd_id) sds_name data_type dim_sizes =
 sd_select :: SDId -> Int32 -> IO (Int32, SomeSDS)
 sd_select (SDId sd_id) sds_index = do
     sds_id <- c_sdselect sd_id sds_index
-    (HDFValue sdsType _) <- sDataSetDataType . snd <$> sd_getinfo (SDataSetId sds_id)
-    return $! (sds_id, SomeSDS sdsType $ SDataSetId sds_id)
+    (h_result, HDFValue{hValueType=t}) <- second sDataSetDataType <$> sd_getinfo (SDataSetId sds_id)
+    return $! (if h_result == (-1) then h_result else sds_id, SomeSDS t $ SDataSetId sds_id)
 
 sd_endaccess :: SDataSetId t -> IO (Int32, ())
 sd_endaccess (SDataSetId sds_id) = do
