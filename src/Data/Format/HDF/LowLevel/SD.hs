@@ -3,6 +3,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeInType #-} -- Required with ghc 8.4.3
 {-# LANGUAGE TypeOperators #-}
@@ -12,9 +13,11 @@ import           Control.Arrow (second)
 import           Data.Int
 import           Data.Kind
 import           Data.Maybe (fromMaybe)
+import qualified Data.Vector.Storable as VS
 import           Data.Word
 import           Foreign.C.String
 import           Foreign.C.Types
+import           Foreign.ForeignPtr
 import           Foreign.Marshal.Alloc
 import           Foreign.Marshal.Array
 import           Foreign.Marshal.Utils (with, fromBool, toBool, fillBytes)
@@ -59,8 +62,8 @@ foreign import ccall unsafe "SDgetdimid" c_sdgetdimid :: Int32 -> CInt -> IO Int
 foreign import ccall unsafe "SDsetdimname" c_sdsetdimname :: Int32 -> CString -> IO CInt
 
 -- Dimension scales
--- SDgetdimscale
--- SDsetdimscale
+foreign import ccall unsafe "SDgetdimscale" c_sdgetdimscale :: Int32 -> Ptr HDFData -> IO CInt
+foreign import ccall unsafe "SDsetdimscale" c_sdsetdimscale :: Int32 -> Int32 -> Int32 -> Ptr HDFData -> IO CInt
 
 -- User-defined attributes
 foreign import ccall unsafe "SDattrinfo" c_sdattrinfo :: Int32 -> Int32 -> CString -> Ptr Int32 -> Ptr Int32 -> IO CInt
@@ -770,3 +773,36 @@ sd_setdimval_comp :: SDimensionId -> Bool -> IO (Int32, ())
 sd_setdimval_comp (SDimensionId dimension_id) bwCompatible = do
     h_result <- c_sdsetdimval_comp dimension_id (fromBool bwCompatible)
     return $! (fromIntegral h_result, ())
+
+sd_setdimscale :: Storable a =>
+    SDimensionId -> HDataType a -> VS.Vector a -> IO (Int32, ())
+sd_setdimscale (SDimensionId dimension_id) data_type dim_scale = do
+    VS.unsafeWith dim_scale $ \dimScalePtr -> do
+        h_result <- c_sdsetdimscale
+                        dimension_id
+                        (fromIntegral $ VS.length dim_scale)
+                        (fromHDataType data_type)
+                        (castPtr dimScalePtr)
+        return $! (fromIntegral h_result, ())
+
+sd_getdimscale :: SDataSetId t -> SDimensionId -> IO (Int32, HDFVector)
+sd_getdimscale sds sDimensionId@(SDimensionId dimension_id) = do
+    (h_result_1, SDimensionInfoRaw{
+          sDimensionSize=s_dim
+        , sDimensionDataType=HDFValue{hValueType=t :: HDataType dt}}) <- sd_diminfo sDimensionId
+    -- Unlimited dimension size is reported as 0 by sd_diminfo, so it should be retrieved
+    -- from the sd_getinfo output.
+    (h_result_2, s) <- if s_dim == 0 && h_result_1 /= (-1)
+        then second (head . sDataSetDimSizes) <$> sd_getinfo sds
+        else return (h_result_1, s_dim)
+    if h_result_2 == (-1)
+        then return (h_result_2, HDFValue HNone VS.empty)
+        else case t of
+            HNone -> return (h_result_2, HDFValue HNone VS.empty)
+            _ -> do
+                (fp :: ForeignPtr dt) <- mallocForeignPtrArray $ fromIntegral s
+                h_result_3 <- withForeignPtr fp $ \dimScalePtr -> do
+                    c_sdgetdimscale dimension_id (castPtr dimScalePtr)
+                return $!
+                    ( fromIntegral h_result_3
+                    , HDFValue t $ VS.unsafeFromForeignPtr0 fp (fromIntegral s))

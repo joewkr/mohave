@@ -9,6 +9,7 @@ import qualified Data.ByteString as BS
 import           Data.Format.HDF.LowLevel.C.Definitions
 import           Data.Format.HDF.LowLevel.Definitions
 import           Data.Format.HDF.LowLevel.SD
+import qualified Data.Vector.Storable as VS
 import           System.IO
 import           System.Directory (copyFileWithMetadata)
 
@@ -372,6 +373,62 @@ spec = do
                 dimInfo `shouldBe` (SDimensionInfoRaw
                                     "MyDim"
                                     1 (HDFValue HNone ()) 0)
+    context "Dimension scales" $ do
+        context "SDsetdimscale" $ do
+            it "sets dimension scale - 1" $ do
+                (open_status, sd_id) <- sd_start "dimension_scale_1.hdf" hdf_create
+                (create_status, sds_id) <- sd_create sd_id "emptyDataSet" HFloat64 [5,2,3]
+                (getdimid_status, dim_id) <- sd_getdimid sds_id 0
+                (setdimname_status, _) <- sd_setdimname dim_id "MyDim"
+                (setdimscale_status, _) <- sd_setdimscale dim_id HInt32 (VS.fromList [1,2,3,4,5])
+                (diminfo_status, dimInfo) <- sd_diminfo dim_id
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [create_status, endaccess_status] `shouldNotContain`[-1]
+                getdimid_status `shouldNotBe` (-1)
+                setdimname_status `shouldNotBe` (-1)
+                setdimscale_status `shouldNotBe` (-1)
+                diminfo_status `shouldNotBe` (-1)
+                dimInfo `shouldBe` (SDimensionInfoRaw
+                                    "MyDim"
+                                    5 (HDFValue HInt32 ()) 0)
+            it "sets dimension scale - 2" $ do
+                let origDimScale = VS.fromList [5,4,3,2,1]
+                (open_status, sd_id) <- sd_start "dimension_scale_2.hdf" hdf_create
+                (create_status, sds_id) <- sd_create sd_id "emptyDataSet" HFloat64 [5,2,3]
+                (getdimid_status, dim_id) <- sd_getdimid sds_id 0
+                (setdimname_status, _) <- sd_setdimname dim_id "MyDim"
+                (setdimscale_status, _) <- sd_setdimscale dim_id HInt32 origDimScale
+                (getdimscale_status, HDFValue t v) <- sd_getdimscale sds_id dim_id
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [create_status, endaccess_status] `shouldNotContain`[-1]
+                getdimid_status `shouldNotBe` (-1)
+                setdimname_status `shouldNotBe` (-1)
+                setdimscale_status `shouldNotBe` (-1)
+                getdimscale_status `shouldNotBe` (-1)
+                case t of
+                    HInt32 -> v `shouldBe` origDimScale
+                    _ -> expectationFailure "Unexpected dimension data type"
+        context "SDgetdimscale" $ do
+            it "gets dimension scale" $ do
+                (open_status, sd_id) <- sd_start "test-data/sd/test1.hdf" hdf_read
+                (select_status, SomeSDS _ sds_id) <- sd_select sd_id 0
+                (getdimid_status, dim_id) <- sd_getdimid sds_id 0
+                (getdimscale_status, HDFValue t v) <- sd_getdimscale sds_id dim_id
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                getdimid_status `shouldNotBe` (-1)
+                getdimscale_status `shouldNotBe` (-1)
+                case t of
+                    HInt32 -> v `shouldBe` (VS.fromList [1,5,7,24])
+                    _ -> expectationFailure "Unexpected dimension data type"
+            it "gets unlimited dimension scale" $ do
+                pendingWith "reading and writing SDS is not implemented"
     context "User-defined attributes" $ do
         context "SDfindattr" $ do
             it "finds global attribute" $ do

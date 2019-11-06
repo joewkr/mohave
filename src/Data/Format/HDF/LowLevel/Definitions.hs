@@ -11,6 +11,7 @@ module Data.Format.HDF.LowLevel.Definitions where
 import           Data.Int
 import           Data.Kind
 import           Data.Type.Equality (TestEquality, testEquality, type(==), (:~:)(Refl))
+import qualified Data.Vector.Storable as VS
 import           Data.Word
 import           Foreign.Storable (Storable)
 import           GHC.TypeLits (TypeError, ErrorMessage(..))
@@ -66,12 +67,13 @@ data HKind where
     Unary :: (Type -> Type) -> HKind
 
 data HDFValue (a :: HKind) where
-    HDFValue :: (Show (SelectKind a t), Eq (SelectKind a t), Storable (SelectKind a t)) =>
+    HDFValue :: (Show (SelectKind a t), Eq (SelectKind a t), Storable t, Show t, Eq t) =>
         {hValueType :: HDataType t, hValue :: SelectKind a t} -> HDFValue a
 
 deriving instance Show (HDFValue a)
 
 type HDFType = HDFValue 'Empty
+type HDFVector = HDFValue ('Unary VS.Vector)
 
 instance Eq (HDFValue a) where
   (HDFValue t1 a) == (HDFValue t2 b) = case testEquality t1 t2 of
