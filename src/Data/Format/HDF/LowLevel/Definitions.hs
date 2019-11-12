@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE PolyKinds #-}
@@ -85,8 +86,8 @@ type family SelectKind (a :: HKind) (t :: Type) :: Type where
     SelectKind 'Nullary t = t
     SelectKind ('Unary v) t = v t
 
-type family OneOf (a :: k) (xs :: [k]) :: Bool where
-  OneOf a xs = OneOfInternal 'False a xs xs
+type family OneOf (a :: k) (xs :: [k]) :: Constraint where
+  OneOf a xs = (OneOfInternal 'False a xs xs) ~ 'True
 
 type family OneOfInternal (found :: Bool) (a :: k) (xs :: [k]) (all :: [k]) :: Bool where
   OneOfInternal 'True  _  _        _   = 'True

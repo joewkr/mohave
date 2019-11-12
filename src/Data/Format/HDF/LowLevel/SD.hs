@@ -654,7 +654,7 @@ type family WrapIfSDS (a :: Type) where
     WrapIfSDS t = t
 
 sd_getanndatainfo ::
-    (SDObjectId id, (WrapIfSDS id) `OneOf` '[SomeSDS, SDId] ~ 'True) =>
+    (SDObjectId id, (WrapIfSDS id) `OneOf` '[SomeSDS, SDId]) =>
     id -> AnnTypeTag -> IO (Int32, [RawDataInfo])
 sd_getanndatainfo objId annType =
     allocaArray 128 $ \offsetArrayPtr ->
