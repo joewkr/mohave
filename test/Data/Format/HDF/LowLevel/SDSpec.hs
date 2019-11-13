@@ -472,7 +472,7 @@ spec = do
                 attrInfo `shouldBe` (SAttributeInfoRaw
                                      "F-attr"
                                      10
-                                     (HDFValue HInt8 ()))
+                                     (HDFValue HChar8 ()))
             it "returns SDS attribute information" $ do
                 (open_status, sd_id) <- sd_start "test-data/sd/test1.hdf" hdf_read
                 (select_status, SomeSDS _ sds_id) <- sd_select sd_id 0

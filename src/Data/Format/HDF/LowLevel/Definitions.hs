@@ -14,13 +14,33 @@ import           Data.Kind
 import           Data.Type.Equality (TestEquality, testEquality, type(==), (:~:)(Refl))
 import qualified Data.Vector.Storable as VS
 import           Data.Word
-import           Foreign.Storable (Storable)
+import           Foreign.Ptr (castPtr)
+import           Foreign.Storable (Storable(..))
 import           GHC.TypeLits (TypeError, ErrorMessage(..))
 
 data HDFData
 
+newtype Char8 = Char8 Int8 deriving (Eq, Show)
+newtype UChar8 = UChar8 Word8 deriving (Eq, Show)
+
+instance Storable Char8 where
+    sizeOf    (Char8  c) = sizeOf    c
+    alignment (Char8  c) = alignment c
+    peek cPtr            = Char8 <$> peek (castPtr cPtr)
+    poke cPtr (Char8  c) = poke (castPtr cPtr) c
+
+instance Storable UChar8 where
+    sizeOf    (UChar8 c) = sizeOf    c
+    alignment (UChar8 c) = alignment c
+    peek cPtr            = UChar8 <$> peek (castPtr cPtr)
+    poke cPtr (UChar8 c) = poke (castPtr cPtr) c
+
 data HDataType a where
     HNone :: HDataType ()
+
+    HUChar8 :: HDataType UChar8
+    HChar8 :: HDataType Char8
+
     HWord8 :: HDataType Word8
     HWord16 :: HDataType Word16
     HWord32 :: HDataType Word32
@@ -36,6 +56,12 @@ instance TestEquality HDataType where
     testEquality a b = case a of
       HNone -> case b of
         HNone -> Just Refl
+        _ -> Nothing
+      HUChar8 -> case b of
+        HUChar8 -> Just Refl
+        _ -> Nothing
+      HChar8 -> case b of
+        HChar8 -> Just Refl
         _ -> Nothing
       HWord8 -> case b of
         HWord8 -> Just Refl
