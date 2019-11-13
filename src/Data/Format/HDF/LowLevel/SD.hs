@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE GADTs #-}
@@ -5,11 +6,15 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeInType #-} -- Required with ghc 8.4.3
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE UndecidableInstances #-}
 module Data.Format.HDF.LowLevel.SD where
 
 import           Control.Arrow (second)
+import qualified Data.ByteString as BS
+import           Data.ByteString.Unsafe (unsafeUseAsCString)
 import           Data.Int
 import           Data.Kind
 import           Data.Maybe (fromMaybe)
@@ -68,8 +73,8 @@ foreign import ccall unsafe "SDsetdimscale" c_sdsetdimscale :: Int32 -> Int32 ->
 -- User-defined attributes
 foreign import ccall unsafe "SDattrinfo" c_sdattrinfo :: Int32 -> Int32 -> CString -> Ptr Int32 -> Ptr Int32 -> IO CInt
 foreign import ccall unsafe "SDfindattr" c_sdfindattr :: Int32 -> CString -> IO Int32
--- SDreadattr
--- SDsetattr
+foreign import ccall unsafe "SDreadattr" c_sdreadattr :: Int32 -> Int32 -> Ptr HDFData -> IO CInt
+foreign import ccall unsafe "SDsetattr" c_sdsetattr :: Int32 -> CString -> Int32 -> Int32 -> Ptr HDFData -> IO CInt
 
 -- Predefined attributes
 foreign import ccall unsafe "SDgetcal" c_sdgetcal :: Int32 -> Ptr Double -> Ptr Double -> Ptr Double -> Ptr Double -> Ptr Int32 -> IO CInt
@@ -806,3 +811,54 @@ sd_getdimscale sds sDimensionId@(SDimensionId dimension_id) = do
                 return $!
                     ( fromIntegral h_result_3
                     , HDFValue t $ VS.unsafeFromForeignPtr0 fp (fromIntegral s))
+
+type family IsElementOf (a :: Type) (t :: Type) :: Constraint where
+    IsElementOf a [b] = a ~ b
+    IsElementOf a (VS.Vector b) = a ~ b
+    IsElementOf a BS.ByteString = a `OneOf` '[Char8, UChar8]
+
+class CanBeAttribute t where
+    withAttributePtr :: t -> (Ptr HDFData -> IO b) -> IO b
+    attributeLen :: t -> Int
+
+instance Storable a => CanBeAttribute [a] where
+    withAttributePtr val f = withArray val (\ptr -> f $! castPtr ptr)
+    attributeLen = length
+
+instance CanBeAttribute BS.ByteString where
+    withAttributePtr val f = unsafeUseAsCString val (\ptr -> f $! castPtr ptr)
+    attributeLen = BS.length
+
+instance Storable a =>  CanBeAttribute (VS.Vector a) where
+    withAttributePtr val f = VS.unsafeWith val (\ptr -> f $! castPtr ptr)
+    attributeLen = VS.length
+
+sd_setattr :: (SDObjectId id, Storable a, CanBeAttribute t, a `IsElementOf` t) =>
+    id -> String -> HDataType a -> t -> IO (Int32, ())
+sd_setattr objId attrName data_type attrValue =
+    withCString attrName $ \attrNamePtr ->
+    withAttributePtr attrValue $ \attrValuePtr -> do
+        h_result <- c_sdsetattr
+                        (getRawObjectId objId)
+                        attrNamePtr
+                        (fromHDataType data_type)
+                        (fromIntegral $ attributeLen attrValue)
+                        attrValuePtr
+        return $! (fromIntegral h_result, ())
+
+sd_readattr :: SDObjectId id => id -> Int32 -> IO (Int32, HDFVector)
+sd_readattr objId attrId = do
+    (h_result_1, SAttributeInfoRaw{
+          sAttributeNValues=attrNValues
+        , sAttributeDataType=HDFValue{hValueType=t :: HDataType dt}}) <- sd_attrinfo objId attrId
+    if h_result_1 == (-1)
+        then return (h_result_1, HDFValue HNone VS.empty)
+        else case t of
+            HNone -> return (h_result_1, HDFValue HNone VS.empty)
+            _ -> do
+                (fp :: ForeignPtr dt) <- mallocForeignPtrArray $ fromIntegral attrNValues
+                h_result_2 <- withForeignPtr fp $ \dimScalePtr -> do
+                    c_sdreadattr (getRawObjectId objId) attrId (castPtr dimScalePtr)
+                return $!
+                    ( fromIntegral h_result_2
+                    , HDFValue t $ VS.unsafeFromForeignPtr0 fp (fromIntegral attrNValues))

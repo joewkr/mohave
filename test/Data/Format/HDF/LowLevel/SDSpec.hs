@@ -6,10 +6,12 @@ import           Data.Int (Int32)
 import           Test.Hspec
 
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Char8 as BS8
 import           Data.Format.HDF.LowLevel.C.Definitions
 import           Data.Format.HDF.LowLevel.Definitions
 import           Data.Format.HDF.LowLevel.SD
 import qualified Data.Vector.Storable as VS
+import           Foreign.Ptr (castPtr)
 import           System.IO
 import           System.Directory (copyFileWithMetadata)
 
@@ -505,6 +507,251 @@ spec = do
                                      "DimAttr"
                                      1
                                      (HDFValue HFloat32 ()))
+        context "SDsetattr" $ do
+            it "sets global attribute - ByteString" $ do
+                let testAttr = BS8.pack "Test attribute - 1"
+                (open_status, sd_id) <- sd_start "global_attr_1.hdf" hdf_create
+                (setatt_status, attr_index) <- sd_setattr sd_id "Test_1" HChar8 testAttr
+                (attrinfo_status, attrInfo) <- sd_attrinfo sd_id 0
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                attrinfo_status `shouldNotBe` (-1)
+                setatt_status `shouldNotBe` (-1)
+                attrinfo_status `shouldNotBe` (-1)
+                attrInfo `shouldBe` (SAttributeInfoRaw
+                                     "Test_1"
+                                     18
+                                     (HDFValue HChar8 ()))
+            it "sets global attribute - ByteString UChar" $ do
+                let testAttr = BS8.pack "Test attribute - 1"
+                (open_status, sd_id) <- sd_start "global_attr_2.hdf" hdf_create
+                (setatt_status, attr_index) <- sd_setattr sd_id "Test_1" HUChar8 testAttr
+                (readattr_status, HDFValue t v) <- sd_readattr sd_id 0
+                (attrinfo_status, attrInfo) <- sd_attrinfo sd_id 0
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                attrinfo_status `shouldNotBe` (-1)
+                setatt_status `shouldNotBe` (-1)
+                readattr_status `shouldNotBe` (-1)
+                attrinfo_status `shouldNotBe` (-1)
+                attrInfo `shouldBe` (SAttributeInfoRaw
+                                     "Test_1"
+                                     18
+                                     (HDFValue HUChar8 ()))
+                case t of
+                    HUChar8 -> do
+                        strAttr <- VS.unsafeWith v $ \vPtr -> BS.packCStringLen (castPtr vPtr, VS.length v)
+                        strAttr `shouldBe` testAttr
+                    _ -> expectationFailure "Unexpected dimension data type"
+            it "sets global attribute - List" $ do
+                let testAttr = [1..10] :: [Int32]
+                (open_status, sd_id) <- sd_start "global_attr_3.hdf" hdf_create
+                (setatt_status, attr_index) <- sd_setattr sd_id "Test_2" HInt32 testAttr
+                (attrinfo_status, attrInfo) <- sd_attrinfo sd_id 0
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                setatt_status `shouldNotBe` (-1)
+                attrinfo_status `shouldNotBe` (-1)
+                attrInfo `shouldBe` (SAttributeInfoRaw
+                                     "Test_2"
+                                     10
+                                     (HDFValue HInt32 ()))
+            it "sets global attribute - Vector" $ do
+                let testAttr = VS.fromList ([-10..10] :: [Float])
+                (open_status, sd_id) <- sd_start "global_attr_4.hdf" hdf_create
+                (setatt_status, attr_index) <- sd_setattr sd_id "Test_2" HFloat32 testAttr
+                (attrinfo_status, attrInfo) <- sd_attrinfo sd_id 0
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                setatt_status `shouldNotBe` (-1)
+                attrinfo_status `shouldNotBe` (-1)
+                attrInfo `shouldBe` (SAttributeInfoRaw
+                                     "Test_2"
+                                     21
+                                     (HDFValue HFloat32 ()))
+            it "sets SDS attribute - ByteString" $ do
+                let testAttr = BS8.pack "Test attribute - 1"
+                (open_status, sd_id) <- sd_start "sds_attr_1.hdf" hdf_create
+                (create_status, sds_id) <- sd_create sd_id "emptyDataSet" HFloat64 [1,2,3]
+                (setatt_status, attr_index) <- sd_setattr sds_id "Test_1" HChar8 testAttr
+                (attrinfo_status, attrInfo) <- sd_attrinfo sds_id 0
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [create_status, endaccess_status] `shouldNotContain`[-1]
+                attrinfo_status `shouldNotBe` (-1)
+                setatt_status `shouldNotBe` (-1)
+                attrinfo_status `shouldNotBe` (-1)
+                attrInfo `shouldBe` (SAttributeInfoRaw
+                                     "Test_1"
+                                     18
+                                     (HDFValue HChar8 ()))
+            it "sets SDS attribute - ByteString UChar" $ do
+                let testAttr = BS8.pack "Test attribute - 1"
+                (open_status, sd_id) <- sd_start "sds_attr_2.hdf" hdf_create
+                (create_status, sds_id) <- sd_create sd_id "emptyDataSet" HFloat64 [1,2,3]
+                (setatt_status, attr_index) <- sd_setattr sds_id "Test_1" HUChar8 testAttr
+                (attrinfo_status, attrInfo) <- sd_attrinfo sds_id 0
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [create_status, endaccess_status] `shouldNotContain`[-1]
+                attrinfo_status `shouldNotBe` (-1)
+                setatt_status `shouldNotBe` (-1)
+                attrinfo_status `shouldNotBe` (-1)
+                attrInfo `shouldBe` (SAttributeInfoRaw
+                                     "Test_1"
+                                     18
+                                     (HDFValue HUChar8 ()))
+            it "sets SDS attribute - List" $ do
+                let testAttr = [1..10] :: [Int32]
+                (open_status, sd_id) <- sd_start "sds_attr_3.hdf" hdf_create
+                (create_status, sds_id) <- sd_create sd_id "emptyDataSet" HFloat64 [1,2,3]
+                (setatt_status, attr_index) <- sd_setattr sds_id "Test_2" HInt32 testAttr
+                (attrinfo_status, attrInfo) <- sd_attrinfo sds_id 0
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [create_status, endaccess_status] `shouldNotContain`[-1]
+                setatt_status `shouldNotBe` (-1)
+                attrinfo_status `shouldNotBe` (-1)
+                attrInfo `shouldBe` (SAttributeInfoRaw
+                                     "Test_2"
+                                     10
+                                     (HDFValue HInt32 ()))
+            it "sets SDS attribute - Vector" $ do
+                let testAttr = VS.fromList ([-10..10] :: [Float])
+                (open_status, sd_id) <- sd_start "sds_attr_4.hdf" hdf_create
+                (create_status, sds_id) <- sd_create sd_id "emptyDataSet" HFloat64 [1,2,3]
+                (setatt_status, attr_index) <- sd_setattr sds_id "Test_2" HFloat32 testAttr
+                (attrinfo_status, attrInfo) <- sd_attrinfo sds_id 0
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [create_status, endaccess_status] `shouldNotContain`[-1]
+                setatt_status `shouldNotBe` (-1)
+                attrinfo_status `shouldNotBe` (-1)
+                attrInfo `shouldBe` (SAttributeInfoRaw
+                                     "Test_2"
+                                     21
+                                     (HDFValue HFloat32 ()))
+            it "sets dimension attribute - ByteString" $ do
+                let testAttr = BS8.pack "Test attribute - 1"
+                (open_status, sd_id) <- sd_start "dim_attr_1.hdf" hdf_create
+                (create_status, sds_id) <- sd_create sd_id "emptyDataSet" HFloat64 [1,2,3]
+                (getdimid_status, dim_id) <- sd_getdimid sds_id 0
+                (setatt_status, attr_index) <- sd_setattr dim_id "Test_1" HChar8 testAttr
+                (attrinfo_status, attrInfo) <- sd_attrinfo dim_id 0
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [create_status, endaccess_status] `shouldNotContain`[-1]
+                getdimid_status `shouldNotBe` (-1)
+                attrinfo_status `shouldNotBe` (-1)
+                setatt_status `shouldNotBe` (-1)
+                attrinfo_status `shouldNotBe` (-1)
+                attrInfo `shouldBe` (SAttributeInfoRaw
+                                     "Test_1"
+                                     18
+                                     (HDFValue HChar8 ()))
+            it "sets dimension attribute - ByteString UChar" $ do
+                let testAttr = BS8.pack "Test attribute - 1"
+                (open_status, sd_id) <- sd_start "dim_attr_2.hdf" hdf_create
+                (create_status, sds_id) <- sd_create sd_id "emptyDataSet" HFloat64 [1,2,3]
+                (getdimid_status, dim_id) <- sd_getdimid sds_id 0
+                (setatt_status, attr_index) <- sd_setattr dim_id "Test_1" HUChar8 testAttr
+                (attrinfo_status, attrInfo) <- sd_attrinfo dim_id 0
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [create_status, endaccess_status] `shouldNotContain`[-1]
+                getdimid_status `shouldNotBe` (-1)
+                attrinfo_status `shouldNotBe` (-1)
+                setatt_status `shouldNotBe` (-1)
+                attrinfo_status `shouldNotBe` (-1)
+                attrInfo `shouldBe` (SAttributeInfoRaw
+                                     "Test_1"
+                                     18
+                                     (HDFValue HUChar8 ()))
+            it "sets dimension attribute - List" $ do
+                let testAttr = [1..10] :: [Int32]
+                (open_status, sd_id) <- sd_start "dim_attr_3.hdf" hdf_create
+                (create_status, sds_id) <- sd_create sd_id "emptyDataSet" HFloat64 [1,2,3]
+                (getdimid_status, dim_id) <- sd_getdimid sds_id 0
+                (setatt_status, attr_index) <- sd_setattr dim_id "Test_2" HInt32 testAttr
+                (attrinfo_status, attrInfo) <- sd_attrinfo dim_id 0
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [create_status, endaccess_status] `shouldNotContain`[-1]
+                getdimid_status `shouldNotBe` (-1)
+                setatt_status `shouldNotBe` (-1)
+                attrinfo_status `shouldNotBe` (-1)
+                attrInfo `shouldBe` (SAttributeInfoRaw
+                                     "Test_2"
+                                     10
+                                     (HDFValue HInt32 ()))
+            it "sets dimension attribute - Vector" $ do
+                let testAttr = VS.fromList ([-10..10] :: [Float])
+                (open_status, sd_id) <- sd_start "dim_attr_4.hdf" hdf_create
+                (create_status, sds_id) <- sd_create sd_id "emptyDataSet" HFloat64 [1,2,3]
+                (getdimid_status, dim_id) <- sd_getdimid sds_id 0
+                (setatt_status, attr_index) <- sd_setattr dim_id "Test_2" HFloat32 testAttr
+                (attrinfo_status, attrInfo) <- sd_attrinfo dim_id 0
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [create_status, endaccess_status] `shouldNotContain`[-1]
+                getdimid_status `shouldNotBe` (-1)
+                setatt_status `shouldNotBe` (-1)
+                attrinfo_status `shouldNotBe` (-1)
+                attrInfo `shouldBe` (SAttributeInfoRaw
+                                     "Test_2"
+                                     21
+                                     (HDFValue HFloat32 ()))
+        context "SDreadattr" $ do
+            it "reads global attribute" $ do
+                let expectedData = BS8.pack "globulator"
+                (open_status, sd_id) <- sd_start "test-data/sd/test1.hdf" hdf_read
+                (readattr_status, HDFValue t v) <- sd_readattr sd_id 0
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                readattr_status `shouldNotBe` (-1)
+                case t of
+                    HChar8 -> do
+                        strAttr <- VS.unsafeWith v $ \vPtr -> BS.packCStringLen (castPtr vPtr, VS.length v)
+                        strAttr `shouldBe` expectedData
+                    _ -> expectationFailure "Unexpected dimension data type"
+            it "reads SDS attribute" $ do
+                (open_status, sd_id) <- sd_start "test-data/sd/test1.hdf" hdf_read
+                (select_status, SomeSDS _ sds_id) <- sd_select sd_id 0
+                (findattr_status, attr_index) <- sd_findattr sds_id "valid_range"
+                (readattr_status, HDFValue t v) <- sd_readattr sds_id attr_index
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                findattr_status `shouldNotBe` (-1)
+                readattr_status `shouldNotBe` (-1)
+                case t of
+                    HFloat32 -> v `shouldBe` (VS.fromList [4.5999999, 10.0])
+                    _ -> expectationFailure "Unexpected dimension data type"
+            it "reads dimension attribute" $ do
+                (open_status, sd_id) <- sd_start "test-data/sd/test1.hdf" hdf_read
+                (select_status, SomeSDS _ sds_id) <- sd_select sd_id 0
+                (getdimid_status, dim_id) <- sd_getdimid sds_id 0
+                (findattr_status, attr_index) <- sd_findattr dim_id "DimAttr"
+                (readattr_status, HDFValue t v) <- sd_readattr dim_id attr_index
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [select_status, endaccess_status] `shouldNotContain`[-1]
+                getdimid_status `shouldNotBe` (-1)
+                findattr_status `shouldNotBe` (-1)
+                readattr_status `shouldNotBe` (-1)
+                case t of
+                    HFloat32 -> v `shouldBe` (VS.fromList [3.1415])
+                    _ -> expectationFailure "Unexpected dimension data type"
     context "Predefined attributes" $ do
         context "SDgetcal" $ do
             it "reports calibration parameters" $ do
