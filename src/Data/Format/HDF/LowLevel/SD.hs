@@ -97,7 +97,7 @@ foreign import ccall unsafe "SDgetcompinfo" c_sdgetcompinfo :: Int32 -> Ptr HDFC
 -- Chunking/Tiling
 foreign import ccall unsafe "SDgetchunkinfo" c_sdgetchunkinfo :: Int32 -> Ptr HDFChunkParams -> Ptr Int32 -> IO CInt
 -- SDreadchunk
-foreign import ccall unsafe "SDsetchunk" c_sdsetchunk :: Int32 -> Ptr HDFChunkParams -> Int32 -> IO CInt
+foreign import ccall unsafe "wrp_SDsetchunk" c_sdsetchunk :: Int32 -> Ptr HDFChunkParams -> Int32 -> IO CInt
 foreign import ccall unsafe "SDsetchunkcache" c_sdsetchunkcache :: Int32 -> Int32 -> Int32 -> IO CInt
 -- SDwritechunk
 

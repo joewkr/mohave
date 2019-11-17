@@ -1045,7 +1045,14 @@ spec = do
                 chunkParams `shouldBe` (HDFChunkParams [2,2] $ HDFCompNBit 0 0 0 6 7)
         context "SDsetchunk" $ do
             it "converts SDS to chunked SDS" $ do
-                pendingWith "reading and writing SDS is not implemented"
+                (open_status, sd_id) <- sd_start "new_chunked_sds.hdf" hdf_create
+                (create_status, sds_id) <- sd_create sd_id "emptyDataSet" HInt32 [4,8]
+                (setchunk_status, _) <- sd_setchunk sds_id $ HDFChunkParams [4,1] HDFCompNone
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [create_status, endaccess_status] `shouldNotContain`[-1]
+                setchunk_status `shouldNotBe` (-1)
     context "Raw data information" $ do
         context "SDgetanndatainfo" $ do
             it "gets SD label raw offset and length" $ do
