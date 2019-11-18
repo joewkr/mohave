@@ -30,7 +30,7 @@ spec = do
             close_status `shouldBe` (-1)
         it "correctly creates new SDS" $ do
             (open_status, sd_id) <- sd_start "empty_sds.hdf" hdf_create
-            (create_status, sds_id) <- sd_create sd_id "emptyDataSet" HFloat64 [1,2,3]
+            (create_status, _) <- sd_create sd_id "emptyDataSet" HFloat64 [1,2,3]
             (close_status, _) <- sd_end sd_id
             [open_status, close_status] `shouldNotContain`[-1]
             create_status `shouldNotBe` (-1)
@@ -165,14 +165,14 @@ spec = do
                     2 [10,10] (HDFValue HInt32 ()) 0)
         context "SDget_maxopenfiles" $ do
             it "reports reasonable limits" $ do
-                (get_maxopenfiles_status, limits@(curr_max, sys_limit)) <- sd_get_maxopenfiles
+                (get_maxopenfiles_status, (curr_max, sys_limit)) <- sd_get_maxopenfiles
                 get_maxopenfiles_status `shouldNotBe` (-1)
                 curr_max `shouldSatisfy` (> 0)
                 curr_max `shouldSatisfy` (<= sys_limit)
                 sys_limit `shouldSatisfy` (> 0)
             it "reflects updated limits" $ do
                 (reset_maxopenfiles_status, new_limit) <- sd_reset_maxopenfiles 128
-                (get_maxopenfiles_status, limits@(curr_max, sys_limit)) <- sd_get_maxopenfiles
+                (get_maxopenfiles_status, (curr_max, _)) <- sd_get_maxopenfiles
                 [reset_maxopenfiles_status, get_maxopenfiles_status] `shouldNotContain`[-1]
                 (curr_max == new_limit) `shouldBe` True
         context "SDget_numopenfiles" $ do
@@ -512,7 +512,7 @@ spec = do
             it "sets global attribute - ByteString" $ do
                 let testAttr = BS8.pack "Test attribute - 1"
                 (open_status, sd_id) <- sd_start "global_attr_1.hdf" hdf_create
-                (setatt_status, attr_index) <- sd_setattr sd_id "Test_1" HChar8 testAttr
+                (setatt_status, _) <- sd_setattr sd_id "Test_1" HChar8 testAttr
                 (attrinfo_status, attrInfo) <- sd_attrinfo sd_id 0
                 (close_status, _) <- sd_end sd_id
                 [open_status, close_status] `shouldNotContain`[-1]
@@ -526,7 +526,7 @@ spec = do
             it "sets global attribute - ByteString UChar" $ do
                 let testAttr = BS8.pack "Test attribute - 1"
                 (open_status, sd_id) <- sd_start "global_attr_2.hdf" hdf_create
-                (setatt_status, attr_index) <- sd_setattr sd_id "Test_1" HUChar8 testAttr
+                (setatt_status, _) <- sd_setattr sd_id "Test_1" HUChar8 testAttr
                 (readattr_status, HDFValue t v) <- sd_readattr sd_id 0
                 (attrinfo_status, attrInfo) <- sd_attrinfo sd_id 0
                 (close_status, _) <- sd_end sd_id
@@ -547,7 +547,7 @@ spec = do
             it "sets global attribute - List" $ do
                 let testAttr = [1..10] :: [Int32]
                 (open_status, sd_id) <- sd_start "global_attr_3.hdf" hdf_create
-                (setatt_status, attr_index) <- sd_setattr sd_id "Test_2" HInt32 testAttr
+                (setatt_status, _) <- sd_setattr sd_id "Test_2" HInt32 testAttr
                 (attrinfo_status, attrInfo) <- sd_attrinfo sd_id 0
                 (close_status, _) <- sd_end sd_id
                 [open_status, close_status] `shouldNotContain`[-1]
@@ -560,7 +560,7 @@ spec = do
             it "sets global attribute - Vector" $ do
                 let testAttr = VS.fromList ([-10..10] :: [Float])
                 (open_status, sd_id) <- sd_start "global_attr_4.hdf" hdf_create
-                (setatt_status, attr_index) <- sd_setattr sd_id "Test_2" HFloat32 testAttr
+                (setatt_status, _) <- sd_setattr sd_id "Test_2" HFloat32 testAttr
                 (attrinfo_status, attrInfo) <- sd_attrinfo sd_id 0
                 (close_status, _) <- sd_end sd_id
                 [open_status, close_status] `shouldNotContain`[-1]
@@ -574,7 +574,7 @@ spec = do
                 let testAttr = BS8.pack "Test attribute - 1"
                 (open_status, sd_id) <- sd_start "sds_attr_1.hdf" hdf_create
                 (create_status, sds_id) <- sd_create sd_id "emptyDataSet" HFloat64 [1,2,3]
-                (setatt_status, attr_index) <- sd_setattr sds_id "Test_1" HChar8 testAttr
+                (setatt_status, _) <- sd_setattr sds_id "Test_1" HChar8 testAttr
                 (attrinfo_status, attrInfo) <- sd_attrinfo sds_id 0
                 (endaccess_status, _) <- sd_endaccess sds_id
                 (close_status, _) <- sd_end sd_id
@@ -591,7 +591,7 @@ spec = do
                 let testAttr = BS8.pack "Test attribute - 1"
                 (open_status, sd_id) <- sd_start "sds_attr_2.hdf" hdf_create
                 (create_status, sds_id) <- sd_create sd_id "emptyDataSet" HFloat64 [1,2,3]
-                (setatt_status, attr_index) <- sd_setattr sds_id "Test_1" HUChar8 testAttr
+                (setatt_status, _) <- sd_setattr sds_id "Test_1" HUChar8 testAttr
                 (attrinfo_status, attrInfo) <- sd_attrinfo sds_id 0
                 (endaccess_status, _) <- sd_endaccess sds_id
                 (close_status, _) <- sd_end sd_id
@@ -608,7 +608,7 @@ spec = do
                 let testAttr = [1..10] :: [Int32]
                 (open_status, sd_id) <- sd_start "sds_attr_3.hdf" hdf_create
                 (create_status, sds_id) <- sd_create sd_id "emptyDataSet" HFloat64 [1,2,3]
-                (setatt_status, attr_index) <- sd_setattr sds_id "Test_2" HInt32 testAttr
+                (setatt_status, _) <- sd_setattr sds_id "Test_2" HInt32 testAttr
                 (attrinfo_status, attrInfo) <- sd_attrinfo sds_id 0
                 (endaccess_status, _) <- sd_endaccess sds_id
                 (close_status, _) <- sd_end sd_id
@@ -624,7 +624,7 @@ spec = do
                 let testAttr = VS.fromList ([-10..10] :: [Float])
                 (open_status, sd_id) <- sd_start "sds_attr_4.hdf" hdf_create
                 (create_status, sds_id) <- sd_create sd_id "emptyDataSet" HFloat64 [1,2,3]
-                (setatt_status, attr_index) <- sd_setattr sds_id "Test_2" HFloat32 testAttr
+                (setatt_status, _) <- sd_setattr sds_id "Test_2" HFloat32 testAttr
                 (attrinfo_status, attrInfo) <- sd_attrinfo sds_id 0
                 (endaccess_status, _) <- sd_endaccess sds_id
                 (close_status, _) <- sd_end sd_id
@@ -641,7 +641,7 @@ spec = do
                 (open_status, sd_id) <- sd_start "dim_attr_1.hdf" hdf_create
                 (create_status, sds_id) <- sd_create sd_id "emptyDataSet" HFloat64 [1,2,3]
                 (getdimid_status, dim_id) <- sd_getdimid sds_id 0
-                (setatt_status, attr_index) <- sd_setattr dim_id "Test_1" HChar8 testAttr
+                (setatt_status, _) <- sd_setattr dim_id "Test_1" HChar8 testAttr
                 (attrinfo_status, attrInfo) <- sd_attrinfo dim_id 0
                 (endaccess_status, _) <- sd_endaccess sds_id
                 (close_status, _) <- sd_end sd_id
@@ -660,7 +660,7 @@ spec = do
                 (open_status, sd_id) <- sd_start "dim_attr_2.hdf" hdf_create
                 (create_status, sds_id) <- sd_create sd_id "emptyDataSet" HFloat64 [1,2,3]
                 (getdimid_status, dim_id) <- sd_getdimid sds_id 0
-                (setatt_status, attr_index) <- sd_setattr dim_id "Test_1" HUChar8 testAttr
+                (setatt_status, _) <- sd_setattr dim_id "Test_1" HUChar8 testAttr
                 (attrinfo_status, attrInfo) <- sd_attrinfo dim_id 0
                 (endaccess_status, _) <- sd_endaccess sds_id
                 (close_status, _) <- sd_end sd_id
@@ -679,7 +679,7 @@ spec = do
                 (open_status, sd_id) <- sd_start "dim_attr_3.hdf" hdf_create
                 (create_status, sds_id) <- sd_create sd_id "emptyDataSet" HFloat64 [1,2,3]
                 (getdimid_status, dim_id) <- sd_getdimid sds_id 0
-                (setatt_status, attr_index) <- sd_setattr dim_id "Test_2" HInt32 testAttr
+                (setatt_status, _) <- sd_setattr dim_id "Test_2" HInt32 testAttr
                 (attrinfo_status, attrInfo) <- sd_attrinfo dim_id 0
                 (endaccess_status, _) <- sd_endaccess sds_id
                 (close_status, _) <- sd_end sd_id
@@ -697,7 +697,7 @@ spec = do
                 (open_status, sd_id) <- sd_start "dim_attr_4.hdf" hdf_create
                 (create_status, sds_id) <- sd_create sd_id "emptyDataSet" HFloat64 [1,2,3]
                 (getdimid_status, dim_id) <- sd_getdimid sds_id 0
-                (setatt_status, attr_index) <- sd_setattr dim_id "Test_2" HFloat32 testAttr
+                (setatt_status, _) <- sd_setattr dim_id "Test_2" HFloat32 testAttr
                 (attrinfo_status, attrInfo) <- sd_attrinfo dim_id 0
                 (endaccess_status, _) <- sd_endaccess sds_id
                 (close_status, _) <- sd_end sd_id
@@ -858,7 +858,7 @@ spec = do
                 let calibrationParamsNew = SCalibrationParametersRaw 1.0 5.0 3.0 2.5 (HDFValue HFloat64 ())
                 (open_status, sd_id) <- sd_start "empty_sds.hdf" hdf_create
                 (create_status, sds_id) <- sd_create sd_id "emptyDataSet" HWord8 [1,2,3]
-                (setcal_status, dim_id) <- sd_setcal sds_id calibrationParamsNew
+                (setcal_status, _) <- sd_setcal sds_id calibrationParamsNew
                 (getcal_status, calibrationParams) <- sd_getcal sds_id
                 (endaccess_status, _) <- sd_endaccess sds_id
                 (close_status, _) <- sd_end sd_id
@@ -1286,7 +1286,7 @@ spec = do
                 [select_status, endaccess_status] `shouldNotContain`[-1]
                 getdimid_status `shouldNotBe` (-1)
                 getoldattdatainfo_status `shouldNotBe` (-1)
-                let (attrOfst,attrLen) = annOffsetLen
+                let (_,attrLen) = annOffsetLen -- Apparently, the offset is not zero even when the attribute is not defined
                 attrLen `shouldBe` 0
         context "SDgetdatainfo" $ do
             it "gets SDS raw data offsets and lengths" $ do
