@@ -3,6 +3,7 @@
 module Data.Format.HDF.LowLevel.SDSpec(spec) where
 
 import           Data.Int (Int32)
+import           Data.Word (Word16)
 import           Test.Hspec
 
 import qualified Data.ByteString as BS
@@ -1053,6 +1054,65 @@ spec = do
                 [open_status, close_status] `shouldNotContain`[-1]
                 [create_status, endaccess_status] `shouldNotContain`[-1]
                 setchunk_status `shouldNotBe` (-1)
+        context "SDreadchunk" $ do
+            it "reads SDS chunk - 1" $ do
+                let expectedData = VS.fromList ([11, 21, 12, 22, 13, 23] :: [Word16])
+                (open_status, sd_id) <- sd_start "test-data/sd/chktst.hdf" hdf_read
+                (select_status, SomeSDS t sds_id) <- sd_select sd_id 0
+                case t of
+                    HWord16 -> do
+                        (readchunk_status, sdsChunk) <- sd_readchunk sds_id [0,0]
+                        (endaccess_status, _) <- sd_endaccess sds_id
+                        (close_status, _) <- sd_end sd_id
+                        [open_status, close_status] `shouldNotContain`[-1]
+                        [select_status, endaccess_status] `shouldNotContain`[-1]
+                        readchunk_status `shouldNotBe` (-1)
+                        sdsChunk `shouldBe` expectedData
+                    _ -> expectationFailure "Unexpected SDS data type"
+            it "reads SDS chunk - 2" $ do
+                let expectedData = VS.fromList ([37, 47, 38, 48, 39, 49] :: [Word16])
+                (open_status, sd_id) <- sd_start "test-data/sd/chktst.hdf" hdf_read
+                (select_status, SomeSDS t sds_id) <- sd_select sd_id 0
+                case t of
+                    HWord16 -> do
+                        (readchunk_status, sdsChunk) <- sd_readchunk sds_id [2,1]
+                        (endaccess_status, _) <- sd_endaccess sds_id
+                        (close_status, _) <- sd_end sd_id
+                        [open_status, close_status] `shouldNotContain`[-1]
+                        [select_status, endaccess_status] `shouldNotContain`[-1]
+                        readchunk_status `shouldNotBe` (-1)
+                        sdsChunk `shouldBe` expectedData
+                    _ -> expectationFailure "Unexpected SDS data type"
+            it "rejects wrong SDS chunk coordinates" $ do
+                (open_status, sd_id) <- sd_start "test-data/sd/chktst.hdf" hdf_read
+                (select_status, SomeSDS t sds_id) <- sd_select sd_id 0
+                case t of
+                    HWord16 -> do
+                        (readchunk_status, _) <- sd_readchunk sds_id [999,999]
+                        (endaccess_status, _) <- sd_endaccess sds_id
+                        (close_status, _) <- sd_end sd_id
+                        [open_status, close_status] `shouldNotContain`[-1]
+                        [select_status, endaccess_status] `shouldNotContain`[-1]
+                        readchunk_status `shouldBe` (-1)
+                    _ -> expectationFailure "Unexpected SDS data type"
+        context "SDwritechunk" $ do
+            it "writes data to a chunked SDS" $ do
+                let expectedData = VS.fromList ([1, 2, 3, 4] :: [Int32])
+                (open_status, sd_id) <- sd_start "chunked_sds.hdf" hdf_create
+                (create_status, sds_id) <- sd_create sd_id "emptyDataSet" HInt32 [4,8]
+                (setfillvalue_status, _) <- sd_setfillvalue sds_id 0
+                (setchunk_status, _) <- sd_setchunk sds_id $ HDFChunkParams [4,1] HDFCompNone
+                (writechunk_status, _) <- sd_writechunk sds_id [0,0] expectedData
+                (readchunk_status, sdsChunk) <- sd_readchunk sds_id [0,0]
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [create_status, endaccess_status] `shouldNotContain`[-1]
+                setfillvalue_status `shouldNotBe` (-1)
+                setchunk_status `shouldNotBe` (-1)
+                writechunk_status `shouldNotBe` (-1)
+                readchunk_status `shouldNotBe` (-1)
+                sdsChunk `shouldBe` expectedData
     context "Raw data information" $ do
         context "SDgetanndatainfo" $ do
             it "gets SD label raw offset and length" $ do

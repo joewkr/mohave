@@ -96,10 +96,10 @@ foreign import ccall unsafe "SDgetcompinfo" c_sdgetcompinfo :: Int32 -> Ptr HDFC
 
 -- Chunking/Tiling
 foreign import ccall unsafe "SDgetchunkinfo" c_sdgetchunkinfo :: Int32 -> Ptr HDFChunkParams -> Ptr Int32 -> IO CInt
--- SDreadchunk
+foreign import ccall unsafe "SDreadchunk" c_sdreadchunk :: Int32 -> Ptr Int32 -> Ptr HDFData -> IO CInt
 foreign import ccall unsafe "wrp_SDsetchunk" c_sdsetchunk :: Int32 -> Ptr HDFChunkParams -> Int32 -> IO CInt
 foreign import ccall unsafe "SDsetchunkcache" c_sdsetchunkcache :: Int32 -> Int32 -> Int32 -> IO CInt
--- SDwritechunk
+foreign import ccall unsafe "SDwritechunk" c_sdwritechunk :: Int32 -> Ptr Int32 -> Ptr HDFData -> IO CInt
 
 -- Raw data information
 foreign import ccall unsafe "SDgetanndatainfo" c_sdgetanndatainfo :: Int32 -> CAnnType -> CUInt -> Ptr Int32 -> Ptr Int32 -> IO CInt
@@ -862,3 +862,28 @@ sd_readattr objId attrId = do
                 return $!
                     ( fromIntegral h_result_2
                     , HDFValue t $ VS.unsafeFromForeignPtr0 fp (fromIntegral attrNValues))
+
+sd_writechunk :: forall (t :: HDataType a). Storable a =>
+    SDataSetId t -> [Int32] -> VS.Vector a -> IO (Int32, ())
+sd_writechunk (SDataSetId sds_id) chunkCoords dataChunk =
+    withArray chunkCoords $ \chunkCoordsPtr ->
+    VS.unsafeWith dataChunk $ \dataChunkPtr -> do
+        h_result <- c_sdwritechunk
+                        sds_id
+                        chunkCoordsPtr
+                        (castPtr dataChunkPtr)
+        return $! (fromIntegral h_result, ())
+
+sd_readchunk :: forall (t :: HDataType a). Storable a =>
+    SDataSetId t -> [Int32] -> IO (Int32, VS.Vector a)
+sd_readchunk sds@(SDataSetId sds_id) chunkCoords = do
+    (h_result, chunkLen) <- second (product . hdfChunkSizes) <$> sd_getchunkinfo sds
+    if h_result == (-1)
+        then return (h_result, VS.empty)
+        else withArray chunkCoords $ \chunkCoordsPtr -> do
+            fp <- mallocForeignPtrArray $ fromIntegral chunkLen
+            h_result_2 <- withForeignPtr fp $ \dataChunkPtr -> do
+                c_sdreadchunk sds_id chunkCoordsPtr (castPtr dataChunkPtr)
+            return $!
+                ( fromIntegral h_result_2
+                , VS.unsafeFromForeignPtr0 fp (fromIntegral chunkLen))
