@@ -3,7 +3,7 @@
 module Data.Format.HDF.LowLevel.SDSpec(spec) where
 
 import           Data.Int (Int32)
-import           Data.Word (Word16)
+import           Data.Word (Word8, Word16)
 import           Test.Hspec
 
 import qualified Data.ByteString as BS
@@ -431,7 +431,27 @@ spec = do
                     HInt32 -> v `shouldBe` (VS.fromList [1,5,7,24])
                     _ -> expectationFailure "Unexpected dimension data type"
             it "gets unlimited dimension scale" $ do
-                pendingWith "reading and writing SDS is not implemented"
+                let sdsData     = VS.fromList ([4,5,6,7] :: [Word8])
+                    sdsDimScale = VS.fromList ([1,2,3,4] :: [Word16])
+                (open_status, sd_id) <- sd_start "unlimited_dim_scale.hdf" hdf_create
+                (create_status, sds_id) <- sd_create sd_id "DataSet" HWord8 [0]
+                (writedata_status, _) <- sd_writedata sds_id [0] [1] [4] sdsData
+                (getdimid_status, dim_id) <- sd_getdimid sds_id 0
+                (setdimname_status, _) <- sd_setdimname dim_id "MyDim"
+                (setdimscale_status, _) <- sd_setdimscale dim_id HWord16 sdsDimScale
+                (getdimscale_status, HDFValue t v) <- sd_getdimscale sds_id dim_id
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [create_status, endaccess_status] `shouldNotContain`[-1]
+                writedata_status `shouldNotBe` (-1)
+                getdimid_status `shouldNotBe` (-1)
+                setdimname_status `shouldNotBe` (-1)
+                setdimscale_status `shouldNotBe` (-1)
+                getdimscale_status `shouldNotBe` (-1)
+                case t of
+                    HWord16 -> v `shouldBe` sdsDimScale
+                    _ -> expectationFailure "Unexpected dimension data type"
     context "User-defined attributes" $ do
         context "SDfindattr" $ do
             it "finds global attribute" $ do
@@ -946,9 +966,41 @@ spec = do
                 fillValue `shouldBe` (-777 :: Int32)
         context "SDsetfillmode" $ do
             it "sets fill mode" $ do
-                pendingWith "reading and writing SDS is not implemented"
+                let sdsData = VS.fromList ([7] :: [Word8] )
+                    expectedSdsData = VS.fromList ([5,7] :: [Word8] )
+                (open_status, sd_id) <- sd_start "sds_fill_1.hdf" hdf_create
+                (create_status, sds_id) <- sd_create sd_id "DataSet" HWord8 [2]
+                (setfillmode_status, _) <- sd_setfillmode sd_id hdf_fill
+                (setfillvalue_status, _) <- sd_setfillvalue sds_id 5
+                (writedata_status, _) <- sd_writedata sds_id [1] [1] [1] sdsData
+                (readdata_status, v) <- sd_readdata sds_id [0] [1] [2]
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [create_status, endaccess_status] `shouldNotContain`[-1]
+                setfillmode_status `shouldNotBe` (-1)
+                setfillvalue_status `shouldNotBe` (-1)
+                writedata_status `shouldNotBe` (-1)
+                readdata_status `shouldNotBe` (-1)
+                v `shouldBe` expectedSdsData
             it "sets no-fill mode" $ do
-                pendingWith "reading and writing SDS is not implemented"
+                let sdsData = VS.fromList ([7] :: [Word8] )
+                    expectedSdsData = VS.fromList ([5,7] :: [Word8] )
+                (open_status, sd_id) <- sd_start "sds_nofill_1.hdf" hdf_create
+                (create_status, sds_id) <- sd_create sd_id "DataSet" HWord8 [2]
+                (setfillmode_status, _) <- sd_setfillmode sd_id hdf_nofill
+                (setfillvalue_status, _) <- sd_setfillvalue sds_id 5
+                (writedata_status, _) <- sd_writedata sds_id [1] [1] [1] sdsData
+                (readdata_status, v) <- sd_readdata sds_id [0] [1] [2]
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [create_status, endaccess_status] `shouldNotContain`[-1]
+                setfillmode_status `shouldNotBe` (-1)
+                setfillvalue_status `shouldNotBe` (-1)
+                writedata_status `shouldNotBe` (-1)
+                readdata_status `shouldNotBe` (-1)
+                v `shouldNotBe` expectedSdsData
         context "SDsetrange" $ do
             it "sets valid range for dataset" $ do
                 (open_status, sd_id) <- sd_start "empty_sds.hdf" hdf_create
@@ -1426,7 +1478,22 @@ spec = do
                 hClose hndl
                 rawData `shouldBe` expectedData
             it "creates new SDS in external file" $ do
-                pendingWith "reading and writing SDS is not implemented"
+                let filePath         = "external_sds.primary.hdf"
+                    externalFilePath = "external_sds.external.hdf"
+                    sdsData = VS.fromList ([4,5,6,7] :: [Word8] )
+                (open_status, sd_id) <- sd_start filePath hdf_create
+                (create_status, sds_id) <- sd_create sd_id "DataSet" HWord8 [2,2]
+                (setexternalfile_status, _) <- sd_setexternalfile sds_id externalFilePath 0
+                (writedata_status, _) <- sd_writedata sds_id [0,0] [1,1] [2,2] sdsData
+                (readdata_status, v) <- sd_readdata sds_id [0,0] [1,1] [2,2]
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [create_status, endaccess_status] `shouldNotContain`[-1]
+                setexternalfile_status `shouldNotBe` (-1)
+                writedata_status `shouldNotBe` (-1)
+                readdata_status `shouldNotBe` (-1)
+                v `shouldBe` sdsData
         context "SDisdimval_bwcomp" $ do
             it "detects backward incompatible dimension" $ do
                 let filePath     = "test-data/sd/test1.hdf"
@@ -1478,3 +1545,58 @@ spec = do
                 setdimval_comp_status `shouldNotBe` (-1)
                 isdimval_bwcomp_status `shouldNotBe` (-1)
                 bwCompat `shouldBe` True
+        context "SDreaddata" $ do
+            it "reads data from SDS - 1" $ do
+                (open_status, sd_id) <- sd_start "test-data/sd/test1.hdf" hdf_read
+                (select_status, SomeSDS t sds_id) <- sd_select sd_id 0
+                case t of
+                    HFloat32 -> do
+                        (readdata_status, v) <- sd_readdata sds_id [1,1] [1,1] [3,3]
+                        (endaccess_status, _) <- sd_endaccess sds_id
+                        (close_status, _) <- sd_end sd_id
+                        [open_status, close_status] `shouldNotContain`[-1]
+                        [select_status, endaccess_status] `shouldNotContain`[-1]
+                        readdata_status `shouldNotBe` (-1)
+                        v `shouldBe` (VS.fromList [0,1,2,3,4,5,6,7,8])
+                    _ -> expectationFailure "Unexpected dimension data type"
+            it "reads data from SDS - 2" $ do
+                (open_status, sd_id) <- sd_start "test-data/sd/test1.hdf" hdf_read
+                (select_status, SomeSDS t sds_id) <- sd_select sd_id 0
+                case t of
+                    HFloat32 -> do
+                        (readdata_status, v) <- sd_readdata sds_id [1,1] [2,1] [2,1]
+                        (endaccess_status, _) <- sd_endaccess sds_id
+                        (close_status, _) <- sd_end sd_id
+                        [open_status, close_status] `shouldNotContain`[-1]
+                        [select_status, endaccess_status] `shouldNotContain`[-1]
+                        readdata_status `shouldNotBe` (-1)
+                        v `shouldBe` (VS.fromList [0,6])
+                    _ -> expectationFailure "Unexpected dimension data type"
+        context "SDwritedata" $ do
+            it "writes data to SDS - 1" $ do
+                let sdsData = VS.fromList ([4,5,6,7] :: [Word8] )
+                (open_status, sd_id) <- sd_start "write_sds_1.hdf" hdf_create
+                (create_status, sds_id) <- sd_create sd_id "DataSet" HWord8 [2,2]
+                (writedata_status, _) <- sd_writedata sds_id [0,0] [1,1] [2,2] sdsData
+                (readdata_status, v) <- sd_readdata sds_id [0,0] [1,1] [2,2]
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [create_status, endaccess_status] `shouldNotContain`[-1]
+                writedata_status `shouldNotBe` (-1)
+                readdata_status `shouldNotBe` (-1)
+                v `shouldBe` sdsData
+            it "writes data to SDS - 2" $ do
+                (open_status, sd_id) <- sd_start "write_sds_2.hdf" hdf_create
+                (create_status, sds_id) <- sd_create sd_id "DataSet" HWord8 [2,2]
+                (setfillvalue_status, _) <- sd_setfillvalue sds_id 5
+                (writedata_status, _) <- sd_writedata sds_id [0,0] [1,1] [1,1] (VS.fromList [0])
+                (readdata_status, v) <- sd_readdata sds_id [0,0] [1,1] [2,2]
+                (endaccess_status, _) <- sd_endaccess sds_id
+                (close_status, _) <- sd_end sd_id
+                [open_status, close_status] `shouldNotContain`[-1]
+                [create_status, endaccess_status] `shouldNotContain`[-1]
+                setfillvalue_status `shouldNotBe` (-1)
+                writedata_status `shouldNotBe` (-1)
+                readdata_status `shouldNotBe` (-1)
+                v `shouldBe` (VS.fromList [0,5,5,5])

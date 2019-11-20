@@ -40,8 +40,8 @@ foreign import ccall unsafe "SDendaccess" c_sdendaccess :: Int32 -> IO CInt
 foreign import ccall unsafe "SDend" c_sdend :: Int32 -> IO CInt
 
 -- Read and write
--- SDreaddata
--- SDwritedata
+foreign import ccall unsafe "SDreaddata" c_sdreaddata :: Int32 -> Ptr Int32 -> Ptr Int32 -> Ptr Int32 -> Ptr HDFData -> IO CInt
+foreign import ccall unsafe "SDwritedata" c_sdwritedata :: Int32 -> Ptr Int32 -> Ptr Int32 -> Ptr Int32 -> Ptr HDFData -> IO CInt
 
 -- General inquiry
 foreign import ccall unsafe "SDcheckempty" c_sdcheckempty :: Int32 -> Ptr CInt -> IO Int32
@@ -887,3 +887,26 @@ sd_readchunk sds@(SDataSetId sds_id) chunkCoords = do
             return $!
                 ( fromIntegral h_result_2
                 , VS.unsafeFromForeignPtr0 fp (fromIntegral chunkLen))
+
+sd_readdata :: forall (t :: HDataType a). Storable a =>
+    SDataSetId t -> [Int32] -> [Int32] -> [Int32] -> IO (Int32, VS.Vector a)
+sd_readdata (SDataSetId sds_id) start stride edges =
+    withArray start $ \startPtr ->
+    withArray stride $ \stridePtr ->
+    withArray edges $ \edgesPtr -> do
+        fp <- mallocForeignPtrArray . fromIntegral $ product edges
+        h_result <- withForeignPtr fp $ \sdsDataPtr ->
+            c_sdreaddata sds_id startPtr stridePtr edgesPtr (castPtr sdsDataPtr)
+        return $!
+            ( fromIntegral h_result
+            , VS.unsafeFromForeignPtr0 fp (fromIntegral $ product edges))
+
+sd_writedata :: forall (t :: HDataType a). Storable a =>
+    SDataSetId t -> [Int32] -> [Int32] -> [Int32] -> VS.Vector a -> IO (Int32, ())
+sd_writedata (SDataSetId sds_id) start stride edges sdsData =
+    withArray start $ \startPtr ->
+    withArray stride $ \stridePtr ->
+    withArray edges $ \edgesPtr ->
+    VS.unsafeWith sdsData $ \sdsDataPtr -> do
+        h_result <- c_sdwritedata sds_id startPtr stridePtr edgesPtr (castPtr sdsDataPtr)
+        return $! (fromIntegral h_result, ())
