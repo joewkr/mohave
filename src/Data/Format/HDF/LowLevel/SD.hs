@@ -226,7 +226,7 @@ sd_getinfo sDataSetId@(SDataSetId sds_id) = do
             alloca $ \rankPtr ->
             alloca $ \dataTypePtr ->
             alloca $ \numAttributesPtr ->
-            allocaArray0 (fromIntegral nameLen) $ \sdsNamePtr -> do
+            allocaArray0 (fromIntegral nameLen) $ \sdsNamePtr ->
             allocaArray  (fromIntegral hdfMaxVarDims) $ \dimSizesPtr -> do
                 h_result <- c_sdgetinfo
                                 sds_id
@@ -268,7 +268,7 @@ sd_get_numopenfiles = do
 
 sd_getnumvars_byname :: SDId -> String -> IO (Int32, Int32)
 sd_getnumvars_byname (SDId sd_id) sds_name =
-    withCString sds_name $ \cSDSName -> do
+    withCString sds_name $ \cSDSName ->
     alloca $ \numVarsPtr -> do
         h_result <- c_sdgetnumvars_byname sd_id cSDSName numVarsPtr
         if h_result == (-1)
@@ -781,7 +781,7 @@ sd_setdimval_comp (SDimensionId dimension_id) bwCompatible = do
 
 sd_setdimscale :: Storable a =>
     SDimensionId -> HDataType a -> VS.Vector a -> IO (Int32, ())
-sd_setdimscale (SDimensionId dimension_id) data_type dim_scale = do
+sd_setdimscale (SDimensionId dimension_id) data_type dim_scale =
     VS.unsafeWith dim_scale $ \dimScalePtr -> do
         h_result <- c_sdsetdimscale
                         dimension_id
@@ -882,7 +882,7 @@ sd_readchunk sds@(SDataSetId sds_id) chunkCoords = do
         then return (h_result, VS.empty)
         else withArray chunkCoords $ \chunkCoordsPtr -> do
             fp <- mallocForeignPtrArray $ fromIntegral chunkLen
-            h_result_2 <- withForeignPtr fp $ \dataChunkPtr -> do
+            h_result_2 <- withForeignPtr fp $ \dataChunkPtr ->
                 c_sdreadchunk sds_id chunkCoordsPtr (castPtr dataChunkPtr)
             return $!
                 ( fromIntegral h_result_2
