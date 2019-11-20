@@ -1408,15 +1408,15 @@ spec = do
                 (open_status, sd_id) <- sd_start filePath hdf_write
                 (nametoindex_status, sds_index) <- sd_nametoindex sd_id "FIXED"
                 (select_status, SomeSDS _ sds_id) <- sd_select sd_id sds_index
-                (setexternalinfo_status, _) <- sd_setexternalfile sds_id externalFilePath 0
-                (getexternalinfo_status, externFileInfo) <- sd_getexternalinfo sds_id
+                (setexternalfile_status, _) <- sd_setexternalfile sds_id externalFilePath 0
+                (getexternalfile_status, externFileInfo) <- sd_getexternalinfo sds_id
                 (endaccess_status, _) <- sd_endaccess sds_id
                 (close_status, _) <- sd_end sd_id
                 [open_status, close_status] `shouldNotContain`[-1]
                 [select_status, endaccess_status] `shouldNotContain`[-1]
                 nametoindex_status `shouldNotBe` (-1)
-                setexternalinfo_status `shouldNotBe` (-1)
-                getexternalinfo_status `shouldNotBe` (-1)
+                setexternalfile_status `shouldNotBe` (-1)
+                getexternalfile_status `shouldNotBe` (-1)
                 externFileInfo `shouldBe` expected
                 let extFileName        = fst externFileInfo
                     (dataOfst,dataLen) = snd externFileInfo
