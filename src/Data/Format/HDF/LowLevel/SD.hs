@@ -10,7 +10,83 @@
 {-# LANGUAGE TypeInType #-} -- Required with ghc 8.4.3
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
-module Data.Format.HDF.LowLevel.SD where
+module Data.Format.HDF.LowLevel.SD(
+    SDId
+  , SDataSetId
+  , SDataSetRef
+  , SDimensionId
+  , SomeSDS(..)
+
+  , SDataSetInfoRaw(..)
+  , SDimensionInfoRaw(..)
+  , SAttributeInfoRaw(..)
+  , SCalibrationParametersRaw(..)
+  , SDsetDescStringsRaw(..)
+  , SDimDescStringsRaw(..)
+  , SDNBitCompParams(..)
+
+  , RawDataInfo
+
+  , sd_start
+  , sd_create
+  , sd_select
+  , sd_endaccess
+  , sd_end
+  , sd_checkempty
+  , sd_fileinfo
+  , sd_getnamelen
+  , sd_getfilename
+  , sd_getinfo
+  , sd_get_maxopenfiles
+  , sd_get_numopenfiles
+  , sd_getnumvars_byname
+  , sd_idtoref
+  , sd_iscoordvar
+  , sd_isisrecord
+  , sd_nametoindex
+  , sd_nametoindices
+  , sd_reftoindex
+  , sd_reset_maxopenfiles
+  , sd_getdimid
+  , sd_diminfo
+  , sd_setdimname
+  , sd_findattr
+  , sd_attrinfo
+  , sd_getcal
+  , sd_getdatastrs
+  , sd_getdimstrs
+  , sd_getfillvalue
+  , sd_getrange
+  , sd_setcal
+  , sd_setdatastrs
+  , sd_setdimstrs
+  , sd_setfillvalue
+  , sd_setfillmode
+  , sd_setrange
+  , sd_setcompress
+  , sd_getcompinfo
+  , sd_setnbitdataset
+  , sd_setchunkcache
+  , sd_setchunk
+  , sd_getchunkinfo
+  , sd_getanndatainfo
+  , sd_getattdatainfo
+  , sd_getoldattdatainfo
+  , sd_getdatainfo
+  , sd_getexternalinfo
+  , sd_setblocksize
+  , sd_setexternalfile
+  , sd_isdimval_bwcomp
+  , sd_setdimval_comp
+  , sd_setdimscale
+  , sd_getdimscale
+  , sd_setattr
+  , sd_readattr
+  , sd_writechunk
+  , sd_readchunk
+  , sd_readdata
+  , sd_writedata
+) where
 
 import           Control.Arrow (second)
 import qualified Data.ByteString as BS
