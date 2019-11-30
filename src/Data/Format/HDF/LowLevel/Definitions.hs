@@ -3,6 +3,8 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
@@ -11,12 +13,16 @@ module Data.Format.HDF.LowLevel.Definitions where
 
 import           Data.Int
 import           Data.Kind
+import           Data.Proxy (Proxy(..))
 import           Data.Type.Equality (TestEquality, testEquality, type(==), (:~:)(Refl))
 import qualified Data.Vector.Storable as VS
 import           Data.Word
-import           Foreign.Ptr (castPtr)
+import           Foreign.Ptr (Ptr, castPtr)
 import           Foreign.Storable (Storable(..))
+import           Foreign.Marshal.Array (allocaArray, advancePtr)
 import           GHC.TypeLits (TypeError, ErrorMessage(..))
+import           GHC.TypeNats
+
 
 data HDFData
 
@@ -119,3 +125,24 @@ type family OneOfInternal (found :: Bool) (a :: k) (xs :: [k]) (all :: [k]) :: B
   OneOfInternal 'True  _  _        _   = 'True
   OneOfInternal 'False a '[]       all = TypeError ('ShowType a ':<>: 'Text " is not found in " ':<>: 'ShowType all)
   OneOfInternal  res   a (b ': xs) all = OneOfInternal (a == b) a xs all
+
+data Index (n :: Nat) where
+    D :: Int32 -> Index 1
+    (:|) :: Index n -> Int32 -> Index (n + 1)
+
+withIndex :: forall (n :: Nat) b. KnownNat n =>
+    Index n -> (Ptr Int32 -> IO b) -> IO b
+withIndex index f = allocaArray indexRank $ \indexPtr -> do
+    fillIndexArray (advancePtr indexPtr (indexRank - 1)) index
+    res <- f indexPtr
+    return $! res
+  where
+    indexRank :: Int
+    indexRank = fromIntegral $ natVal (Proxy :: Proxy n)
+
+fillIndexArray :: Ptr Int32 -> Index n -> IO ()
+fillIndexArray ptr idx = case idx of
+    (D a) -> poke ptr a
+    (:|) rest a -> do
+        poke ptr a
+        fillIndexArray (advancePtr ptr (-1)) rest

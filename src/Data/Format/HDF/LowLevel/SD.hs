@@ -93,6 +93,7 @@ import           Data.ByteString.Unsafe (unsafeUseAsCString)
 import           Data.Int
 import           Data.Kind
 import           Data.Maybe (fromMaybe)
+import           Data.Proxy (Proxy(..))
 import qualified Data.Vector.Storable as VS
 import           Data.Word
 import           Foreign.C.String
@@ -103,6 +104,7 @@ import           Foreign.Marshal.Array
 import           Foreign.Marshal.Utils (with, fromBool, toBool, fillBytes)
 import           Foreign.Ptr
 import           Foreign.Storable (Storable, peek, poke, sizeOf)
+import           GHC.TypeNats (natVal, someNatVal, SomeNat(..), Nat, KnownNat)
 
 import           Data.Format.HDF.LowLevel.C.Definitions
 import           Data.Format.HDF.LowLevel.Definitions
@@ -191,12 +193,13 @@ foreign import ccall unsafe "SDsetdimval_comp" c_sdsetdimval_comp :: Int32 -> CI
 -- SDsetaccesstype {- this function does not seem to do any useful work as in HDF-4.2.14 -}
 
 newtype SDId = SDId Int32 deriving Eq
-newtype SDataSetId (t :: HDataType a) = SDataSetId Int32 deriving Eq
+newtype SDataSetId (n :: Nat) (t :: HDataType a) = SDataSetId Int32 deriving Eq
 newtype SDataSetRef = SDataSetRef Int32 deriving Eq
 newtype SDimensionId = SDimensionId Int32 deriving Eq
 
 data SomeSDS where
-    SomeSDS :: forall (t :: HDataType a). HDataType a -> SDataSetId t -> SomeSDS
+    SomeSDS :: forall (n :: Nat) (t :: HDataType a). KnownNat n =>
+        HDataType a -> SDataSetId n t -> SomeSDS
 
 class SDObjectId id where
     getRawObjectId :: id -> Int32
@@ -204,7 +207,7 @@ class SDObjectId id where
 instance SDObjectId SDId where
     getRawObjectId (SDId sd_id) = sd_id
 
-instance SDObjectId (SDataSetId t) where
+instance SDObjectId (SDataSetId n t) where
     getRawObjectId (SDataSetId sds_id) = sds_id
 
 instance SDObjectId SDimensionId where
@@ -219,23 +222,28 @@ sd_start fileName mode = withCString fileName $ \c_fileName -> do
     sd_id <- c_sdstart c_fileName (unHDFOpenOption mode)
     return $! (sd_id, SDId sd_id)
 
-sd_create :: forall (t :: HDataType a).
-    SDId -> String -> HDataType a -> [Int32] -> IO (Int32, SDataSetId t)
+sd_create :: forall (t :: HDataType a) (n :: Nat). KnownNat n =>
+    SDId -> String -> HDataType a -> Index n -> IO (Int32, SDataSetId n t)
 sd_create (SDId sd_id) sds_name data_type dim_sizes =
     withCString sds_name $ \c_sds_name ->
-    withArray dim_sizes $ \c_dim_sizes -> do
+    withIndex dim_sizes $ \c_dim_sizes -> do
         sds_id <- c_sdcreate sd_id c_sds_name (fromHDataType data_type) rank c_dim_sizes
         return $! (sds_id, SDataSetId sds_id)
   where
-    rank = fromIntegral $! length dim_sizes
+    rank = fromIntegral $! natVal (Proxy :: Proxy n)
 
 sd_select :: SDId -> Int32 -> IO (Int32, SomeSDS)
 sd_select (SDId sd_id) sds_index = do
     sds_id <- c_sdselect sd_id sds_index
-    (h_result, HDFValue{hValueType=t}) <- second sDataSetDataType <$> sd_getinfo (SDataSetId sds_id)
-    return $! (if h_result == (-1) then h_result else sds_id, SomeSDS t $ SDataSetId sds_id)
+    (h_result, SDataSetInfoRaw{
+        sDataSetRank=sdsRank
+      , sDataSetDataType=HDFValue{hValueType=t}}) <- sd_getinfo (SDataSetId sds_id)
+    case someNatVal (fromIntegral sdsRank) of
+        SomeNat (_ :: Proxy n) -> return $! (
+            if h_result == (-1) then h_result else sds_id,
+            SomeSDS t (SDataSetId sds_id :: SDataSetId n t))
 
-sd_endaccess :: SDataSetId t -> IO (Int32, ())
+sd_endaccess :: SDataSetId n t -> IO (Int32, ())
 sd_endaccess (SDataSetId sds_id) = do
     h_result <- c_sdendaccess sds_id
     return $! (fromIntegral h_result, ())
@@ -245,7 +253,7 @@ sd_end (SDId sd_id) = do
     h_result <- c_sdend sd_id
     return $! (fromIntegral h_result, ())
 
-sd_checkempty :: SDataSetId t -> IO (Int32, Bool)
+sd_checkempty :: SDataSetId n t -> IO (Int32, Bool)
 sd_checkempty (SDataSetId sds_id) = alloca $ \emptySDSPtr -> do
     h_result <- c_sdcheckempty sds_id emptySDSPtr
     res <- if h_result == (-1)
@@ -292,7 +300,7 @@ data SDataSetInfoRaw = SDataSetInfoRaw {
     , sDataSetNumAttrs :: Int32
 } deriving (Show, Eq)
 
-sd_getinfo :: SDataSetId t -> IO (Int32, SDataSetInfoRaw)
+sd_getinfo :: SDataSetId n t -> IO (Int32, SDataSetInfoRaw)
 sd_getinfo sDataSetId@(SDataSetId sds_id) = do
     (h_result_getnamelen, nameLen) <- sd_getnamelen sDataSetId
     if h_result_getnamelen == (-1)
@@ -352,17 +360,17 @@ sd_getnumvars_byname (SDId sd_id) sds_name =
                 numVars <- peek numVarsPtr
                 return $! (fromIntegral h_result, fromIntegral numVars)
 
-sd_idtoref :: SDataSetId t -> IO (Int32, SDataSetRef)
+sd_idtoref :: SDataSetId n t -> IO (Int32, SDataSetRef)
 sd_idtoref (SDataSetId sds_id) = do
     sds_ref <- c_sdidtoref sds_id
     return $! (sds_ref, SDataSetRef sds_ref)
 
-sd_iscoordvar :: SDataSetId t -> IO (Int32, Bool)
+sd_iscoordvar :: SDataSetId n t -> IO (Int32, Bool)
 sd_iscoordvar (SDataSetId sds_id) = do
     is_coordvar <- c_sdiscoordvar sds_id
     return $! (fromIntegral is_coordvar, is_coordvar /= 0)
 
-sd_isisrecord :: SDataSetId t -> IO (Int32, Bool)
+sd_isisrecord :: SDataSetId n t -> IO (Int32, Bool)
 sd_isisrecord (SDataSetId sds_id) = do
     is_record <- c_sdisrecord sds_id
     return $! (fromIntegral is_record, is_record /= 0)
@@ -395,7 +403,7 @@ sd_reset_maxopenfiles newLimit = do
     current_limit <- c_sdreset_maxopenfiles (fromIntegral newLimit)
     return $! (fromIntegral current_limit, fromIntegral current_limit)
 
-sd_getdimid :: SDataSetId t -> Int32 -> IO (Int32, SDimensionId)
+sd_getdimid :: SDataSetId n t -> Int32 -> IO (Int32, SDimensionId)
 sd_getdimid (SDataSetId sds_id) dim_index = do
     dimension_id <- c_sdgetdimid sds_id (fromIntegral dim_index)
     return $! (dimension_id, SDimensionId dimension_id)
@@ -491,7 +499,7 @@ data SCalibrationParametersRaw = SCalibrationParametersRaw {
     , sUncalibratedDataType    :: HDFType
 } deriving (Show, Eq)
 
-sd_getcal :: SDataSetId t -> IO (Int32, SCalibrationParametersRaw)
+sd_getcal :: SDataSetId n t -> IO (Int32, SCalibrationParametersRaw)
 sd_getcal (SDataSetId sds_id) =
     alloca $ \calibrationFactorPtr ->
     alloca $ \calibrationScalingErrorPtr ->
@@ -532,7 +540,7 @@ data SDsetDescStringsRaw = SDsetDescStringsRaw {
     , sDSCoordinateSystem :: String
 } deriving (Show, Eq)
 
-sd_getdatastrs :: SDataSetId t -> IO (Int32, SDsetDescStringsRaw)
+sd_getdatastrs :: SDataSetId n t -> IO (Int32, SDsetDescStringsRaw)
 sd_getdatastrs (SDataSetId sds_id) =
     allocaArray (maxBufferLength) $ \labelPtr ->
     allocaArray (maxBufferLength) $ \unitPtr ->
@@ -602,14 +610,14 @@ sd_getdimstrs (SDimensionId dimension_id) =
     emptySDimDescStrings :: SDimDescStringsRaw
     emptySDimDescStrings = SDimDescStringsRaw "" "" ""
 
-sd_getfillvalue :: forall (t :: HDataType a). Storable a => SDataSetId t -> IO (Int32, a)
+sd_getfillvalue :: forall (t :: HDataType a) (n :: Nat). Storable a => SDataSetId n t -> IO (Int32, a)
 sd_getfillvalue (SDataSetId sds_id) =
     alloca $ \fillValuePtr -> do
         h_result <- c_sdgetfillvalue sds_id (castPtr fillValuePtr)
         fillValue <- peek fillValuePtr
         return $! (fromIntegral h_result, fillValue)
 
-sd_getrange :: forall (t :: HDataType a). Storable a => SDataSetId t -> IO (Int32, (a, a))
+sd_getrange :: forall (t :: HDataType a) (n :: Nat). Storable a => SDataSetId n t -> IO (Int32, (a, a))
 sd_getrange (SDataSetId sds_id) =
     alloca $ \minValuePtr ->
     alloca $ \maxValuePtr -> do
@@ -618,7 +626,7 @@ sd_getrange (SDataSetId sds_id) =
         maxValue <- peek maxValuePtr
         return $! (fromIntegral h_result, (minValue, maxValue))
 
-sd_setcal :: SDataSetId t -> SCalibrationParametersRaw -> IO (Int32, ())
+sd_setcal :: SDataSetId n t -> SCalibrationParametersRaw -> IO (Int32, ())
 sd_setcal (SDataSetId sds_id) (SCalibrationParametersRaw s sE o oE dtype) = do
     h_result <- c_sdsetcal sds_id s sE o oE (toHDFTypeTag dtype)
     return $! (fromIntegral h_result, ())
@@ -627,7 +635,7 @@ withCStringOrNull :: String -> (CString -> IO a) -> IO a
 withCStringOrNull []  fun = fun nullPtr
 withCStringOrNull str fun = withCString str fun
 
-sd_setdatastrs :: SDataSetId t -> SDsetDescStringsRaw -> IO (Int32, ())
+sd_setdatastrs :: SDataSetId n t -> SDsetDescStringsRaw -> IO (Int32, ())
 sd_setdatastrs (SDataSetId sds_id) (SDsetDescStringsRaw l u f c) =
     withCStringOrNull l $ \lPtr ->
     withCStringOrNull u $ \uPtr ->
@@ -644,7 +652,7 @@ sd_setdimstrs (SDimensionId dimension_id) (SDimDescStringsRaw l u f) =
         h_result <- c_sdsetdimstrs dimension_id lPtr uPtr fPtr
         return $! (fromIntegral h_result, ())
 
-sd_setfillvalue :: forall (t :: HDataType a). Storable a => SDataSetId t -> a -> IO (Int32, ())
+sd_setfillvalue :: forall (t :: HDataType a) (n :: Nat). Storable a => SDataSetId n t -> a -> IO (Int32, ())
 sd_setfillvalue (SDataSetId sds_id) fillValue =
     with fillValue $ \fillValuePtr -> do
         h_result <- c_sdsetfillvalue sds_id (castPtr fillValuePtr)
@@ -655,14 +663,14 @@ sd_setfillmode (SDId sd_id) fillMode = do
     h_result <- c_sdsetfillmode sd_id (fromIntegral . unHDFFillModeTag $ fillMode)
     return $! (fromIntegral h_result, ())
 
-sd_setrange :: forall (t :: HDataType a). Storable a => SDataSetId t -> a -> a -> IO (Int32, ())
+sd_setrange :: forall (t :: HDataType a) (n :: Nat). Storable a => SDataSetId n t -> a -> a -> IO (Int32, ())
 sd_setrange (SDataSetId sds_id) minValue maxValue =
     with minValue $ \minValuePtr ->
     with maxValue $ \maxValuePtr -> do
         h_result <- c_sdsetrange sds_id (castPtr maxValuePtr) (castPtr minValuePtr)
         return $! (fromIntegral h_result, ())
 
-sd_setcompress :: SDataSetId t -> HDFCompParams -> IO (Int32, ())
+sd_setcompress :: SDataSetId n t -> HDFCompParams -> IO (Int32, ())
 sd_setcompress (SDataSetId sds_id) compParams =
     with compParams $ \compParamsPtr -> do
         h_result <- c_sdsetcompress
@@ -671,7 +679,7 @@ sd_setcompress (SDataSetId sds_id) compParams =
                         compParamsPtr
         return $! (fromIntegral h_result, ())
 
-sd_getcompinfo :: SDataSetId t -> IO (Int32, HDFCompParams)
+sd_getcompinfo :: SDataSetId n t -> IO (Int32, HDFCompParams)
 sd_getcompinfo (SDataSetId sds_id) =
     alloca $ \compTypePtr ->
     alloca $ \compParamsPtr -> do
@@ -687,7 +695,7 @@ data SDNBitCompParams = SDNBitCompParams {
     , nBitCompFillOne  :: Bool
 } deriving (Show, Eq)
 
-sd_setnbitdataset :: SDataSetId t -> SDNBitCompParams -> IO (Int32, ())
+sd_setnbitdataset :: SDataSetId n t -> SDNBitCompParams -> IO (Int32, ())
 sd_setnbitdataset
     (SDataSetId sds_id)
     (SDNBitCompParams
@@ -703,18 +711,18 @@ sd_setnbitdataset
                     (fromBool fillOne)
     return $! (fromIntegral h_result, ())
 
-sd_setchunkcache :: SDataSetId t -> Int32 -> IO (Int32, ())
+sd_setchunkcache :: SDataSetId n t -> Int32 -> IO (Int32, ())
 sd_setchunkcache (SDataSetId sds_id) cacheSize = do
     h_result <- c_sdsetchunkcache sds_id cacheSize 0
     return $! (fromIntegral h_result, ())
 
-sd_setchunk :: SDataSetId t -> HDFChunkParams -> IO (Int32, ())
+sd_setchunk :: SDataSetId n t -> HDFChunkParams -> IO (Int32, ())
 sd_setchunk (SDataSetId sds_id) chunkParams =
     with chunkParams $ \chunkParamsPtr -> do
         h_result <- c_sdsetchunk sds_id chunkParamsPtr (selectChunkingMode chunkParams)
         return $! (fromIntegral h_result, ())
 
-sd_getchunkinfo :: SDataSetId t -> IO (Int32, HDFChunkParams)
+sd_getchunkinfo :: SDataSetId n t -> IO (Int32, HDFChunkParams)
 sd_getchunkinfo (SDataSetId sds_id) =
     alloca $ \chunkModePtr ->
     alloca $ \chunkParamsPtr -> do
@@ -730,7 +738,7 @@ sd_getchunkinfo (SDataSetId sds_id) =
 type RawDataInfo = (Int32, Int32)
 
 type family WrapIfSDS (a :: Type) where
-    WrapIfSDS (SDataSetId _) = SomeSDS
+    WrapIfSDS (SDataSetId _ _) = SomeSDS
     WrapIfSDS t = t
 
 sd_getanndatainfo ::
@@ -762,7 +770,7 @@ sd_getattdatainfo objId attrId =
             return $! (fromIntegral h_result, (offset, len))
         else return $! (fromIntegral h_result, (0, 0))
 
-sd_getoldattdatainfo :: SDataSetId t -> Maybe SDimensionId -> String -> IO (Int32, RawDataInfo)
+sd_getoldattdatainfo :: SDataSetId n t -> Maybe SDimensionId -> String -> IO (Int32, RawDataInfo)
 sd_getoldattdatainfo (SDataSetId sds_id) dimId attrName =
     withCString attrName $ \c_attrName ->
     alloca $ \offsetPtr ->
@@ -779,7 +787,7 @@ sd_getoldattdatainfo (SDataSetId sds_id) dimId attrName =
             return $! (fromIntegral h_result, (offset, len))
         else return $! (fromIntegral h_result, (0, 0))
 
-sd_getdatainfo :: SDataSetId t -> [Int32] -> Int32 -> IO (Int32, [RawDataInfo])
+sd_getdatainfo :: SDataSetId n t -> [Int32] -> Int32 -> IO (Int32, [RawDataInfo])
 sd_getdatainfo (SDataSetId sds_id) chunkCoords startBlock = do
     -- First, get the total number of blocks by calling SDgetdatainfo with dummy
     -- arguments, and then allocate required memory and call SDgetdatainfo for the
@@ -808,7 +816,7 @@ withArrayOrNull :: Storable a => [a] -> (Ptr a -> IO b) -> IO b
 withArrayOrNull []   fun = fun nullPtr
 withArrayOrNull vals fun = withArray vals fun
 
-sd_getexternalinfo :: SDataSetId t -> IO (Int32, (String, RawDataInfo))
+sd_getexternalinfo :: SDataSetId n t -> IO (Int32, (String, RawDataInfo))
 sd_getexternalinfo (SDataSetId sds_id) = do
     name_length <- fromIntegral <$> c_sdgetexternalinfo sds_id 0 nullPtr nullPtr nullPtr
     if name_length == (-1) || name_length == 0
@@ -833,12 +841,12 @@ sd_getexternalinfo (SDataSetId sds_id) = do
                     return $! (fromIntegral h_result, (fileName, (offset, len)))
                 else return $! (-1, ("", (0, 0)))
 
-sd_setblocksize :: SDataSetId t -> Int32 -> IO (Int32, ())
+sd_setblocksize :: SDataSetId n t -> Int32 -> IO (Int32, ())
 sd_setblocksize (SDataSetId sds_id) blockSize = do
     h_result <- c_sdsetblocksize sds_id blockSize
     return $! (fromIntegral h_result, ())
 
-sd_setexternalfile :: SDataSetId t -> String -> Int32 -> IO (Int32, ())
+sd_setexternalfile :: SDataSetId n t -> String -> Int32 -> IO (Int32, ())
 sd_setexternalfile (SDataSetId sds_id) fileName offset =
     withCString fileName $ \fileNamePtr -> do
         h_result <- c_sdsetexternalfile sds_id fileNamePtr offset
@@ -865,7 +873,7 @@ sd_setdimscale (SDimensionId dimension_id) data_type dim_scale =
                         (castPtr dimScalePtr)
         return $! (fromIntegral h_result, ())
 
-sd_getdimscale :: SDataSetId t -> SDimensionId -> IO (Int32, HDFVector)
+sd_getdimscale :: SDataSetId n t -> SDimensionId -> IO (Int32, HDFVector)
 sd_getdimscale sds sDimensionId@(SDimensionId dimension_id) = do
     (h_result_1, SDimensionInfoRaw{
           sDimensionSize=s_dim
@@ -938,8 +946,8 @@ sd_readattr objId attrId = do
                     ( fromIntegral h_result_2
                     , HDFValue t $ VS.unsafeFromForeignPtr0 fp (fromIntegral attrNValues))
 
-sd_writechunk :: forall (t :: HDataType a). Storable a =>
-    SDataSetId t -> [Int32] -> VS.Vector a -> IO (Int32, ())
+sd_writechunk :: forall (t :: HDataType a) (n :: Nat). Storable a =>
+    SDataSetId n t -> [Int32] -> VS.Vector a -> IO (Int32, ())
 sd_writechunk (SDataSetId sds_id) chunkCoords dataChunk =
     withArray chunkCoords $ \chunkCoordsPtr ->
     VS.unsafeWith dataChunk $ \dataChunkPtr -> do
@@ -949,8 +957,8 @@ sd_writechunk (SDataSetId sds_id) chunkCoords dataChunk =
                         (castPtr dataChunkPtr)
         return $! (fromIntegral h_result, ())
 
-sd_readchunk :: forall (t :: HDataType a). Storable a =>
-    SDataSetId t -> [Int32] -> IO (Int32, VS.Vector a)
+sd_readchunk :: forall (t :: HDataType a) (n :: Nat). Storable a =>
+    SDataSetId n t -> [Int32] -> IO (Int32, VS.Vector a)
 sd_readchunk sds@(SDataSetId sds_id) chunkCoords = do
     (h_result, chunkLen) <- second (product . hdfChunkSizes) <$> sd_getchunkinfo sds
     if h_result == (-1)
@@ -963,25 +971,26 @@ sd_readchunk sds@(SDataSetId sds_id) chunkCoords = do
                 ( fromIntegral h_result_2
                 , VS.unsafeFromForeignPtr0 fp (fromIntegral chunkLen))
 
-sd_readdata :: forall (t :: HDataType a). Storable a =>
-    SDataSetId t -> [Int32] -> [Int32] -> [Int32] -> IO (Int32, VS.Vector a)
+sd_readdata :: forall (t :: HDataType a) (n :: Nat). (Storable a, KnownNat n) =>
+    SDataSetId n t -> Index n -> Index n -> Index n -> IO (Int32, VS.Vector a)
 sd_readdata (SDataSetId sds_id) start stride edges =
-    withArray start $ \startPtr ->
-    withArray stride $ \stridePtr ->
-    withArray edges $ \edgesPtr -> do
-        fp <- mallocForeignPtrArray . fromIntegral $ product edges
+    withIndex start $ \startPtr ->
+    withIndex stride $ \stridePtr ->
+    withIndex edges $ \edgesPtr -> do
+        edgesList <- peekArray (fromIntegral $! natVal (Proxy :: Proxy n)) edgesPtr
+        fp <- mallocForeignPtrArray . fromIntegral $ product edgesList
         h_result <- withForeignPtr fp $ \sdsDataPtr ->
             c_sdreaddata sds_id startPtr stridePtr edgesPtr (castPtr sdsDataPtr)
         return $!
             ( fromIntegral h_result
-            , VS.unsafeFromForeignPtr0 fp (fromIntegral $ product edges))
+            , VS.unsafeFromForeignPtr0 fp (fromIntegral $ product edgesList))
 
-sd_writedata :: forall (t :: HDataType a). Storable a =>
-    SDataSetId t -> [Int32] -> [Int32] -> [Int32] -> VS.Vector a -> IO (Int32, ())
+sd_writedata :: forall (t :: HDataType a) (n :: Nat). (Storable a, KnownNat n) =>
+    SDataSetId n t -> Index n -> Index n -> Index n -> VS.Vector a -> IO (Int32, ())
 sd_writedata (SDataSetId sds_id) start stride edges sdsData =
-    withArray start $ \startPtr ->
-    withArray stride $ \stridePtr ->
-    withArray edges $ \edgesPtr ->
+    withIndex start $ \startPtr ->
+    withIndex stride $ \stridePtr ->
+    withIndex edges $ \edgesPtr ->
     VS.unsafeWith sdsData $ \sdsDataPtr -> do
         h_result <- c_sdwritedata sds_id startPtr stridePtr edgesPtr (castPtr sdsDataPtr)
         return $! (fromIntegral h_result, ())
