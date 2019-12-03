@@ -20,9 +20,7 @@ import qualified Data.Vector.Storable as VS
 import           Foreign.Ptr (castPtr)
 import           System.IO
 import           System.Directory (copyFileWithMetadata)
-
-check :: HasCallStack => (Int32, b) -> IO b
-check (r,v) = shouldNotBe r (-1) >> return v
+import           Testing.Common
 
 spec :: Spec
 spec = do

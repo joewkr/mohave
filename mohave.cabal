@@ -60,6 +60,7 @@ test-suite test-main
   hs-source-dirs:      test
   main-is:             Spec.hs
   other-modules:       Data.Format.HDF.LowLevel.SDSpec
+                     , Testing.Common
   other-extensions:    OverloadedStrings
   ghc-options:        -Wall
   build-depends:       mohave-internal
