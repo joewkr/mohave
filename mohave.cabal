@@ -15,6 +15,7 @@ cabal-version:       >=2.0
 library mohave-internal
   exposed-modules:     Data.Format.HDF.LowLevel
                      , Data.Format.HDF.LowLevel.Definitions
+                     , Data.Format.HDF.LowLevel.HE
                      , Data.Format.HDF.LowLevel.SD
                      , Data.Format.HDF.LowLevel.C.Definitions
 -- other-modules:       Data.Format.HDF.LowLevel.C.Definitions
@@ -60,6 +61,7 @@ test-suite test-main
   hs-source-dirs:      test
   main-is:             Spec.hs
   other-modules:       Data.Format.HDF.LowLevel.SDSpec
+                     , Data.Format.HDF.LowLevel.HESpec
                      , Testing.Common
   other-extensions:    OverloadedStrings
   ghc-options:        -Wall

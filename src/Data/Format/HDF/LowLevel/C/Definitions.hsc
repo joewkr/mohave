@@ -343,3 +343,452 @@ newtype AnnTypeTag = AnnTypeTag { unAnnTypeTag :: CAnnType }
   , hdf_ann_file_label = AN_FILE_LABEL
   , hdf_ann_file_desc  = AN_FILE_DESC
   }
+
+type HDFErrorCode = #{type hdf_err_code_t}
+
+data HDFError =
+    DFE_NONE                 -- no error
+-- Low-level I/O errors
+  | DFE_FNF                  -- File not found
+  | DFE_DENIED               -- Access to file denied
+  | DFE_ALROPEN              -- File already open
+  | DFE_TOOMANY              -- Too Many AID's or files open
+  | DFE_BADNAME              -- Bad file name on open
+  | DFE_BADACC               -- Bad file access mode
+  | DFE_BADOPEN              -- Other open error
+  | DFE_NOTOPEN              -- File can't be closed 'cause it isn't open
+  | DFE_CANTCLOSE            -- fclose wouldn't work!
+  | DFE_READERROR            -- There was a read error
+  | DFE_WRITEERROR           -- There was a write error
+  | DFE_SEEKERROR            -- There was a seek error
+  | DFE_RDONLY               -- The DF is read only
+  | DFE_BADSEEK              -- Attempt to seek past end of element
+  | DFE_INVFILE              -- File is neither hdf, cdf, netcdf
+-- Low-level HDF I/O errors
+  | DFE_PUTELEM              -- Hputelement failed in some way
+  | DFE_GETELEM              -- Hgetelement failed in some way
+  | DFE_CANTLINK             -- Can't initialize link information
+  | DFE_CANTSYNC             -- Cannot syncronize memory with file
+-- Old group interface errors
+  | DFE_BADGROUP             -- Error from DFdiread in opening a group
+  | DFE_GROUPSETUP           -- Error from DFdisetup in opening a group
+  | DFE_PUTGROUP             -- Error when putting a tag/ref into a group
+  | DFE_GROUPWRITE           -- Error when writing out a group
+-- Internal HDF errors
+  | DFE_DFNULL               -- DF is a null pointer
+  | DFE_ILLTYPE              -- DF has an illegal type: internal error
+  | DFE_BADDDLIST            -- The DD list is non-existent: internal error
+  | DFE_NOTDFFILE            -- This is not a DF file and it is not 0 length
+  | DFE_SEEDTWICE            -- The DD list already seeded: internal error
+  | DFE_NOSUCHTAG            -- No such tag in the file: search failed
+  | DFE_NOFREEDD             -- There are no free DD's left: internal error
+  | DFE_BADTAG               -- illegal WILDCARD tag
+  | DFE_BADREF               -- illegal WILDCARD reference #
+  | DFE_NOMATCH              -- No (more) DDs which match specified tag/ref
+  | DFE_NOTINSET             -- Warning: Set contained unknown tag: ignored
+  | DFE_BADOFFSET            -- Illegal offset specified
+  | DFE_CORRUPT              -- File is corrupted
+  | DFE_NOREF                -- no more reference numbers are available
+  | DFE_DUPDD                -- the new tag/ref is already used
+  | DFE_CANTMOD              -- old element not exist, cannot modify
+  | DFE_DIFFFILES            -- Attempt to merge objs in diff files
+  | DFE_BADAID               -- Got a bogus aid
+  | DFE_OPENAID              -- There are still active AIDs
+  | DFE_CANTFLUSH            -- Can't flush DD back to file
+  | DFE_CANTUPDATE           -- Cannot update the DD block
+  | DFE_CANTHASH             -- Cannot add a DD to the hash table
+  | DFE_CANTDELDD            -- Cannot delete a DD in the file
+  | DFE_CANTDELHASH          -- Cannot delete a DD from the hash table
+  | DFE_CANTACCESS           -- Cannot access specified tag/ref
+  | DFE_CANTENDACCESS        -- Cannot end access to data element
+  | DFE_TABLEFULL            -- Access table is full
+  | DFE_NOTINTABLE           -- Cannot find element in table
+-- Generic errors
+  | DFE_UNSUPPORTED          -- Feature not currently supported
+  | DFE_NOSPACE              -- Malloc failed
+  | DFE_BADCALL              -- Calls in wrong order
+  | DFE_BADPTR               -- NULL ptr argument
+  | DFE_BADLEN               -- Invalid len specified
+  | DFE_NOTENOUGH            -- space provided insufficient for size of data
+  | DFE_NOVALS               -- Values not available
+  | DFE_ARGS                 -- bad arguments to routine
+  | DFE_INTERNAL             -- serious internal error
+  | DFE_NORESET              -- Too late to modify this value
+  | DFE_EXCEEDMAX            -- Value exceeds max allowed
+  | DFE_GENAPP               -- Generic application,level error
+-- Generic interface errors
+  | DFE_UNINIT               -- Interface was not initialized correctly
+  | DFE_CANTINIT             -- Can't initialize an interface we depend on
+  | DFE_CANTSHUTDOWN         -- Can't shut down an interface we depend on
+-- General Dataset errors
+  | DFE_BADDIM               -- negative or zero dimensions specified
+  | DFE_BADFP                -- File contained an illegal floating point num
+  | DFE_BADDATATYPE          -- unknown or unavailable data type specified
+  | DFE_BADMCTYPE            -- unknown or unavailable machine type specified
+  | DFE_BADNUMTYPE           -- unknown or unavailable number type specified
+  | DFE_BADORDER             -- unknown or illegal array order specified
+  | DFE_RANGE                -- improper range for attempted acess
+  | DFE_BADCONV              -- Don't know how to convert data type
+  | DFE_BADTYPE              -- Incompatible types specified
+  | DFE_BADDIMNAME           -- Dimension name not valid or already taken
+  | DFE_NOVGREP              -- No Vgroup representation for SDS and dim
+-- Compression errors
+  | DFE_BADSCHEME            -- Unknown compression scheme specified
+  | DFE_BADMODEL             -- Invalid compression model specified
+  | DFE_BADCODER             -- Invalid compression encoder specified
+  | DFE_MODEL                -- Error in modeling layer of compression
+  | DFE_CODER                -- Error in encoding layer of compression
+  | DFE_CINIT                -- Error in encoding initialization
+  | DFE_CDECODE              -- Error in decoding compressed data
+  | DFE_CENCODE              -- Error in encoding compressed data
+  | DFE_CTERM                -- Error in encoding termination
+  | DFE_CSEEK                -- Error seekging in encoded dataset
+  | DFE_MINIT                -- Error in modeling initialization
+  | DFE_COMPINFO             -- Invalid compression header
+  | DFE_CANTCOMP             -- Can't compress an object
+  | DFE_CANTDECOMP           -- Can't de-compress an object
+  | DFE_NOENCODER            -- Encoder not available
+  | DFE_NOSZLIB              -- SZIP library not available
+  | DFE_COMPVERSION          -- Z_VERSION_ERROR (-6) returned from zlib
+  | DFE_READCOMP             -- Error in reading compressed data; this
+                             -- error occurs when one of the following
+                             -- error codes is returned from zlib:
+                             --      Z_ERRNO         (-1)
+                             --      Z_STREAM_ERROR  (-2)
+                             --      Z_DATA_ERROR    (-3)
+                             --      Z_MEM_ERROR     (-4)
+                             --      Z_BUF_ERROR     (-5)
+-- Raster errors
+  | DFE_NODIM                -- No dimension record associated with image
+  | DFE_BADRIG               -- Error processing a RIG
+  | DFE_RINOTFOUND           -- Can't find raster image
+  | DFE_BADATTR              -- Bad Attribute
+  | DFE_LUTNOTFOUND          -- No palette information for RIG
+  | DFE_GRNOTFOUND           -- Can't find specified GR
+-- SDG/NDG errors
+  | DFE_BADTABLE             -- the nsdg table is wrong
+  | DFE_BADSDG               -- error processing an sdg
+  | DFE_BADNDG               -- error processing an ndg
+-- Vset errors
+  | DFE_VGSIZE               -- Too many elements in VGroup
+  | DFE_VTAB                 -- Elmt not in vtab[]
+  | DFE_CANTADDELEM          -- Cannot add tag/ref to VGroup
+  | DFE_BADVGNAME            -- Cannot set VGroup name
+  | DFE_BADVGCLASS           -- Cannot set VGroup class
+-- Vdata errors
+  | DFE_BADFIELDS            -- Bad fields string passed to Vset routine
+  | DFE_NOVS                 -- Counldn't find VS in file
+  | DFE_SYMSIZE              -- Too many symbols in users table
+  | DFE_BADATTACH            -- Cannot write to a previously attached VData
+  | DFE_BADVSNAME            -- Cannot set VData name
+  | DFE_BADVSCLASS           -- Cannot set VData class
+  | DFE_VSWRITE              -- Error writing to VData
+  | DFE_VSREAD               -- Error reading from VData
+  | DFE_BADVH                -- Error in VData Header
+  | DFE_FIELDSSET            -- Fields already set for vdata
+-- High-level Vdata/Vset errors
+  | DFE_VSCANTCREATE         -- Cannot create VData
+  | DFE_VGCANTCREATE         -- Cannot create VGroup
+-- Generic Vdata/Vset errors
+  | DFE_CANTATTACH           -- Cannot attach to a VData/Vset
+  | DFE_CANTDETACH           -- Cannot detach a VData/Vset with access 'w'
+-- XDR level errors
+  | DFE_XDRERROR             -- Error occur in XDR and/or CDF level
+-- bit I/O errors
+  | DFE_BITREAD              -- There was a bit-read error
+  | DFE_BITWRITE             -- There was a bit-write error
+  | DFE_BITSEEK              -- There was a bit-seek error
+-- tbbt interface errors
+  | DFE_TBBTINS              -- Failed to insert element into tree
+-- bit-vector interface errors
+  | DFE_BVNEW                -- Failed to create a bit-vector
+  | DFE_BVSET                -- Failed when setting a bit in a bit-vector
+  | DFE_BVGET                -- Failed when getting a bit in a bit-vector
+  | DFE_BVFIND               -- Failed when finding a bit in a bit-vector
+-- General to all interfaces
+  | DFE_CANTSETATTR          -- Failed to add an attribute
+  | DFE_CANTGETATTR          -- Failed to find or get an attribute
+-- Annotation interface errors
+  | DFE_ANAPIERROR           -- Failed in annotation interface
+
+  | DFE_UNKNOWN_ERROR HDFErrorCode -- None of above
+  deriving (Show, Eq)
+
+fromHDFErrorCode :: HDFErrorCode -> HDFError
+fromHDFErrorCode e = case e of
+  #{const DFE_NONE          } -> DFE_NONE
+  #{const DFE_FNF           } -> DFE_FNF
+  #{const DFE_DENIED        } -> DFE_DENIED
+  #{const DFE_ALROPEN       } -> DFE_ALROPEN
+  #{const DFE_TOOMANY       } -> DFE_TOOMANY
+  #{const DFE_BADNAME       } -> DFE_BADNAME
+  #{const DFE_BADACC        } -> DFE_BADACC
+  #{const DFE_BADOPEN       } -> DFE_BADOPEN
+  #{const DFE_NOTOPEN       } -> DFE_NOTOPEN
+  #{const DFE_CANTCLOSE     } -> DFE_CANTCLOSE
+  #{const DFE_READERROR     } -> DFE_READERROR
+  #{const DFE_WRITEERROR    } -> DFE_WRITEERROR
+  #{const DFE_SEEKERROR     } -> DFE_SEEKERROR
+  #{const DFE_RDONLY        } -> DFE_RDONLY
+  #{const DFE_BADSEEK       } -> DFE_BADSEEK
+  #{const DFE_INVFILE       } -> DFE_INVFILE
+  #{const DFE_PUTELEM       } -> DFE_PUTELEM
+  #{const DFE_GETELEM       } -> DFE_GETELEM
+  #{const DFE_CANTLINK      } -> DFE_CANTLINK
+  #{const DFE_CANTSYNC      } -> DFE_CANTSYNC
+  #{const DFE_BADGROUP      } -> DFE_BADGROUP
+  #{const DFE_GROUPSETUP    } -> DFE_GROUPSETUP
+  #{const DFE_PUTGROUP      } -> DFE_PUTGROUP
+  #{const DFE_GROUPWRITE    } -> DFE_GROUPWRITE
+  #{const DFE_DFNULL        } -> DFE_DFNULL
+  #{const DFE_ILLTYPE       } -> DFE_ILLTYPE
+  #{const DFE_BADDDLIST     } -> DFE_BADDDLIST
+  #{const DFE_NOTDFFILE     } -> DFE_NOTDFFILE
+  #{const DFE_SEEDTWICE     } -> DFE_SEEDTWICE
+  #{const DFE_NOSUCHTAG     } -> DFE_NOSUCHTAG
+  #{const DFE_NOFREEDD      } -> DFE_NOFREEDD
+  #{const DFE_BADTAG        } -> DFE_BADTAG
+  #{const DFE_BADREF        } -> DFE_BADREF
+  #{const DFE_NOMATCH       } -> DFE_NOMATCH
+  #{const DFE_NOTINSET      } -> DFE_NOTINSET
+  #{const DFE_BADOFFSET     } -> DFE_BADOFFSET
+  #{const DFE_CORRUPT       } -> DFE_CORRUPT
+  #{const DFE_NOREF         } -> DFE_NOREF
+  #{const DFE_DUPDD         } -> DFE_DUPDD
+  #{const DFE_CANTMOD       } -> DFE_CANTMOD
+  #{const DFE_DIFFFILES     } -> DFE_DIFFFILES
+  #{const DFE_BADAID        } -> DFE_BADAID
+  #{const DFE_OPENAID       } -> DFE_OPENAID
+  #{const DFE_CANTFLUSH     } -> DFE_CANTFLUSH
+  #{const DFE_CANTUPDATE    } -> DFE_CANTUPDATE
+  #{const DFE_CANTHASH      } -> DFE_CANTHASH
+  #{const DFE_CANTDELDD     } -> DFE_CANTDELDD
+  #{const DFE_CANTDELHASH   } -> DFE_CANTDELHASH
+  #{const DFE_CANTACCESS    } -> DFE_CANTACCESS
+  #{const DFE_CANTENDACCESS } -> DFE_CANTENDACCESS
+  #{const DFE_TABLEFULL     } -> DFE_TABLEFULL
+  #{const DFE_NOTINTABLE    } -> DFE_NOTINTABLE
+  #{const DFE_UNSUPPORTED   } -> DFE_UNSUPPORTED
+  #{const DFE_NOSPACE       } -> DFE_NOSPACE
+  #{const DFE_BADCALL       } -> DFE_BADCALL
+  #{const DFE_BADPTR        } -> DFE_BADPTR
+  #{const DFE_BADLEN        } -> DFE_BADLEN
+  #{const DFE_NOTENOUGH     } -> DFE_NOTENOUGH
+  #{const DFE_NOVALS        } -> DFE_NOVALS
+  #{const DFE_ARGS          } -> DFE_ARGS
+  #{const DFE_INTERNAL      } -> DFE_INTERNAL
+  #{const DFE_NORESET       } -> DFE_NORESET
+  #{const DFE_EXCEEDMAX     } -> DFE_EXCEEDMAX
+  #{const DFE_GENAPP        } -> DFE_GENAPP
+  #{const DFE_UNINIT        } -> DFE_UNINIT
+  #{const DFE_CANTINIT      } -> DFE_CANTINIT
+  #{const DFE_CANTSHUTDOWN  } -> DFE_CANTSHUTDOWN
+  #{const DFE_BADDIM        } -> DFE_BADDIM
+  #{const DFE_BADFP         } -> DFE_BADFP
+  #{const DFE_BADDATATYPE   } -> DFE_BADDATATYPE
+  #{const DFE_BADMCTYPE     } -> DFE_BADMCTYPE
+  #{const DFE_BADNUMTYPE    } -> DFE_BADNUMTYPE
+  #{const DFE_BADORDER      } -> DFE_BADORDER
+  #{const DFE_RANGE         } -> DFE_RANGE
+  #{const DFE_BADCONV       } -> DFE_BADCONV
+  #{const DFE_BADTYPE       } -> DFE_BADTYPE
+  #{const DFE_BADDIMNAME    } -> DFE_BADDIMNAME
+  #{const DFE_NOVGREP       } -> DFE_NOVGREP
+  #{const DFE_BADSCHEME     } -> DFE_BADSCHEME
+  #{const DFE_BADMODEL      } -> DFE_BADMODEL
+  #{const DFE_BADCODER      } -> DFE_BADCODER
+  #{const DFE_MODEL         } -> DFE_MODEL
+  #{const DFE_CODER         } -> DFE_CODER
+  #{const DFE_CINIT         } -> DFE_CINIT
+  #{const DFE_CDECODE       } -> DFE_CDECODE
+  #{const DFE_CENCODE       } -> DFE_CENCODE
+  #{const DFE_CTERM         } -> DFE_CTERM
+  #{const DFE_CSEEK         } -> DFE_CSEEK
+  #{const DFE_MINIT         } -> DFE_MINIT
+  #{const DFE_COMPINFO      } -> DFE_COMPINFO
+  #{const DFE_CANTCOMP      } -> DFE_CANTCOMP
+  #{const DFE_CANTDECOMP    } -> DFE_CANTDECOMP
+  #{const DFE_NOENCODER     } -> DFE_NOENCODER
+  #{const DFE_NOSZLIB       } -> DFE_NOSZLIB
+  #{const DFE_COMPVERSION   } -> DFE_COMPVERSION
+  #{const DFE_READCOMP      } -> DFE_READCOMP
+  #{const DFE_NODIM         } -> DFE_NODIM
+  #{const DFE_BADRIG        } -> DFE_BADRIG
+  #{const DFE_RINOTFOUND    } -> DFE_RINOTFOUND
+  #{const DFE_BADATTR       } -> DFE_BADATTR
+  #{const DFE_LUTNOTFOUND   } -> DFE_LUTNOTFOUND
+  #{const DFE_GRNOTFOUND    } -> DFE_GRNOTFOUND
+  #{const DFE_BADTABLE      } -> DFE_BADTABLE
+  #{const DFE_BADSDG        } -> DFE_BADSDG
+  #{const DFE_BADNDG        } -> DFE_BADNDG
+  #{const DFE_VGSIZE        } -> DFE_VGSIZE
+  #{const DFE_VTAB          } -> DFE_VTAB
+  #{const DFE_CANTADDELEM   } -> DFE_CANTADDELEM
+  #{const DFE_BADVGNAME     } -> DFE_BADVGNAME
+  #{const DFE_BADVGCLASS    } -> DFE_BADVGCLASS
+  #{const DFE_BADFIELDS     } -> DFE_BADFIELDS
+  #{const DFE_NOVS          } -> DFE_NOVS
+  #{const DFE_SYMSIZE       } -> DFE_SYMSIZE
+  #{const DFE_BADATTACH     } -> DFE_BADATTACH
+  #{const DFE_BADVSNAME     } -> DFE_BADVSNAME
+  #{const DFE_BADVSCLASS    } -> DFE_BADVSCLASS
+  #{const DFE_VSWRITE       } -> DFE_VSWRITE
+  #{const DFE_VSREAD        } -> DFE_VSREAD
+  #{const DFE_BADVH         } -> DFE_BADVH
+  #{const DFE_FIELDSSET     } -> DFE_FIELDSSET
+  #{const DFE_VSCANTCREATE  } -> DFE_VSCANTCREATE
+  #{const DFE_VGCANTCREATE  } -> DFE_VGCANTCREATE
+  #{const DFE_CANTATTACH    } -> DFE_CANTATTACH
+  #{const DFE_CANTDETACH    } -> DFE_CANTDETACH
+  #{const DFE_XDRERROR      } -> DFE_XDRERROR
+  #{const DFE_BITREAD       } -> DFE_BITREAD
+  #{const DFE_BITWRITE      } -> DFE_BITWRITE
+  #{const DFE_BITSEEK       } -> DFE_BITSEEK
+  #{const DFE_TBBTINS       } -> DFE_TBBTINS
+  #{const DFE_BVNEW         } -> DFE_BVNEW
+  #{const DFE_BVSET         } -> DFE_BVSET
+  #{const DFE_BVGET         } -> DFE_BVGET
+  #{const DFE_BVFIND        } -> DFE_BVFIND
+  #{const DFE_CANTSETATTR   } -> DFE_CANTSETATTR
+  #{const DFE_CANTGETATTR   } -> DFE_CANTGETATTR
+  #{const DFE_ANAPIERROR    } -> DFE_ANAPIERROR
+  _                           -> DFE_UNKNOWN_ERROR e
+
+toHDFErrorCode :: HDFError -> HDFErrorCode
+toHDFErrorCode  DFE_NONE             = #{const DFE_NONE          }
+toHDFErrorCode  DFE_FNF              = #{const DFE_FNF           }
+toHDFErrorCode  DFE_DENIED           = #{const DFE_DENIED        }
+toHDFErrorCode  DFE_ALROPEN          = #{const DFE_ALROPEN       }
+toHDFErrorCode  DFE_TOOMANY          = #{const DFE_TOOMANY       }
+toHDFErrorCode  DFE_BADNAME          = #{const DFE_BADNAME       }
+toHDFErrorCode  DFE_BADACC           = #{const DFE_BADACC        }
+toHDFErrorCode  DFE_BADOPEN          = #{const DFE_BADOPEN       }
+toHDFErrorCode  DFE_NOTOPEN          = #{const DFE_NOTOPEN       }
+toHDFErrorCode  DFE_CANTCLOSE        = #{const DFE_CANTCLOSE     }
+toHDFErrorCode  DFE_READERROR        = #{const DFE_READERROR     }
+toHDFErrorCode  DFE_WRITEERROR       = #{const DFE_WRITEERROR    }
+toHDFErrorCode  DFE_SEEKERROR        = #{const DFE_SEEKERROR     }
+toHDFErrorCode  DFE_RDONLY           = #{const DFE_RDONLY        }
+toHDFErrorCode  DFE_BADSEEK          = #{const DFE_BADSEEK       }
+toHDFErrorCode  DFE_INVFILE          = #{const DFE_INVFILE       }
+toHDFErrorCode  DFE_PUTELEM          = #{const DFE_PUTELEM       }
+toHDFErrorCode  DFE_GETELEM          = #{const DFE_GETELEM       }
+toHDFErrorCode  DFE_CANTLINK         = #{const DFE_CANTLINK      }
+toHDFErrorCode  DFE_CANTSYNC         = #{const DFE_CANTSYNC      }
+toHDFErrorCode  DFE_BADGROUP         = #{const DFE_BADGROUP      }
+toHDFErrorCode  DFE_GROUPSETUP       = #{const DFE_GROUPSETUP    }
+toHDFErrorCode  DFE_PUTGROUP         = #{const DFE_PUTGROUP      }
+toHDFErrorCode  DFE_GROUPWRITE       = #{const DFE_GROUPWRITE    }
+toHDFErrorCode  DFE_DFNULL           = #{const DFE_DFNULL        }
+toHDFErrorCode  DFE_ILLTYPE          = #{const DFE_ILLTYPE       }
+toHDFErrorCode  DFE_BADDDLIST        = #{const DFE_BADDDLIST     }
+toHDFErrorCode  DFE_NOTDFFILE        = #{const DFE_NOTDFFILE     }
+toHDFErrorCode  DFE_SEEDTWICE        = #{const DFE_SEEDTWICE     }
+toHDFErrorCode  DFE_NOSUCHTAG        = #{const DFE_NOSUCHTAG     }
+toHDFErrorCode  DFE_NOFREEDD         = #{const DFE_NOFREEDD      }
+toHDFErrorCode  DFE_BADTAG           = #{const DFE_BADTAG        }
+toHDFErrorCode  DFE_BADREF           = #{const DFE_BADREF        }
+toHDFErrorCode  DFE_NOMATCH          = #{const DFE_NOMATCH       }
+toHDFErrorCode  DFE_NOTINSET         = #{const DFE_NOTINSET      }
+toHDFErrorCode  DFE_BADOFFSET        = #{const DFE_BADOFFSET     }
+toHDFErrorCode  DFE_CORRUPT          = #{const DFE_CORRUPT       }
+toHDFErrorCode  DFE_NOREF            = #{const DFE_NOREF         }
+toHDFErrorCode  DFE_DUPDD            = #{const DFE_DUPDD         }
+toHDFErrorCode  DFE_CANTMOD          = #{const DFE_CANTMOD       }
+toHDFErrorCode  DFE_DIFFFILES        = #{const DFE_DIFFFILES     }
+toHDFErrorCode  DFE_BADAID           = #{const DFE_BADAID        }
+toHDFErrorCode  DFE_OPENAID          = #{const DFE_OPENAID       }
+toHDFErrorCode  DFE_CANTFLUSH        = #{const DFE_CANTFLUSH     }
+toHDFErrorCode  DFE_CANTUPDATE       = #{const DFE_CANTUPDATE    }
+toHDFErrorCode  DFE_CANTHASH         = #{const DFE_CANTHASH      }
+toHDFErrorCode  DFE_CANTDELDD        = #{const DFE_CANTDELDD     }
+toHDFErrorCode  DFE_CANTDELHASH      = #{const DFE_CANTDELHASH   }
+toHDFErrorCode  DFE_CANTACCESS       = #{const DFE_CANTACCESS    }
+toHDFErrorCode  DFE_CANTENDACCESS    = #{const DFE_CANTENDACCESS }
+toHDFErrorCode  DFE_TABLEFULL        = #{const DFE_TABLEFULL     }
+toHDFErrorCode  DFE_NOTINTABLE       = #{const DFE_NOTINTABLE    }
+toHDFErrorCode  DFE_UNSUPPORTED      = #{const DFE_UNSUPPORTED   }
+toHDFErrorCode  DFE_NOSPACE          = #{const DFE_NOSPACE       }
+toHDFErrorCode  DFE_BADCALL          = #{const DFE_BADCALL       }
+toHDFErrorCode  DFE_BADPTR           = #{const DFE_BADPTR        }
+toHDFErrorCode  DFE_BADLEN           = #{const DFE_BADLEN        }
+toHDFErrorCode  DFE_NOTENOUGH        = #{const DFE_NOTENOUGH     }
+toHDFErrorCode  DFE_NOVALS           = #{const DFE_NOVALS        }
+toHDFErrorCode  DFE_ARGS             = #{const DFE_ARGS          }
+toHDFErrorCode  DFE_INTERNAL         = #{const DFE_INTERNAL      }
+toHDFErrorCode  DFE_NORESET          = #{const DFE_NORESET       }
+toHDFErrorCode  DFE_EXCEEDMAX        = #{const DFE_EXCEEDMAX     }
+toHDFErrorCode  DFE_GENAPP           = #{const DFE_GENAPP        }
+toHDFErrorCode  DFE_UNINIT           = #{const DFE_UNINIT        }
+toHDFErrorCode  DFE_CANTINIT         = #{const DFE_CANTINIT      }
+toHDFErrorCode  DFE_CANTSHUTDOWN     = #{const DFE_CANTSHUTDOWN  }
+toHDFErrorCode  DFE_BADDIM           = #{const DFE_BADDIM        }
+toHDFErrorCode  DFE_BADFP            = #{const DFE_BADFP         }
+toHDFErrorCode  DFE_BADDATATYPE      = #{const DFE_BADDATATYPE   }
+toHDFErrorCode  DFE_BADMCTYPE        = #{const DFE_BADMCTYPE     }
+toHDFErrorCode  DFE_BADNUMTYPE       = #{const DFE_BADNUMTYPE    }
+toHDFErrorCode  DFE_BADORDER         = #{const DFE_BADORDER      }
+toHDFErrorCode  DFE_RANGE            = #{const DFE_RANGE         }
+toHDFErrorCode  DFE_BADCONV          = #{const DFE_BADCONV       }
+toHDFErrorCode  DFE_BADTYPE          = #{const DFE_BADTYPE       }
+toHDFErrorCode  DFE_BADDIMNAME       = #{const DFE_BADDIMNAME    }
+toHDFErrorCode  DFE_NOVGREP          = #{const DFE_NOVGREP       }
+toHDFErrorCode  DFE_BADSCHEME        = #{const DFE_BADSCHEME     }
+toHDFErrorCode  DFE_BADMODEL         = #{const DFE_BADMODEL      }
+toHDFErrorCode  DFE_BADCODER         = #{const DFE_BADCODER      }
+toHDFErrorCode  DFE_MODEL            = #{const DFE_MODEL         }
+toHDFErrorCode  DFE_CODER            = #{const DFE_CODER         }
+toHDFErrorCode  DFE_CINIT            = #{const DFE_CINIT         }
+toHDFErrorCode  DFE_CDECODE          = #{const DFE_CDECODE       }
+toHDFErrorCode  DFE_CENCODE          = #{const DFE_CENCODE       }
+toHDFErrorCode  DFE_CTERM            = #{const DFE_CTERM         }
+toHDFErrorCode  DFE_CSEEK            = #{const DFE_CSEEK         }
+toHDFErrorCode  DFE_MINIT            = #{const DFE_MINIT         }
+toHDFErrorCode  DFE_COMPINFO         = #{const DFE_COMPINFO      }
+toHDFErrorCode  DFE_CANTCOMP         = #{const DFE_CANTCOMP      }
+toHDFErrorCode  DFE_CANTDECOMP       = #{const DFE_CANTDECOMP    }
+toHDFErrorCode  DFE_NOENCODER        = #{const DFE_NOENCODER     }
+toHDFErrorCode  DFE_NOSZLIB          = #{const DFE_NOSZLIB       }
+toHDFErrorCode  DFE_COMPVERSION      = #{const DFE_COMPVERSION   }
+toHDFErrorCode  DFE_READCOMP         = #{const DFE_READCOMP      }
+toHDFErrorCode  DFE_NODIM            = #{const DFE_NODIM         }
+toHDFErrorCode  DFE_BADRIG           = #{const DFE_BADRIG        }
+toHDFErrorCode  DFE_RINOTFOUND       = #{const DFE_RINOTFOUND    }
+toHDFErrorCode  DFE_BADATTR          = #{const DFE_BADATTR       }
+toHDFErrorCode  DFE_LUTNOTFOUND      = #{const DFE_LUTNOTFOUND   }
+toHDFErrorCode  DFE_GRNOTFOUND       = #{const DFE_GRNOTFOUND    }
+toHDFErrorCode  DFE_BADTABLE         = #{const DFE_BADTABLE      }
+toHDFErrorCode  DFE_BADSDG           = #{const DFE_BADSDG        }
+toHDFErrorCode  DFE_BADNDG           = #{const DFE_BADNDG        }
+toHDFErrorCode  DFE_VGSIZE           = #{const DFE_VGSIZE        }
+toHDFErrorCode  DFE_VTAB             = #{const DFE_VTAB          }
+toHDFErrorCode  DFE_CANTADDELEM      = #{const DFE_CANTADDELEM   }
+toHDFErrorCode  DFE_BADVGNAME        = #{const DFE_BADVGNAME     }
+toHDFErrorCode  DFE_BADVGCLASS       = #{const DFE_BADVGCLASS    }
+toHDFErrorCode  DFE_BADFIELDS        = #{const DFE_BADFIELDS     }
+toHDFErrorCode  DFE_NOVS             = #{const DFE_NOVS          }
+toHDFErrorCode  DFE_SYMSIZE          = #{const DFE_SYMSIZE       }
+toHDFErrorCode  DFE_BADATTACH        = #{const DFE_BADATTACH     }
+toHDFErrorCode  DFE_BADVSNAME        = #{const DFE_BADVSNAME     }
+toHDFErrorCode  DFE_BADVSCLASS       = #{const DFE_BADVSCLASS    }
+toHDFErrorCode  DFE_VSWRITE          = #{const DFE_VSWRITE       }
+toHDFErrorCode  DFE_VSREAD           = #{const DFE_VSREAD        }
+toHDFErrorCode  DFE_BADVH            = #{const DFE_BADVH         }
+toHDFErrorCode  DFE_FIELDSSET        = #{const DFE_FIELDSSET     }
+toHDFErrorCode  DFE_VSCANTCREATE     = #{const DFE_VSCANTCREATE  }
+toHDFErrorCode  DFE_VGCANTCREATE     = #{const DFE_VGCANTCREATE  }
+toHDFErrorCode  DFE_CANTATTACH       = #{const DFE_CANTATTACH    }
+toHDFErrorCode  DFE_CANTDETACH       = #{const DFE_CANTDETACH    }
+toHDFErrorCode  DFE_XDRERROR         = #{const DFE_XDRERROR      }
+toHDFErrorCode  DFE_BITREAD          = #{const DFE_BITREAD       }
+toHDFErrorCode  DFE_BITWRITE         = #{const DFE_BITWRITE      }
+toHDFErrorCode  DFE_BITSEEK          = #{const DFE_BITSEEK       }
+toHDFErrorCode  DFE_TBBTINS          = #{const DFE_TBBTINS       }
+toHDFErrorCode  DFE_BVNEW            = #{const DFE_BVNEW         }
+toHDFErrorCode  DFE_BVSET            = #{const DFE_BVSET         }
+toHDFErrorCode  DFE_BVGET            = #{const DFE_BVGET         }
+toHDFErrorCode  DFE_BVFIND           = #{const DFE_BVFIND        }
+toHDFErrorCode  DFE_CANTSETATTR      = #{const DFE_CANTSETATTR   }
+toHDFErrorCode  DFE_CANTGETATTR      = #{const DFE_CANTGETATTR   }
+toHDFErrorCode  DFE_ANAPIERROR       = #{const DFE_ANAPIERROR    }
+toHDFErrorCode (DFE_UNKNOWN_ERROR e) = e
