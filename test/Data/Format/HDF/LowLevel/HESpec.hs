@@ -1,7 +1,7 @@
 module Data.Format.HDF.LowLevel.HESpec(spec) where
 
 import           Test.Hspec
-import           Data.Format.HDF.LowLevel.C.Definitions
+import           Data.Format.HDF.LowLevel.C.Definitions (hdf_read)
 import           Data.Format.HDF.LowLevel.HE
 import           Data.Format.HDF.LowLevel.SD
 import           Testing.Common

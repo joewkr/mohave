@@ -1,7 +1,8 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 
 module Data.Format.HDF.LowLevel.HE(
-    he_print
+    HDFError(..)
+  , he_print
   , he_string
   , he_value
 ) where
@@ -12,7 +13,7 @@ import           Foreign.C.String
 import           Foreign.C.Types
 import           Foreign.Ptr
 
-import           Data.Format.HDF.LowLevel.C.Definitions (HDFErrorCode, HDFError, toHDFErrorCode, fromHDFErrorCode)
+import           Data.Format.HDF.LowLevel.C.Definitions (HDFErrorCode, HDFError(..), toHDFErrorCode, fromHDFErrorCode)
 
 foreign import ccall unsafe "fopen" c_fopen ::CString -> CString -> IO (Ptr CFile)
 foreign import ccall unsafe "fclose" c_fclose :: Ptr CFile -> IO ()
