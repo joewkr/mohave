@@ -18,13 +18,11 @@ import           Data.Format.HDF.LowLevel.Definitions
 #include <hdf.h>
 #include <mfhdf.h>
 
-newtype HDFOpenOption = HDFOpenOption { unHDFOpenOption :: Int32 }
+toHDFOpenModeTag :: HDFOpenMode -> Int32
+toHDFOpenModeTag HDFRead   = #{const DFACC_READ  }
+toHDFOpenModeTag HDFWrite  = #{const DFACC_WRITE }
+toHDFOpenModeTag HDFCreate = #{const DFACC_CREATE}
 
-#{enum HDFOpenOption, HDFOpenOption
-  , hdf_read                 = DFACC_READ
-  , hdf_write                = DFACC_WRITE
-  , hdf_create               = DFACC_CREATE
-  }
 
 fromHDFTypeTag :: Int32 -> HDFType
 fromHDFTypeTag tag = case tag of

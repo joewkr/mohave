@@ -16,6 +16,8 @@ module Data.Format.HDF.LowLevel.SD(
   , SDimensionId
   , SomeSDS(..)
 
+  , HDFOpenMode(..)
+
   , SDataSetInfoRaw(..)
   , SDimensionInfoRaw(..)
   , SAttributeInfoRaw(..)
@@ -217,9 +219,9 @@ data HdfStatus = Succeed | Fail deriving Eq
 
 
 
-sd_start :: String -> HDFOpenOption -> IO (Int32, SDId)
+sd_start :: String -> HDFOpenMode -> IO (Int32, SDId)
 sd_start fileName mode = withCString fileName $ \c_fileName -> do
-    sd_id <- c_sdstart c_fileName (unHDFOpenOption mode)
+    sd_id <- c_sdstart c_fileName (toHDFOpenModeTag mode)
     return $! (sd_id, SDId sd_id)
 
 sd_create :: forall (t :: HDataType a) (n :: Nat). KnownNat n =>

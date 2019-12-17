@@ -26,6 +26,8 @@ import           GHC.TypeNats
 
 data HDFData
 
+data HDFOpenMode = HDFRead | HDFWrite | HDFCreate
+
 newtype Char8 = Char8 Int8 deriving (Eq, Show)
 newtype UChar8 = UChar8 Word8 deriving (Eq, Show)
 

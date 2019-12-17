@@ -1,7 +1,6 @@
 module Data.Format.HDF.LowLevel.HESpec(spec) where
 
 import           Test.Hspec
-import           Data.Format.HDF.LowLevel.C.Definitions (hdf_read)
 import           Data.Format.HDF.LowLevel.HE
 import           Data.Format.HDF.LowLevel.SD
 import           Testing.Common
@@ -12,20 +11,20 @@ spec = do
         it "dumps HDF errors to file" $ do
             let logFileName = "hdf-error-trace.log"
                 expectedFirstLine = "HDF error: (5) <Bad file name on open>"
-            (status_1, _) <-           sd_start "test-data/sd/NULL" hdf_read
+            (status_1, _) <-           sd_start "test-data/sd/NULL" HDFRead
             _             <-           he_print logFileName
             firstLine     <- (head . lines) <$> readFile logFileName
             status_1 `shouldBe` (-1)
             firstLine `shouldBe` expectedFirstLine
         it "produces an empty error dump file when no errors reported" $ do
             let logFileName = "hdf-error-trace.no-errors.log"
-            sd_id         <- check =<< sd_start "test-data/sd/test1.hdf" hdf_read
+            sd_id         <- check =<< sd_start "test-data/sd/test1.hdf" HDFRead
             _             <- check =<< sd_end sd_id
             _             <-           he_print logFileName
             contents      <-           readFile logFileName
             contents `shouldBe` []
         it "reports HDF error code" $ do
-            (status_1, _) <-           sd_start "test-data/sd/NULL" hdf_read
+            (status_1, _) <-           sd_start "test-data/sd/NULL" HDFRead
             he            <-           he_value 1
             status_1 `shouldBe` (-1)
             he       `shouldBe` DFE_BADNAME
