@@ -13,7 +13,8 @@ import           Foreign.C.String
 import           Foreign.C.Types
 import           Foreign.Ptr
 
-import           Data.Format.HDF.LowLevel.C.Definitions (HDFErrorCode, HDFError(..), toHDFErrorCode, fromHDFErrorCode)
+import           Data.Format.HDF.LowLevel.Definitions (HDFError(..))
+import           Data.Format.HDF.LowLevel.C.Definitions (HDFErrorCode, toHDFErrorCode, fromHDFErrorCode)
 
 foreign import ccall unsafe "fopen" c_fopen ::CString -> CString -> IO (Ptr CFile)
 foreign import ccall unsafe "fclose" c_fclose :: Ptr CFile -> IO ()
