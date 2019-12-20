@@ -18,6 +18,10 @@ module Data.Format.HDF.LowLevel.SD(
 
   , HDFOpenMode(..)
 
+  , HDFVarList(..)
+  , HDFCompParams(..)
+  , HDFChunkParams(..)
+
   , SDataSetInfoRaw(..)
   , SDimensionInfoRaw(..)
   , SAttributeInfoRaw(..)

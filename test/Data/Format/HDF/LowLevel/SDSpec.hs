@@ -13,7 +13,6 @@ import           Data.Type.Equality ((:~:)(Refl))
 
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BS8
-import           Data.Format.HDF.LowLevel.C.Definitions
 import           Data.Format.HDF.LowLevel.Definitions
 import           Data.Format.HDF.LowLevel.SD
 import qualified Data.Vector.Storable as VS
