@@ -660,9 +660,9 @@ sd_setfillvalue (SDataSetId sds_id) fillValue =
         h_result <- c_sdsetfillvalue sds_id (castPtr fillValuePtr)
         return $! (fromIntegral h_result, ())
 
-sd_setfillmode :: SDId -> HDFFillModeTag -> IO (Int32, ())
+sd_setfillmode :: SDId -> HDFFillMode -> IO (Int32, ())
 sd_setfillmode (SDId sd_id) fillMode = do
-    h_result <- c_sdsetfillmode sd_id (fromIntegral . unHDFFillModeTag $ fillMode)
+    h_result <- c_sdsetfillmode sd_id (fromIntegral . toHDFFillModeTag $ fillMode)
     return $! (fromIntegral h_result, ())
 
 sd_setrange :: forall (t :: HDataType a) (n :: Nat). Storable a => SDataSetId n t -> a -> a -> IO (Int32, ())
@@ -677,7 +677,7 @@ sd_setcompress (SDataSetId sds_id) compParams =
     with compParams $ \compParamsPtr -> do
         h_result <- c_sdsetcompress
                         sds_id
-                        (unHDFCompModeTag $ selectCompMode compParams)
+                        (toHDFCompModeTag compParams)
                         compParamsPtr
         return $! (fromIntegral h_result, ())
 
@@ -745,13 +745,13 @@ type family WrapIfSDS (a :: Type) where
 
 sd_getanndatainfo ::
     (SDObjectId id, (WrapIfSDS id) `OneOf` '[SomeSDS, SDId]) =>
-    id -> AnnTypeTag -> IO (Int32, [RawDataInfo])
+    id -> HDFAnnotationType -> IO (Int32, [RawDataInfo])
 sd_getanndatainfo objId annType =
     allocaArray 128 $ \offsetArrayPtr ->
     allocaArray 128 $ \lengthArrayPtr -> do
         h_result <- c_sdgetanndatainfo
                         (getRawObjectId objId)
-                        (unAnnTypeTag annType)
+                        (toHDFAnnotationTypeTag annType)
                         128
                         offsetArrayPtr
                         lengthArrayPtr

@@ -23,6 +23,9 @@ toHDFOpenModeTag HDFRead   = #{const DFACC_READ  }
 toHDFOpenModeTag HDFWrite  = #{const DFACC_WRITE }
 toHDFOpenModeTag HDFCreate = #{const DFACC_CREATE}
 
+toHDFFillModeTag :: HDFFillMode -> Int32
+toHDFFillModeTag HDFFill   = #{const SD_FILL     }
+toHDFFillModeTag HDFNoFill = #{const SD_NOFILL   }
 
 fromHDFTypeTag :: Int32 -> HDFType
 fromHDFTypeTag tag = case tag of
@@ -114,13 +117,6 @@ instance Storable HDFVarList where
   poke ptr (HDFVarList var_index var_type) = do
     #{poke hdf_varlist_t, var_index} ptr var_index
     #{poke hdf_varlist_t, var_type}  ptr var_type
-
-newtype HDFFillModeTag = HDFFillModeTag { unHDFFillModeTag :: Int32 }
-
-#{enum HDFFillModeTag, HDFFillModeTag
-  , hdf_fill                 = SD_FILL
-  , hdf_nofill               = SD_NOFILL
-  }
 
 data HDFCompParams =
     HDFCompNone
@@ -232,26 +228,15 @@ instance Storable HDFCompParams where
         #{poke comp_info, szip.bits_per_pixel} ptr bits_per_pixel
         #{poke comp_info, szip.pixels} ptr pixels
 
-newtype HDFCompModeTag = HDFCompModeTag { unHDFCompModeTag :: #{type comp_coder_t} }
-
 type HDFCompType = #{type comp_coder_t}
 
-#{enum HDFCompModeTag, HDFCompModeTag
-  , hdf_comp_none            = COMP_CODE_NONE
-  , hdf_comp_rle             = COMP_CODE_RLE
-  , hdf_comp_nbit            = COMP_CODE_NBIT
-  , hdf_comp_skphuff         = COMP_CODE_SKPHUFF
-  , hdf_comp_deflate         = COMP_CODE_DEFLATE
-  , hdf_comp_szip            = COMP_CODE_SZIP
-  }
-
-selectCompMode :: HDFCompParams -> HDFCompModeTag
-selectCompMode HDFCompNone{}    = hdf_comp_none
-selectCompMode HDFCompRLE{}     = hdf_comp_rle
-selectCompMode HDFCompNBit{}    = hdf_comp_nbit
-selectCompMode HDFCompSkHuff{}  = hdf_comp_skphuff
-selectCompMode HDFCompDeflate{} = hdf_comp_deflate
-selectCompMode HDFCompSZip{}    = hdf_comp_szip
+toHDFCompModeTag :: HDFCompParams -> HDFCompType
+toHDFCompModeTag HDFCompNone{}    = #{const COMP_CODE_NONE   }
+toHDFCompModeTag HDFCompRLE{}     = #{const COMP_CODE_RLE    }
+toHDFCompModeTag HDFCompNBit{}    = #{const COMP_CODE_NBIT   }
+toHDFCompModeTag HDFCompSkHuff{}  = #{const COMP_CODE_SKPHUFF}
+toHDFCompModeTag HDFCompDeflate{} = #{const COMP_CODE_DEFLATE}
+toHDFCompModeTag HDFCompSZip{}    = #{const COMP_CODE_SZIP   }
 
 data HDFChunkParams = HDFChunkParams {
     hdfChunkSizes       :: [Int32]
@@ -318,7 +303,7 @@ instance Storable HDFChunkParams where
     _ -> do
       let
         chunksPtr = plusPtr ptr #{offset HDF_CHUNK_DEF, comp.chunk_lengths}
-        compTag = (fromIntegral . unHDFCompModeTag $ selectCompMode compParams) :: Int32
+        compTag = (fromIntegral . toHDFCompModeTag $ compParams) :: Int32
       pokeArray chunksPtr chunksPadded
       #{poke HDF_CHUNK_DEF, comp.comp_type} ptr compTag
       #{poke HDF_CHUNK_DEF, comp.cinfo} ptr compParams
@@ -332,15 +317,12 @@ selectChunkingMode (HDFChunkParams _ _            ) = #{const HDF_CHUNK | HDF_CO
 
 type CAnnType = #{type ann_type}
 
-newtype AnnTypeTag = AnnTypeTag { unAnnTypeTag :: CAnnType }
-
-#{enum AnnTypeTag, AnnTypeTag
-  , hdf_ann_undef      = AN_UNDEF
-  , hdf_ann_data_label = AN_DATA_LABEL
-  , hdf_ann_data_desc  = AN_DATA_DESC
-  , hdf_ann_file_label = AN_FILE_LABEL
-  , hdf_ann_file_desc  = AN_FILE_DESC
-  }
+toHDFAnnotationTypeTag :: HDFAnnotationType -> CAnnType
+toHDFAnnotationTypeTag HDFAnnUndef     = #{const AN_UNDEF     }
+toHDFAnnotationTypeTag HDFAnnDataLabel = #{const AN_DATA_LABEL}
+toHDFAnnotationTypeTag HDFAnnDataDesc  = #{const AN_DATA_DESC }
+toHDFAnnotationTypeTag HDFAnnFileLabel = #{const AN_FILE_LABEL}
+toHDFAnnotationTypeTag HDFAnnFileDesc  = #{const AN_FILE_DESC }
 
 type HDFErrorCode = #{type hdf_err_code_t}
 
