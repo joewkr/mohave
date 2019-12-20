@@ -122,7 +122,7 @@ data HDFCompParams =
     HDFCompNone
   | HDFCompRLE
   | HDFCompNBit {
-      hdfCompRawType :: Int32
+      hdfCompRawType :: HDFType
     , hdfCompSignExt :: CInt
     , hdfCompFillOne :: CInt
     , hdfCompStartBit :: CInt
@@ -173,7 +173,7 @@ instance Storable HDFCompParams where
         startBit <- #{peek comp_info, nbit.start_bit} ptr
         bitLen   <- #{peek comp_info, nbit.bit_len} ptr
         return $! HDFCompNBit
-          rawType
+          (fromHDFTypeTag rawType)
           signExt
           fillOne
           startBit
@@ -206,7 +206,7 @@ instance Storable HDFCompParams where
       fillOne
       startBit
       bitLen) = do
-        #{poke comp_info, nbit.nt} ptr rawType
+        #{poke comp_info, nbit.nt} ptr (toHDFTypeTag rawType)
         #{poke comp_info, nbit.sign_ext} ptr signExt
         #{poke comp_info, nbit.fill_one} ptr fillOne
         #{poke comp_info, nbit.start_bit} ptr startBit
@@ -283,7 +283,7 @@ instance Storable HDFChunkParams where
         bitLen   <- #{peek HDF_CHUNK_DEF, nbit.bit_len} ptr
         return $! HDFChunkParams chunks $
           HDFCompNBit
-            0
+            (HDFValue HNone ())
             signExt
             fillOne
             startBit

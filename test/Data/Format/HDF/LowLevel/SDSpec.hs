@@ -775,7 +775,7 @@ spec = do
                 compParams         <- check =<< sd_getcompinfo sds_id
                 _                  <- check =<< sd_endaccess sds_id
                 _                  <- check =<< sd_end sd_id
-                compParams `shouldBe` HDFCompNBit (fromHDataType HInt32) 0 0 0 3
+                compParams `shouldBe` HDFCompNBit (HDFValue HInt32 ()) 0 0 0 3
     context "Chunking/Tiling" $ do
         context "SDgetchunkinfo" $ do
             it "handles empty SDS" $ do
@@ -812,7 +812,7 @@ spec = do
                 chunkParams        <- check =<< sd_getchunkinfo sds_id
                 _                  <- check =<< sd_endaccess sds_id
                 _                  <- check =<< sd_end sd_id
-                chunkParams `shouldBe` (HDFChunkParams [2,2] $ HDFCompNBit 0 0 0 6 7)
+                chunkParams `shouldBe` (HDFChunkParams [2,2] $ HDFCompNBit (HDFValue HNone ()) 0 0 6 7)
         context "SDsetchunk" $ do
             it "converts SDS to chunked SDS" $ do
                 sd_id              <- check =<< sd_start "new_chunked_sds.hdf" HDFCreate
