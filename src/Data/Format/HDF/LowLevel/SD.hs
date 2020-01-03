@@ -219,10 +219,6 @@ instance SDObjectId (SDataSetId n t) where
 instance SDObjectId SDimensionId where
     getRawObjectId (SDimensionId dimension_id) = dimension_id
 
-data HdfStatus = Succeed | Fail deriving Eq
-
-
-
 sd_start :: String -> HDFOpenMode -> IO (Int32, SDId)
 sd_start fileName mode = withCString fileName $ \c_fileName -> do
     sd_id <- c_sdstart c_fileName (toHDFOpenModeTag mode)
