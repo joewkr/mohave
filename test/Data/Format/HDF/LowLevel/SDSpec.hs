@@ -193,14 +193,14 @@ spec = do
             it "detects variable with unlimited dimension" $ do
                 sd_id              <- check =<< sd_start "test-data/sd/test1.hdf" HDFRead
                 (SomeSDS _ sds_id) <- check =<< sd_select sd_id 7
-                isRecord           <- check =<< sd_isisrecord sds_id
+                isRecord           <- check =<< sd_isrecord sds_id
                 _                  <- check =<< sd_endaccess sds_id
                 _                  <- check =<< sd_end sd_id
                 isRecord `shouldBe` True
             it "detects variable without unlimited dimension" $ do
                 sd_id              <- check =<< sd_start "test-data/sd/test1.hdf" HDFRead
                 (SomeSDS _ sds_id) <- check =<< sd_select sd_id 0
-                isRecord           <- check =<< sd_isisrecord sds_id
+                isRecord           <- check =<< sd_isrecord sds_id
                 _                  <- check =<< sd_endaccess sds_id
                 _                  <- check =<< sd_end sd_id
                 isRecord `shouldBe` False

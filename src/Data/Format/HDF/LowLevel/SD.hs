@@ -47,7 +47,7 @@ module Data.Format.HDF.LowLevel.SD(
   , sd_getnumvars_byname
   , sd_idtoref
   , sd_iscoordvar
-  , sd_isisrecord
+  , sd_isrecord
   , sd_nametoindex
   , sd_nametoindices
   , sd_reftoindex
@@ -372,8 +372,8 @@ sd_iscoordvar (SDataSetId sds_id) = do
     is_coordvar <- c_sdiscoordvar sds_id
     return $! (fromIntegral is_coordvar, is_coordvar /= 0)
 
-sd_isisrecord :: SDataSetId n t -> IO (Int32, Bool)
-sd_isisrecord (SDataSetId sds_id) = do
+sd_isrecord :: SDataSetId n t -> IO (Int32, Bool)
+sd_isrecord (SDataSetId sds_id) = do
     is_record <- c_sdisrecord sds_id
     return $! (fromIntegral is_record, is_record /= 0)
 
