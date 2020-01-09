@@ -94,10 +94,7 @@ module Data.Format.HDF.LowLevel.SD(
 ) where
 
 import           Control.Arrow (second)
-import qualified Data.ByteString as BS
-import           Data.ByteString.Unsafe (unsafeUseAsCString)
 import           Data.Int
-import           Data.Kind
 import           Data.Maybe (fromMaybe)
 import           Data.Proxy (Proxy(..))
 import qualified Data.Vector.Storable as VS
@@ -114,6 +111,7 @@ import           GHC.TypeNats (natVal, someNatVal, SomeNat(..), Nat, KnownNat)
 
 import           Data.Format.HDF.LowLevel.C.Definitions
 import           Data.Format.HDF.LowLevel.Definitions
+import           Data.Format.HDF.LowLevel.Definitions.Internal
 
 -- Access
 foreign import ccall unsafe "SDstart" c_sdstart :: CString -> Int32 -> IO Int32
@@ -206,9 +204,6 @@ newtype SDimensionId = SDimensionId Int32 deriving Eq
 data SomeSDS where
     SomeSDS :: forall (n :: Nat) (t :: HDataType a). KnownNat n =>
         HDataType a -> SDataSetId n t -> SomeSDS
-
-class SDObjectId id where
-    getRawObjectId :: id -> Int32
 
 instance SDObjectId SDId where
     getRawObjectId (SDId sd_id) = sd_id
@@ -739,12 +734,7 @@ sd_getchunkinfo (SDataSetId sds_id) =
 
 type RawDataInfo = (Int32, Int32)
 
-type family WrapIfSDS (a :: Type) where
-    WrapIfSDS (SDataSetId _ _) = SomeSDS
-    WrapIfSDS t = t
-
-sd_getanndatainfo ::
-    (SDObjectId id, (WrapIfSDS id) `OneOf` '[SomeSDS, SDId]) =>
+sd_getanndatainfo :: SDObjectId id =>
     id -> HDFAnnotationType -> IO (Int32, [RawDataInfo])
 sd_getanndatainfo objId annType =
     allocaArray 128 $ \offsetArrayPtr ->
@@ -896,27 +886,6 @@ sd_getdimscale sds sDimensionId@(SDimensionId dimension_id) = do
                 return $!
                     ( fromIntegral h_result_3
                     , HDFValue t $ VS.unsafeFromForeignPtr0 fp (fromIntegral s))
-
-type family IsElementOf (a :: Type) (t :: Type) :: Constraint where
-    IsElementOf a [b] = a ~ b
-    IsElementOf a (VS.Vector b) = a ~ b
-    IsElementOf a BS.ByteString = a `OneOf` '[Char8, UChar8]
-
-class CanBeAttribute t where
-    withAttributePtr :: t -> (Ptr HDFData -> IO b) -> IO b
-    attributeLen :: t -> Int
-
-instance Storable a => CanBeAttribute [a] where
-    withAttributePtr val f = withArray val (\ptr -> f $! castPtr ptr)
-    attributeLen = length
-
-instance CanBeAttribute BS.ByteString where
-    withAttributePtr val f = unsafeUseAsCString val (\ptr -> f $! castPtr ptr)
-    attributeLen = BS.length
-
-instance Storable a =>  CanBeAttribute (VS.Vector a) where
-    withAttributePtr val f = VS.unsafeWith val (\ptr -> f $! castPtr ptr)
-    attributeLen = VS.length
 
 sd_setattr :: (SDObjectId id, Storable a, CanBeAttribute t, a `IsElementOf` t) =>
     id -> String -> HDataType a -> t -> IO (Int32, ())
