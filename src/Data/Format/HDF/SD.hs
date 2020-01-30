@@ -250,8 +250,8 @@ sd_getdimid (SDataSetId sds) dimIndex = do
 sd_diminfo :: SDimensionId any session -> HDFio LowLevel.SD.SDimensionInfoRaw
 sd_diminfo (SDimensionId dim) = check =<< (liftIO $ LowLevel.SD.sd_diminfo dim)
 
-sd_setdimname :: forall (write :: HDFOpenMode) session. write `OneOf` ['HDFWrite, 'HDFCreate] =>
-    SDimensionId write session -> String -> HDFio ()
+sd_setdimname :: forall session.
+    SDimensionId 'HDFWrite session -> String -> HDFio ()
 sd_setdimname (SDimensionId dim) dimName = check =<< (liftIO $ LowLevel.SD.sd_setdimname dim dimName)
 
 sd_findattr :: (Internal.SDObjectId (LLId id), SDObjectId id) =>
@@ -279,46 +279,46 @@ sd_getrange :: forall (t :: HDataType a) (n :: Nat) sds any session. Storable a 
     SDataSetId n t sds any session -> HDFio (a, a)
 sd_getrange (SDataSetId sds) = check =<< (liftIO $ LowLevel.SD.sd_getrange sds)
 
-sd_setcal :: forall (t :: HDataType a) (n :: Nat) sds write session. write `OneOf` ['HDFWrite, 'HDFCreate] =>
-    SDataSetId n t sds write session -> LowLevel.SD.SCalibrationParametersRaw -> HDFio ()
+sd_setcal :: forall (t :: HDataType a) (n :: Nat) sds session.
+    SDataSetId n t sds 'HDFWrite session -> LowLevel.SD.SCalibrationParametersRaw -> HDFio ()
 sd_setcal (SDataSetId sds) calibrationParameters = check =<< (liftIO $ LowLevel.SD.sd_setcal sds calibrationParameters)
 
-sd_setdatastrs :: forall (t :: HDataType a) (n :: Nat) sds write session. write `OneOf` ['HDFWrite, 'HDFCreate] =>
-    SDataSetId n t sds write session -> LowLevel.SD.SDsetDescStringsRaw -> HDFio ()
+sd_setdatastrs :: forall (t :: HDataType a) (n :: Nat) sds session.
+    SDataSetId n t sds 'HDFWrite session -> LowLevel.SD.SDsetDescStringsRaw -> HDFio ()
 sd_setdatastrs (SDataSetId sds) sdsDescription = check =<< (liftIO $ LowLevel.SD.sd_setdatastrs sds sdsDescription)
 
-sd_setdimstrs:: forall write session. write `OneOf` ['HDFWrite, 'HDFCreate] =>
-    SDimensionId write session -> LowLevel.SD.SDimDescStringsRaw -> HDFio ()
+sd_setdimstrs:: forall session.
+    SDimensionId 'HDFWrite session -> LowLevel.SD.SDimDescStringsRaw -> HDFio ()
 sd_setdimstrs (SDimensionId dim) dimDescription = check =<< (liftIO $ LowLevel.SD.sd_setdimstrs dim dimDescription)
 
-sd_setfillvalue :: forall (t :: HDataType a) (n :: Nat) sds write session. (Storable a, write `OneOf` ['HDFWrite, 'HDFCreate]) =>
-    SDataSetId n t sds write session -> a -> HDFio ()
+sd_setfillvalue :: forall (t :: HDataType a) (n :: Nat) sds session. Storable a =>
+    SDataSetId n t sds 'HDFWrite session -> a -> HDFio ()
 sd_setfillvalue (SDataSetId sds) fillValue = check =<< (liftIO $ LowLevel.SD.sd_setfillvalue sds fillValue)
 
-sd_setfillmode :: forall write session. write `OneOf` ['HDFWrite, 'HDFCreate] =>
-    SDFile write session -> HDFFillMode -> HDFio ()
+sd_setfillmode :: forall session.
+    SDFile 'HDFWrite session -> HDFFillMode -> HDFio ()
 sd_setfillmode (SDFile file) fillMode = check =<< (liftIO $ LowLevel.SD.sd_setfillmode file fillMode)
 
-sd_setrange :: forall (t :: HDataType a) (n :: Nat) sds write session. (Storable a, write `OneOf` ['HDFWrite, 'HDFCreate]) =>
-    SDataSetId n t sds write session -> a -> a -> HDFio ()
+sd_setrange :: forall (t :: HDataType a) (n :: Nat) sds session. Storable a =>
+    SDataSetId n t sds 'HDFWrite session -> a -> a -> HDFio ()
 sd_setrange (SDataSetId sds) minValue maxValue = check =<< (liftIO $ LowLevel.SD.sd_setrange sds minValue maxValue)
 
-sd_setcompress :: forall (t :: HDataType a) (n :: Nat) sds write session. write `OneOf` ['HDFWrite, 'HDFCreate] =>
-    SDataSetId n t sds write session -> LowLevel.SD.HDFCompParams -> HDFio ()
+sd_setcompress :: forall (t :: HDataType a) (n :: Nat) sds session.
+    SDataSetId n t sds 'HDFWrite session -> LowLevel.SD.HDFCompParams -> HDFio ()
 sd_setcompress (SDataSetId sds) compParams = check =<< (liftIO $ LowLevel.SD.sd_setcompress sds compParams)
 
 sd_getcompinfo :: SDataSetId n t sds any session -> HDFio LowLevel.SD.HDFCompParams
 sd_getcompinfo (SDataSetId sds) = check =<< (liftIO $ LowLevel.SD.sd_getcompinfo sds)
 
-sd_setnbitdataset :: forall (t :: HDataType a) (n :: Nat) sds write session. write `OneOf` ['HDFWrite, 'HDFCreate] =>
-    SDataSetId n t sds write session -> LowLevel.SD.SDNBitCompParams -> HDFio ()
+sd_setnbitdataset :: forall (t :: HDataType a) (n :: Nat) sds session.
+    SDataSetId n t sds 'HDFWrite session -> LowLevel.SD.SDNBitCompParams -> HDFio ()
 sd_setnbitdataset (SDataSetId sds) compParams = check =<< (liftIO $ LowLevel.SD.sd_setnbitdataset sds compParams)
 
 sd_setchunkcache :: SDataSetId n t sds any session -> Int32 -> HDFio ()
 sd_setchunkcache (SDataSetId sds) cacheSize = check =<< (liftIO $ LowLevel.SD.sd_setchunkcache sds cacheSize)
 
-sd_setchunk :: forall (t :: HDataType a) (n :: Nat) sds write session. write `OneOf` ['HDFWrite, 'HDFCreate] =>
-    SDataSetId n t sds write session -> LowLevel.SD.HDFChunkParams -> HDFio ()
+sd_setchunk :: forall (t :: HDataType a) (n :: Nat) sds session.
+    SDataSetId n t sds 'HDFWrite session -> LowLevel.SD.HDFChunkParams -> HDFio ()
 sd_setchunk (SDataSetId sds) chunkParams = check =<< (liftIO $ LowLevel.SD.sd_setchunk sds chunkParams)
 
 sd_getchunkinfo :: SDataSetId n t sds any session -> HDFio LowLevel.SD.HDFChunkParams
@@ -347,47 +347,47 @@ sd_getdatainfo (SDataSetId sds) chunkCoords startBlock = check =<< (liftIO $ Low
 sd_getexternalinfo :: SDataSetId n t sds any session -> HDFio (String, LowLevel.SD.RawDataInfo)
 sd_getexternalinfo (SDataSetId sds) = check =<< (liftIO $ LowLevel.SD.sd_getexternalinfo sds)
 
-sd_setblocksize :: forall (t :: HDataType a) (n :: Nat) sds write session. write `OneOf` ['HDFWrite, 'HDFCreate] =>
-    SDataSetId n t sds write session -> Int32 -> HDFio ()
+sd_setblocksize :: forall (t :: HDataType a) (n :: Nat) sds session.
+    SDataSetId n t sds 'HDFWrite session -> Int32 -> HDFio ()
 sd_setblocksize (SDataSetId sds) blockSize = check =<< (liftIO $ LowLevel.SD.sd_setblocksize sds blockSize)
 
-sd_setexternalfile :: forall (t :: HDataType a) (n :: Nat) sds write session. write `OneOf` ['HDFWrite, 'HDFCreate] =>
-    SDataSetId n t sds write session -> String -> Int32 -> HDFio ()
+sd_setexternalfile :: forall (t :: HDataType a) (n :: Nat) sds session.
+    SDataSetId n t sds 'HDFWrite session -> String -> Int32 -> HDFio ()
 sd_setexternalfile (SDataSetId sds) fileName offset = check =<< (liftIO $ LowLevel.SD.sd_setexternalfile sds fileName offset)
 
 sd_isdimval_bwcomp :: SDimensionId any session -> HDFio Bool
 sd_isdimval_bwcomp (SDimensionId dim) = check =<< (liftIO $ LowLevel.SD.sd_isdimval_bwcomp dim)
 
-sd_setdimval_comp :: forall write session. write `OneOf` ['HDFWrite, 'HDFCreate] =>
-    SDimensionId write session -> Bool -> HDFio ()
+sd_setdimval_comp :: forall session.
+    SDimensionId 'HDFWrite session -> Bool -> HDFio ()
 sd_setdimval_comp (SDimensionId dim) bwCompatible = check =<< (liftIO $ LowLevel.SD.sd_setdimval_comp dim bwCompatible)
 
-sd_setdimscale :: forall a write session. (Storable a, write `OneOf` ['HDFWrite, 'HDFCreate]) =>
-    SDimensionId write session -> HDataType a -> VS.Vector a -> HDFio ()
+sd_setdimscale :: forall a session. (Storable a) =>
+    SDimensionId 'HDFWrite session -> HDataType a -> VS.Vector a -> HDFio ()
 sd_setdimscale (SDimensionId dim) dataType dimScale = check =<< (liftIO $ LowLevel.SD.sd_setdimscale dim dataType dimScale)
 
 sd_getdimscale :: SDataSetId n t sds any session -> SDimensionId any session -> HDFio HDFVector
 sd_getdimscale (SDataSetId sds) (SDimensionId dim) = check =<< (liftIO $ LowLevel.SD.sd_getdimscale sds dim)
 
-sd_setattr :: forall id (t :: Type) (a :: Type) write session.
-    (Internal.SDObjectId (LLId id), SDObjectId id, Storable a, CanBeAttribute t, a `IsElementOf` t, write `OneOf` ['HDFWrite, 'HDFCreate]) =>
-    id write session -> String -> HDataType a -> t -> HDFio ()
+sd_setattr :: forall id (t :: Type) (a :: Type) session.
+    (Internal.SDObjectId (LLId id), SDObjectId id, Storable a, CanBeAttribute t, a `IsElementOf` t) =>
+    id 'HDFWrite session -> String -> HDataType a -> t -> HDFio ()
 sd_setattr obj attrName dataType attrValue = check =<< (liftIO $ LowLevel.SD.sd_setattr (getRawObjectId obj) attrName dataType attrValue)
 
 sd_readattr :: (Internal.SDObjectId (LLId id), SDObjectId id) =>
     id any session -> Int32 -> HDFio HDFVector
 sd_readattr obj attrId = check =<< (liftIO $ LowLevel.SD.sd_readattr (getRawObjectId obj) attrId)
 
-sd_writechunk :: forall (t :: HDataType a) (n :: Nat) sds write session. (Storable a, write `OneOf` ['HDFWrite, 'HDFCreate]) =>
-    SDataSetId n t sds write session -> [Int32] -> VS.Vector a -> HDFio ()
+sd_writechunk :: forall (t :: HDataType a) (n :: Nat) sds session. Storable a =>
+    SDataSetId n t sds 'HDFWrite session -> [Int32] -> VS.Vector a -> HDFio ()
 sd_writechunk (SDataSetId sds) chunkCoords dataChunk = check =<< (liftIO $ LowLevel.SD.sd_writechunk sds chunkCoords dataChunk)
 
 sd_readchunk :: forall (t :: HDataType a) (n :: Nat) sds any session. Storable a =>
     SDataSetId n t sds any session -> [Int32] -> HDFio (VS.Vector a)
 sd_readchunk (SDataSetId sds) chunkCoords = check =<< (liftIO $ LowLevel.SD.sd_readchunk sds chunkCoords)
 
-sd_writedata :: forall (t :: HDataType a) (n :: Nat) sds write session. (Storable a, KnownNat n, write `OneOf` ['HDFWrite, 'HDFCreate]) =>
-    SDataSetId n t sds write session -> Index n -> Index n -> Index n -> VS.Vector a -> HDFio ()
+sd_writedata :: forall (t :: HDataType a) (n :: Nat) sds session. (Storable a, KnownNat n) =>
+    SDataSetId n t sds 'HDFWrite session -> Index n -> Index n -> Index n -> VS.Vector a -> HDFio ()
 sd_writedata (SDataSetId sds) start stride edges sdsData = check =<< (liftIO $ LowLevel.SD.sd_writedata sds start stride edges sdsData)
 
 sd_readdata :: forall (t :: HDataType a) (n :: Nat) sds any session. (Storable a, KnownNat n) =>
