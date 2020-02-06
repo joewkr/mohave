@@ -176,7 +176,7 @@ cifSize = #{size ffi_cif}
 
 ffiVariadicFunctionCall :: forall a.FFIPrimitveType a => FunPtr a -> [FFIArg] -> [FFIArg] -> IO a
 ffiVariadicFunctionCall funPtr fixArgs vaArgs =
-  allocaBytes cifSize $ \cifPtr ->
+  allocaBytesAligned cifSize #{alignment ffi_cif} $ \cifPtr ->
   ffiAlloca $ \resPtr ->
   withArray (argumentTypes allArgs) $ \argTypesPtr -> do
     prep_res <- c_ffi_prep_cif_var
