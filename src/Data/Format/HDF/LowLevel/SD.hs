@@ -32,18 +32,23 @@ module Data.Format.HDF.LowLevel.SD(
 
   , RawDataInfo
 
+-- ** Access
   , sd_start
   , sd_create
   , sd_select
   , sd_endaccess
   , sd_end
+-- ** Read and write
+  , sd_readdata
+  , sd_writedata
+-- ** General inquiry
   , sd_checkempty
   , sd_fileinfo
-  , sd_getnamelen
-  , sd_getfilename
-  , sd_getinfo
   , sd_get_maxopenfiles
   , sd_get_numopenfiles
+  , sd_getfilename
+  , sd_getinfo
+  , sd_getnamelen
   , sd_getnumvars_byname
   , sd_idtoref
   , sd_iscoordvar
@@ -52,11 +57,18 @@ module Data.Format.HDF.LowLevel.SD(
   , sd_nametoindices
   , sd_reftoindex
   , sd_reset_maxopenfiles
-  , sd_getdimid
+-- ** Dimensions
   , sd_diminfo
+  , sd_getdimid
+  , sd_getdimscale
   , sd_setdimname
-  , sd_findattr
+  , sd_setdimscale
+-- ** User-defined attributes
   , sd_attrinfo
+  , sd_findattr
+  , sd_readattr
+  , sd_setattr
+-- ** Predefined attributes
   , sd_getcal
   , sd_getdatastrs
   , sd_getdimstrs
@@ -65,32 +77,30 @@ module Data.Format.HDF.LowLevel.SD(
   , sd_setcal
   , sd_setdatastrs
   , sd_setdimstrs
-  , sd_setfillvalue
   , sd_setfillmode
+  , sd_setfillvalue
   , sd_setrange
-  , sd_setcompress
+-- ** Compression
   , sd_getcompinfo
+  , sd_setcompress
   , sd_setnbitdataset
-  , sd_setchunkcache
-  , sd_setchunk
+-- ** Chunking/Tiling
   , sd_getchunkinfo
+  , sd_readchunk
+  , sd_setchunk
+  , sd_setchunkcache
+  , sd_writechunk
+-- ** Raw data information
   , sd_getanndatainfo
   , sd_getattdatainfo
-  , sd_getoldattdatainfo
   , sd_getdatainfo
+  , sd_getoldattdatainfo
+-- ** Miscellaneous
   , sd_getexternalinfo
-  , sd_setblocksize
-  , sd_setexternalfile
   , sd_isdimval_bwcomp
+  , sd_setblocksize
   , sd_setdimval_comp
-  , sd_setdimscale
-  , sd_getdimscale
-  , sd_setattr
-  , sd_readattr
-  , sd_writechunk
-  , sd_readchunk
-  , sd_readdata
-  , sd_writedata
+  , sd_setexternalfile
 ) where
 
 import           Control.Arrow (second)
