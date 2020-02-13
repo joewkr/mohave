@@ -15,9 +15,12 @@ module Data.Format.HDF.SD(
   , SomeSDS(..)
   , SDataSetId
 
-  , withSDHDF
+  , withExistingSDHDF
+  , withNewSDHDF
+
   , withExistingSDS
   , withNewSDS
+
   , sd_checkempty
   , sd_fileinfo
   , sd_getnamelen
@@ -128,9 +131,14 @@ instance SingI HDFOpenMode 'HDFWrite  where
 instance SingI HDFOpenMode 'HDFCreate where
   fromSing _ = HDFCreate
 
-withSDHDF :: forall (any :: HDFOpenMode) b. SingI HDFOpenMode any =>
+withNewSDHDF :: forall b.
+  String -> (forall session. SDFile 'HDFWrite session -> HDFio b) -> IO (Either HDFError b)
+withNewSDHDF fileName action = runExceptT $ bracket
+    (sd_start fileName HDFCreate) sd_end action
+
+withExistingSDHDF :: forall (any :: HDFOpenMode) b. (SingI HDFOpenMode any, any `OneOf` ['HDFRead, 'HDFWrite]) =>
   String -> (forall session. SDFile any session -> HDFio b) -> IO (Either HDFError b)
-withSDHDF fileName action = runExceptT $ bracket
+withExistingSDHDF fileName action = runExceptT $ bracket
     (sd_start fileName openMode) sd_end action
   where
     openMode :: HDFOpenMode
