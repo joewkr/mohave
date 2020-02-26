@@ -180,10 +180,10 @@ withExistingSDS sd sdsName action = HDFio $ do
         (unHDFio . action)
 
 type family CompatibleWith (newMode :: HDFOpenMode) (oldMode :: HDFOpenMode) :: Constraint where
-    CompatibleWith 'HDFRead   _          = 'True  ~ 'True
-    CompatibleWith 'HDFCreate 'HDFCreate = 'True  ~ 'True
-    CompatibleWith 'HDFWrite  'HDFWrite  = 'True  ~ 'True
-    CompatibleWith 'HDFWrite  'HDFCreate = 'True  ~ 'True
+    CompatibleWith 'HDFRead   _          = ()
+    CompatibleWith 'HDFCreate 'HDFCreate = ()
+    CompatibleWith 'HDFWrite  'HDFWrite  = ()
+    CompatibleWith 'HDFWrite  'HDFCreate = ()
     CompatibleWith  l          r         =  TypeError ('ShowType l ':<>: 'Text " SDS access mode can not be used with SD file in " ':<>: 'ShowType r ':<>: 'Text " mode")
 
 
