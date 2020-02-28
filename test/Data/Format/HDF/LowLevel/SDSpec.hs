@@ -14,6 +14,7 @@ import           Data.Type.Equality ((:~:)(Refl))
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BS8
 import           Data.Format.HDF.LowLevel.Definitions
+import           Data.Format.HDF.LowLevel.HE
 import           Data.Format.HDF.LowLevel.SD
 import qualified Data.Vector.Storable as VS
 import           Foreign.Ptr (castPtr)
@@ -968,6 +969,14 @@ spec = do
                 attr <- BS.hGet hndl (fromIntegral attrLen)
                 hClose hndl
                 attr `shouldBe` "DimLabel"
+            it "reports incompatible old attribute type" $ do
+                let filePath = "test-data/sd/tdfsdatts.hdf"
+                sd_id              <- check =<< sd_start filePath HDFRead
+                (SomeSDS _ sds_id) <- check =<< sd_select sd_id 0
+                (status, _)        <-           sd_getattdatainfo sds_id 0
+                he_value 1 `shouldReturn` DFE_NOVGREP
+                _                  <- check =<< sd_end sd_id
+                status `shouldBe` (-1)
         context "SDgetoldattdatainfo" $ do
             it "gets old style SDS attribute raw offset and length" $ do
                 let filePath = "test-data/sd/tdfsdatts.hdf"

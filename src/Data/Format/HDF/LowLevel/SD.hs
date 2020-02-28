@@ -118,10 +118,12 @@ import           Foreign.Marshal.Utils (with, fromBool, toBool, fillBytes)
 import           Foreign.Ptr
 import           Foreign.Storable (Storable, peek, poke, sizeOf)
 import           GHC.TypeNats (natVal, someNatVal, SomeNat(..), Nat, KnownNat)
+import           GHC.Stack
 
 import           Data.Format.HDF.LowLevel.C.Definitions
 import           Data.Format.HDF.LowLevel.Definitions
 import           Data.Format.HDF.LowLevel.Definitions.Internal
+import           Data.Format.HDF.LowLevel.HE
 
 -- Access
 foreign import ccall unsafe "SDstart" c_sdstart :: CString -> Int32 -> IO Int32
@@ -205,6 +207,10 @@ foreign import ccall unsafe "SDsetexternalfile" c_sdsetexternalfile :: Int32 -> 
 foreign import ccall unsafe "SDisdimval_bwcomp" c_sdisdimval_bwcomp :: Int32 -> IO CInt
 foreign import ccall unsafe "SDsetdimval_comp" c_sdsetdimval_comp :: Int32 -> CInt -> IO CInt
 -- SDsetaccesstype {- this function does not seem to do any useful work as in HDF-4.2.14 -}
+
+{-# NOINLINE currentLine #-}
+currentLine :: HasCallStack => Int
+currentLine = srcLocStartLine . snd . head . getCallStack $ callStack
 
 newtype SDId = SDId Int32 deriving Eq
 newtype SDataSetId (n :: Nat) (t :: HDataType a) = SDataSetId Int32 deriving Eq
@@ -766,11 +772,15 @@ sd_getattdatainfo objId attrId =
     alloca $ \offsetPtr ->
     alloca $ \lengthPtr -> do
         h_result <-c_sdgetattdatainfo (getRawObjectId objId) attrId offsetPtr lengthPtr
-        if h_result /= (-1) then do
-            offset <- peek offsetPtr
-            len <- peek lengthPtr
-            return $! (fromIntegral h_result, (offset, len))
-        else return $! (fromIntegral h_result, (0, 0))
+        case () of
+           _ | h_result == (-1) -> return $! (fromIntegral h_result, (0, 0))
+             | h_result == (fromIntegral $ toHDFErrorCode DFE_NOVGREP) -> do
+                he_push DFE_NOVGREP "sd_getattdatainfo" "Data.Format.HDF.LowLevel.SD" currentLine
+                return $! (-1, (0, 0))
+             | otherwise -> do
+                offset <- peek offsetPtr
+                len <- peek lengthPtr
+                return $! (fromIntegral h_result, (offset, len))
 
 sd_getoldattdatainfo :: SDataSetId n t -> Maybe SDimensionId -> String -> IO (Int32, RawDataInfo)
 sd_getoldattdatainfo (SDataSetId sds_id) dimId attrName =
