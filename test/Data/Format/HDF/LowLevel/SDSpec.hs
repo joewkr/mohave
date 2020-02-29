@@ -746,6 +746,12 @@ spec = do
                 _                  <- check =<< sd_endaccess sds_id
                 _                  <- check =<< sd_end sd_id
                 v `shouldNotBe` expectedSdsData
+            it "returns correct old fill mode" $ do
+                sd_id              <- check =<< sd_start "sds_nofill_2.hdf" HDFCreate
+                _                  <- check =<< sd_setfillmode sd_id HDFNoFill
+                oldfillMode        <- check =<< sd_setfillmode sd_id HDFFill
+                _                  <- check =<< sd_end sd_id
+                oldfillMode `shouldBe` HDFNoFill
         context "SDsetrange" $ do
             it "sets valid range for dataset" $ do
                 sd_id              <- check =<< sd_start "empty_sds.hdf" HDFCreate

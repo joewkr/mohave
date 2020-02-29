@@ -671,10 +671,13 @@ sd_setfillvalue (SDataSetId sds_id) fillValue =
         h_result <- c_sdsetfillvalue sds_id (castPtr fillValuePtr)
         return $! (fromIntegral h_result, ())
 
-sd_setfillmode :: SDId -> HDFFillMode -> IO (Int32, ())
+sd_setfillmode :: SDId -> HDFFillMode -> IO (Int32, HDFFillMode)
 sd_setfillmode (SDId sd_id) fillMode = do
     h_result <- c_sdsetfillmode sd_id (fromIntegral . toHDFFillModeTag $ fillMode)
-    return $! (fromIntegral h_result, ())
+    case fromHDFFillModeTag (fromIntegral h_result) of
+        Just oldFillMode -> return $! (fromIntegral h_result, oldFillMode)
+        -- When SDsetfillmode fails return the default fill mode as previous mode
+        Nothing          -> return $! (fromIntegral h_result, HDFFill)
 
 sd_setrange :: forall (t :: HDataType a) (n :: Nat). Storable a => SDataSetId n t -> a -> a -> IO (Int32, ())
 sd_setrange (SDataSetId sds_id) minValue maxValue =

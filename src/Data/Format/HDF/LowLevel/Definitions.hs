@@ -27,7 +27,7 @@ data HDFData
 
 data HDFOpenMode = HDFRead | HDFWrite | HDFCreate
 
-data HDFFillMode = HDFFill | HDFNoFill
+data HDFFillMode = HDFFill | HDFNoFill deriving (Eq, Show)
 
 data HDFAnnotationType = HDFAnnUndef | HDFAnnDataLabel | HDFAnnDataDesc | HDFAnnFileLabel | HDFAnnFileDesc
 

@@ -329,7 +329,7 @@ sd_setfillvalue :: forall (t :: HDataType a) (n :: Nat) r s. Storable a =>
 sd_setfillvalue (SDataSetId sds) fillValue = check =<< (liftIO $ LowLevel.SD.sd_setfillvalue sds fillValue)
 
 sd_setfillmode :: forall s.
-    SDFile 'HDFWrite s -> HDFFillMode -> HDFio s ()
+    SDFile 'HDFWrite s -> HDFFillMode -> HDFio s HDFFillMode
 sd_setfillmode (SDFile file) fillMode = check =<< (liftIO $ LowLevel.SD.sd_setfillmode file fillMode)
 
 sd_setrange :: forall (t :: HDataType a) (n :: Nat) r s. Storable a =>

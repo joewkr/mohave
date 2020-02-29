@@ -27,6 +27,12 @@ toHDFFillModeTag :: HDFFillMode -> Int32
 toHDFFillModeTag HDFFill   = #{const SD_FILL     }
 toHDFFillModeTag HDFNoFill = #{const SD_NOFILL   }
 
+fromHDFFillModeTag :: Int32 -> Maybe HDFFillMode
+fromHDFFillModeTag tag = case tag of
+    #{const SD_FILL     } -> Just HDFFill
+    #{const SD_NOFILL   } -> Just HDFNoFill
+    _                     -> Nothing
+
 fromHDFTypeTag :: Int32 -> HDFType
 fromHDFTypeTag tag = case tag of
     #{const (DFNT_HDF    | DFNT_UINT8  )} -> HDFValue HWord8   ()
