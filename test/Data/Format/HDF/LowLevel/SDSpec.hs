@@ -984,6 +984,13 @@ spec = do
                 _                  <- check =<< sd_end sd_id
                 status `shouldBe` (-1)
         context "SDgetoldattdatainfo" $ do
+            it "fails when there are no old-style attributes" $ do
+                let filePath = "test-data/sd/test1.hdf"
+                sd_id              <- check =<< sd_start filePath HDFRead
+                (SomeSDS _ sds_id) <- check =<< sd_select sd_id 0
+                (status, _)        <-           sd_getoldattdatainfo sds_id Nothing "long_name"
+                _                  <- check =<< sd_end sd_id
+                status `shouldBe` (-1)
             it "gets old style SDS attribute raw offset and length" $ do
                 let filePath = "test-data/sd/tdfsdatts.hdf"
                 sd_id              <- check =<< sd_start filePath HDFRead
