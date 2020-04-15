@@ -740,6 +740,9 @@ sd_findattr :: SDObjectId id => id -> String -> IO (Int32, Int32)
 sd_findattr objId attribute_name =
     withCString attribute_name $ \c_attribute_name -> do
         attribute_index <- c_sdfindattr (getRawObjectId objId) c_attribute_name
+        if attribute_index == (-1)
+          then he_push DFE_CANTGETATTR "sd_findattr" "Data.Format.HDF.LowLevel.SD" currentLine
+          else return ()
         return (attribute_index, attribute_index)
 
 {- | General information about an attribute -}

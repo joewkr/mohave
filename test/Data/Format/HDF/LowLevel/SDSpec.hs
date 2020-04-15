@@ -347,6 +347,12 @@ spec = do
                     _ -> expectationFailure "Unexpected dimension data type"
     context "User-defined attributes" $ do
         context "SDfindattr" $ do
+            it "reports missing attribute" $ do
+                sd_id              <- check =<< sd_start "test-data/sd/test1.hdf" HDFRead
+                _                  <-           sd_findattr sd_id "not defined"
+                he_value 1 `shouldReturn` DFE_CANTGETATTR
+                _                  <- check =<< sd_end sd_id
+                return ()
             it "finds global attribute" $ do
                 sd_id              <- check =<< sd_start "test-data/sd/test1.hdf" HDFRead
                 attr_index         <- check =<< sd_findattr sd_id "F-attr"
