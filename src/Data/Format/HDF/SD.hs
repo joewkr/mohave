@@ -14,6 +14,7 @@ module Data.Format.HDF.SD(
   , HDFio
   , SomeSDS(..)
   , SDataSetId
+  , SDimensionId
 
   , withExistingSDHDF
   , withNewSDHDF
