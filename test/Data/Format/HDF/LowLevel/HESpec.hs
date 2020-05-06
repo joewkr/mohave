@@ -197,3 +197,40 @@ spec = do
             _             <-           he_print logFileName
             contents      <-           readFile logFileName
             contents `shouldBe` expectedTrace
+        {-
+        -- Non-deterministic test, expects that if memory storing the file name has been
+        -- freed too early it could be overwritten and result in corrupted output. When this
+        -- problem was not fixed yet it could take a few thousand iterations to generate
+        -- corrupted output.
+        --
+        -- Requires:
+        -- import           Control.Monad (forM_)
+        -- import           Foreign.C.String (newCString)
+        -- import           System.Mem (performGC)
+
+        it "keeps correct HDF error stack after GC, 10000 iterations" $ do
+            let logFileName = "/dev/shm/hdf-error-trace-custom-3.log"
+            forM_ [1..10000] $ \index -> do
+                let expectedTrace = "HDF error: (2) <Access to file denied>\n\
+                            \\tDetected in spec() [HESpec.hs" ++ (show index) ++ " line 1122]\n\
+                            \\tCustom HDF error report 1.23\n"
+                _             <-           he_clear
+                _             <-           he_push DFE_DENIED "aaa" ("HESpec.hs" ++ show (index :: Int)) 11
+                _             <-           he_push DFE_DENIED "bbb" ("HESpec.hs" ++ show (index :: Int)) 22
+                _             <-           he_push DFE_DENIED "ccc" ("HESpec.hs" ++ show (index :: Int)) 33
+                _             <-           he_push DFE_DENIED "ddd" ("HESpec.hs" ++ show (index :: Int)) 44
+                _             <-           he_push DFE_DENIED "eee" ("HESpec.hs" ++ show (index :: Int)) 55
+                _             <-           he_push DFE_DENIED "fff" ("HESpec.hs" ++ show (index :: Int)) 66
+                _             <-           he_push DFE_DENIED "ggg" ("HESpec.hs" ++ show (index :: Int)) 77
+                _             <-           he_push DFE_DENIED "hhh" ("HESpec.hs" ++ show (index :: Int)) 88
+                _             <-           he_push DFE_DENIED "iii" ("HESpec.hs" ++ show (index :: Int)) 99
+                _             <-           sd_start "NULL" HDFRead
+                _             <-           he_push DFE_DENIED "spec" ("HESpec.hs" ++ show (index :: Int)) 1122
+                _             <-           he_report "Custom HDF error report %4.2f" (1.23 :: CDouble)
+                _             <-           performGC
+                _             <-           newCString $ replicate 4096 'x'
+                _             <-           he_print logFileName
+                contents      <- (unlines . take 3 . lines) <$> readFile logFileName
+                contents `shouldBe` expectedTrace
+        -}
+

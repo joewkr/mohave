@@ -16,7 +16,10 @@ import           Control.Exception (bracket)
 import           Data.Int
 import           Foreign.C.String
 import           Foreign.C.Types
+import           Foreign.Marshal.Alloc
+import           Foreign.Marshal.Array
 import           Foreign.Ptr
+import           Foreign.Storable
 
 import           Data.Format.HDF.LowLevel.C.Definitions (HDFErrorCode, toHDFErrorCode, fromHDFErrorCode)
 import           Data.Format.HDF.LowLevel.Definitions (HDFError(..))
@@ -28,8 +31,8 @@ foreign import ccall unsafe "fclose" c_fclose :: Ptr CFile -> IO ()
 foreign import ccall unsafe "HEprint" c_heprint :: Ptr CFile -> Int32 -> IO ()
 foreign import ccall unsafe "HEstring" c_hestring :: HDFErrorCode -> IO CString
 foreign import ccall unsafe "HEvalue" c_hevalue :: Int32 -> IO HDFErrorCode
-foreign import ccall unsafe "HEpush" c_hepush :: HDFErrorCode -> CString -> CString -> CInt -> IO ()
-foreign import ccall unsafe "wrp_HEclear" c_heclear :: IO ()  -- HEclear is a C macro as in hdf 4.2.14
+foreign import ccall unsafe "wrp_HEpush" c_hepush :: HDFErrorCode -> CString -> CString -> CInt -> Ptr CSize -> IO (Ptr CString)
+foreign import ccall unsafe "wrp_HEclear" c_heclear :: Ptr CSize -> IO (Ptr CString)
 
 -- HEreport is a variadic function and cannot be used directly with Haskell FFI, but
 -- we could call it directly via libffi interface.
@@ -53,9 +56,15 @@ he_value level = fromHDFErrorCode <$> c_hevalue level
 
 he_push :: HDFError -> String -> String -> Int -> IO ()
 he_push he functionName fileName line =
-  withCString functionName $ \functionNamePtr ->
-  withCString fileName $ \fileNamePtr -> do
-    c_hepush (toHDFErrorCode he) functionNamePtr fileNamePtr (fromIntegral line)
+    alloca $ \numPtrsPtr ->
+    withCString functionName $ \functionNamePtr -> do
+        -- fileName is not copied to the corresponding element of the HDF error stack
+        -- struct. HEpush just uses the pointer assignment, so fileNamePtr should not
+        -- be collected by GC after leaving he_push function.
+        fileNamePtr <- newCString fileName
+        ptrsPtr <- c_hepush (toHDFErrorCode he) functionNamePtr fileNamePtr (fromIntegral line) numPtrsPtr
+        numPtrs <- peek numPtrsPtr
+        peekArray (fromIntegral numPtrs) ptrsPtr >>= mapM_ free
 
 class HEReportType t where
   collect :: String -> [FFIArg] -> t
@@ -71,4 +80,8 @@ he_report :: HEReportType r => String -> r
 he_report format = collect format []
 
 he_clear :: IO ()
-he_clear = c_heclear
+he_clear = alloca $ \numPtrsPtr -> do
+    ptrsPtr <- c_heclear numPtrsPtr
+    numPtrs <- peek numPtrsPtr
+    -- Clear CStrings allocated when calling he_push.
+    peekArray (fromIntegral numPtrs) ptrsPtr >>= mapM_ free

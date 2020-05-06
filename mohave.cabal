@@ -39,6 +39,7 @@ library mohave-internal
                      , TypeOperators
                      , UndecidableInstances
   ghc-options:        -Wall
+  cc-options:         -Wall -Wextra -pedantic
   build-depends:       base >=4.11 && <4.12
                      , bytestring
                      , exceptions >= 0.10 && < 0.11
