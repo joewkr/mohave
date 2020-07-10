@@ -332,6 +332,8 @@ toHDFAnnotationTypeTag HDFAnnFileDesc  = #{const AN_FILE_DESC }
 
 type HDFErrorCode = #{type hdf_err_code_t}
 
+#{define hsErrOffset 1024}
+
 fromHDFErrorCode :: HDFErrorCode -> HDFError
 fromHDFErrorCode e = case e of
   #{const DFE_NONE          } -> DFE_NONE
@@ -470,6 +472,7 @@ fromHDFErrorCode e = case e of
   #{const DFE_CANTSETATTR   } -> DFE_CANTSETATTR
   #{const DFE_CANTGETATTR   } -> DFE_CANTGETATTR
   #{const DFE_ANAPIERROR    } -> DFE_ANAPIERROR
+  #{const hsErrOffset + 0   } -> DFE_SDS_NOTFOUND
   _                           -> DFE_UNKNOWN_ERROR (fromIntegral e)
 
 toHDFErrorCode :: HDFError -> HDFErrorCode
@@ -609,4 +612,5 @@ toHDFErrorCode  DFE_BVFIND           = #{const DFE_BVFIND        }
 toHDFErrorCode  DFE_CANTSETATTR      = #{const DFE_CANTSETATTR   }
 toHDFErrorCode  DFE_CANTGETATTR      = #{const DFE_CANTGETATTR   }
 toHDFErrorCode  DFE_ANAPIERROR       = #{const DFE_ANAPIERROR    }
+toHDFErrorCode  DFE_SDS_NOTFOUND     = #{const hsErrOffset + 0   }
 toHDFErrorCode (DFE_UNKNOWN_ERROR e) = fromIntegral e

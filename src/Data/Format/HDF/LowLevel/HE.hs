@@ -49,6 +49,7 @@ he_print fileName =
             (\hndl -> c_heprint hndl 0)
 
 he_string :: HDFError -> IO String
+he_string DFE_SDS_NOTFOUND = return "Unable to find SDS with corresponding name"
 he_string he = c_hestring (toHDFErrorCode he) >>= peekCString
 
 he_value :: Int32 -> IO HDFError

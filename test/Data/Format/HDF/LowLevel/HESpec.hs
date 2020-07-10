@@ -167,6 +167,7 @@ spec = do
             he_string DFE_CANTSETATTR   `shouldReturn` "Cannot set an attribute"
             he_string DFE_CANTGETATTR   `shouldReturn` "Cannot find or get an attribute"
             he_string DFE_ANAPIERROR    `shouldReturn` "Failed in annotation interface"
+            he_string DFE_SDS_NOTFOUND  `shouldReturn` "Unable to find SDS with corresponding name"
 
             he_string (DFE_UNKNOWN_ERROR 999) `shouldReturn` "Unknown error"
         it "handles adding custom message to the error" $ do

@@ -315,6 +315,8 @@ data HDFError =
   | DFE_CANTGETATTR          -- ^ Failed to find or get an attribute
 {- Annotation interface errors -}
   | DFE_ANAPIERROR           -- ^ Failed in annotation interface
+{- Custom errors for Haskell interface -}
+  | DFE_SDS_NOTFOUND         -- ^ Can't find SDS
 
   | DFE_UNKNOWN_ERROR Int32  -- ^ None of above
   deriving (Show, Eq)

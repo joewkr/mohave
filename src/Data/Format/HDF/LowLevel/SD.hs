@@ -585,6 +585,9 @@ containing the indices and the types of all the variables of that same name.
 sd_nametoindex :: SDId -> String -> IO (Int32, Int32)
 sd_nametoindex (SDId sd_id) sds_name = withCString sds_name $ \cSDSName -> do
     sds_index <- c_sdnametoindex sd_id cSDSName
+    if sds_index == (-1)
+      then he_push DFE_SDS_NOTFOUND "sd_nametoindex" "Data.Format.HDF.LowLevel.SD" currentLine
+      else return ()
     return $! (sds_index, sds_index)
 
 {- | Retrieves indices of all variables with the same name.
@@ -599,7 +602,9 @@ sd_nametoindices :: SDId -> String -> IO (Int32, [HDFVarList])
 sd_nametoindices sd@(SDId sd_id) sds_name = do
     (h_result_getnumvars_byname, numVars) <- sd_getnumvars_byname sd sds_name
     if h_result_getnumvars_byname == (-1)
-        then return $! (h_result_getnumvars_byname, [])
+        then do
+          he_push DFE_SDS_NOTFOUND "sd_nametoindices" "Data.Format.HDF.LowLevel.SD" currentLine
+          return $! (h_result_getnumvars_byname, [])
         else
             withCString sds_name $ \cSDSName ->
             allocaArray (fromIntegral numVars) $ \sdsVarListPtr -> do
