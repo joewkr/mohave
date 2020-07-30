@@ -12,7 +12,7 @@ build-type:          Simple
 -- extra-source-files:  ChangeLog.md
 cabal-version:       >=2.0
 
-library mohave-internal
+library
   exposed-modules:     Data.Format.HDF.LowLevel
                      , Data.Format.HDF.LowLevel.Definitions
                      , Data.Format.HDF.LowLevel.HE
@@ -53,15 +53,6 @@ library mohave-internal
 --  extra-lib-dirs:      /opt/packages/hdf/4.2.14/lib
 --  extra-libraries:     df z dl m
 
-executable mohave-gen-db
-  main-is:             Main.hs
-  -- other-modules:
-  -- other-extensions:
-  build-depends:       mohave-internal
-                     , base >=4.11 && <4.12
-  hs-source-dirs:      src
-  default-language:    Haskell2010
-
 test-suite test-main
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
@@ -71,7 +62,7 @@ test-suite test-main
                      , Testing.Common
   other-extensions:    OverloadedStrings
   ghc-options:        -Wall
-  build-depends:       mohave-internal
+  build-depends:       mohave
                      , base
                      , bytestring
                      , directory >= 1.3.1
