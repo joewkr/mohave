@@ -102,10 +102,10 @@ fromHDataType HFloat32 = #{const DFNT_FLOAT32}
 fromHDataType HFloat64 = #{const DFNT_FLOAT64}
 
 hdfMaxVarDims :: Int32
-hdfMaxVarDims = #const MAX_VAR_DIMS
+hdfMaxVarDims = #const H4_MAX_VAR_DIMS
 
 hdfMaxNcNameLen :: Int32
-hdfMaxNcNameLen = #const MAX_NC_NAME
+hdfMaxNcNameLen = #const H4_MAX_NC_NAME
 
 
 data HDFVarList = HDFVarList {
