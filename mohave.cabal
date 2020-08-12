@@ -40,7 +40,7 @@ library
                      , UndecidableInstances
   ghc-options:        -Wall
   cc-options:         -Wall -Wextra -pedantic
-  build-depends:       base >=4.11 && <4.12
+  build-depends:       base >=4.11 && <4.15
                      , bytestring
                      , exceptions >= 0.10 && < 0.11
                      , mtl >= 2.2 && < 2.3
