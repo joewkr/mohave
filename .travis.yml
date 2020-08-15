@@ -54,16 +54,16 @@ jobs:
             - ghc-8.8.4
             - cabal-install-3.0
       os: linux
-#   - compiler: ghc-8.10.2
-#     addons:
-#       apt:
-#         sources:
-#           - hvr-ghc
-#         packages:
-#           - *native_deps
-#           - ghc-8.10.2
-#           - cabal-install-3.2
-#     os: linux
+    - compiler: ghc-8.10.2
+      addons:
+        apt:
+          sources:
+            - hvr-ghc
+          packages:
+            - *native_deps
+            - ghc-8.10.2
+            - cabal-install-3.2
+      os: linux
 
 before_install:
   - GHCBIN=$(echo "/opt/${CC}/bin" | sed 's/-/\//')
