@@ -241,7 +241,7 @@ about rank and type, e.g., 'sd_readdata', pattern-match on 'SomeSDS'
 'HDataType' field and 'SDataSetId' rank.
 -}
 data SomeSDS where
-    SomeSDS :: forall (n :: Nat) (t :: HDataType a). KnownNat n =>
+    SomeSDS :: forall a (n :: Nat) (t :: HDataType a). KnownNat n =>
         HDataType a -> SDataSetId n t -> SomeSDS
 
 instance SDObjectId SDId where
@@ -309,7 +309,7 @@ See the notes regarding the potential performance impact of unlimited
 dimension data sets in Section 14.4.3, "Unlimited Dimension Data Sets (SDSs
 and Vdatas) and Performance" the HDF User's Guide.
 -}
-sd_create :: forall (t :: HDataType a) (n :: Nat). KnownNat n =>
+sd_create :: forall a (t :: HDataType a) (n :: Nat). KnownNat n =>
     SDId
   -> String -- ^ Name of the new SDS
   -> HDataType a -- ^ Data type of the values held by the new SDS
@@ -958,7 +958,7 @@ sd_getdimstrs (SDimensionId dimension_id) =
     emptySDimDescStrings = SDimDescStringsRaw "" "" ""
 
 {- | Reads the fill value of a data set, if the value has been set.-}
-sd_getfillvalue :: forall (t :: HDataType a) (n :: Nat). Storable a => SDataSetId n t -> IO (Int32, a)
+sd_getfillvalue :: forall a (t :: HDataType a) (n :: Nat). Storable a => SDataSetId n t -> IO (Int32, a)
 sd_getfillvalue (SDataSetId sds_id) =
     alloca $ \fillValuePtr -> do
         h_result <- c_sdgetfillvalue sds_id (castPtr fillValuePtr)
@@ -972,7 +972,7 @@ stored in a data set.
 
 The maximum and minimum values must be previously set via a call to 'sd_setrange'.
 -}
-sd_getrange :: forall (t :: HDataType a) (n :: Nat). Storable a => SDataSetId n t -> IO (Int32, (a, a))
+sd_getrange :: forall a (t :: HDataType a) (n :: Nat). Storable a => SDataSetId n t -> IO (Int32, (a, a))
 sd_getrange (SDataSetId sds_id) =
     alloca $ \minValuePtr ->
     alloca $ \maxValuePtr -> do
@@ -1023,7 +1023,7 @@ sd_setdimstrs (SDimensionId dimension_id) (SDimDescStringsRaw l u f) =
 
 It is recommended to call 'sd_setfillvalue' before writing data.
 -}
-sd_setfillvalue :: forall (t :: HDataType a) (n :: Nat). Storable a => SDataSetId n t -> a -> IO (Int32, ())
+sd_setfillvalue :: forall a (t :: HDataType a) (n :: Nat). Storable a => SDataSetId n t -> a -> IO (Int32, ())
 sd_setfillvalue (SDataSetId sds_id) fillValue =
     with fillValue $ \fillValuePtr -> do
         h_result <- c_sdsetfillvalue sds_id (castPtr fillValuePtr)
@@ -1075,7 +1075,7 @@ only stores the values as given. As a result, the maximum and minimum range
 values may not always reflect the actual maximum and minimum range values
 in the data set data.
 -}
-sd_setrange :: forall (t :: HDataType a) (n :: Nat). Storable a =>
+sd_setrange :: forall a (t :: HDataType a) (n :: Nat). Storable a =>
     SDataSetId n t
   -> a -- ^ Minimum value
   -> a -- ^ Maximum value
@@ -1626,7 +1626,7 @@ chunk position in the chunked array. Refer to the Chapter 3, "Scientific Data
 Sets (SD API)" of the HDF User's Guide, for a description of the organization
 of chunks in a data set.
 -}
-sd_writechunk :: forall (t :: HDataType a) (n :: Nat). Storable a =>
+sd_writechunk :: forall a (t :: HDataType a) (n :: Nat). Storable a =>
      SDataSetId n t
   -> [Int32] -- ^ origin of chunk to be written
   -> VS.Vector a
@@ -1654,7 +1654,7 @@ chunk position in the chunked array. Refer to the Chapter 3, "Scientific Data
 Sets (SD API)" of the HDF User's Guide, for a description of the organization
 of chunks in a data set.
 -}
-sd_readchunk :: forall (t :: HDataType a) (n :: Nat). Storable a =>
+sd_readchunk :: forall a (t :: HDataType a) (n :: Nat). Storable a =>
      SDataSetId n t
   -> [Int32] -- ^ origin of chunk to be read
   -> IO (Int32, VS.Vector a)
@@ -1677,7 +1677,7 @@ consideration should be given to the issues presented in the section on
 chunking in Chapter 3, "Scientific Data Sets (SD API)" and Chapter 14, "HDF
 Performance Issues" in the HDF User's Guide.
 -}
-sd_readdata :: forall (t :: HDataType a) (n :: Nat). (Storable a, KnownNat n) =>
+sd_readdata :: forall a (t :: HDataType a) (n :: Nat). (Storable a, KnownNat n) =>
      SDataSetId n t
   -> Index n -- ^ starting location from where data is read
   -> Index n -- ^ interval between the values that will be read along each dimension
@@ -1702,7 +1702,7 @@ consideration should be given to the issues presented in the section on
 chunking in Chapter 3, "Scientific Data Sets (SD API)" and Chapter 14, "HDF
 Performance Issues" in the HDF User's Guide.
 -}
-sd_writedata :: forall (t :: HDataType a) (n :: Nat). (Storable a, KnownNat n) =>
+sd_writedata :: forall a (t :: HDataType a) (n :: Nat). (Storable a, KnownNat n) =>
      SDataSetId n t
   -> Index n -- ^ starting location of the data to be written
   -> Index n -- ^ number of values to skip along each dimension
