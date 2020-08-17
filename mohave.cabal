@@ -61,7 +61,10 @@ test-suite test-main
                      , Data.Format.HDF.LowLevel.HESpec
                      , Data.Format.HDF.SDSpec
                      , Testing.Common
-  other-extensions:    OverloadedStrings
+  other-extensions:    DataKinds
+                     , GADTs
+                     , OverloadedStrings
+                     , ScopedTypeVariables
   ghc-options:        -Wall
   build-depends:       mohave
                      , base
