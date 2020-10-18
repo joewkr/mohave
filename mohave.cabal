@@ -56,11 +56,12 @@ library
 test-suite test-main
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
-  main-is:             Spec.hs
+  main-is:             Main.hs
   other-modules:       Data.Format.HDF.LowLevel.SDSpec
                      , Data.Format.HDF.LowLevel.HESpec
                      , Data.Format.HDF.SDSpec
                      , Testing.Common
+                     , Spec
   other-extensions:    DataKinds
                      , GADTs
                      , OverloadedStrings
@@ -69,6 +70,7 @@ test-suite test-main
   build-depends:       mohave
                      , base
                      , bytestring
+                     , filepath >= 1.4 && < 1.5
                      , directory >= 1.3.1
                      , hspec >= 2.6
                      , vector >= 0.12 && < 0.13

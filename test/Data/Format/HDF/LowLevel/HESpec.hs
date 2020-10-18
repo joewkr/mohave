@@ -4,6 +4,7 @@ import           Data.Format.HDF.LowLevel.HE
 import           Data.Format.HDF.LowLevel.SD
 import           Data.Int
 import           Foreign.C.Types
+import           System.FilePath ((</>))
 import           Test.Hspec
 import           Testing.Common
 
@@ -11,7 +12,7 @@ spec :: Spec
 spec = do
     describe "HDF error reporting" $ do
         it "dumps HDF errors to file" $ do
-            let logFileName = "hdf-error-trace.log"
+            let logFileName = testOutputPath </> "hdf-error-trace.log"
                 expectedFirstLine = "HDF error: (5) <Bad file name on open>"
             (status_1, _) <-           sd_start "test-data/sd/NULL" HDFRead
             _             <-           he_print logFileName
@@ -19,7 +20,7 @@ spec = do
             status_1 `shouldBe` (-1)
             firstLine `shouldBe` expectedFirstLine
         it "produces an empty error dump file when no errors reported" $ do
-            let logFileName = "hdf-error-trace.no-errors.log"
+            let logFileName = testOutputPath </> "hdf-error-trace.no-errors.log"
             sd_id         <- check =<< sd_start "test-data/sd/test1.hdf" HDFRead
             _             <- check =<< sd_end sd_id
             _             <-           he_print logFileName
@@ -171,7 +172,7 @@ spec = do
 
             he_string (DFE_UNKNOWN_ERROR 999) `shouldReturn` "Unknown error"
         it "handles adding custom message to the error" $ do
-            let logFileName = "hdf-error-trace-custom.log"
+            let logFileName = testOutputPath </> "hdf-error-trace-custom.log"
                 expectedFirstLine = "\tCustom HDF error 177"
             (status_1, _) <-           sd_start "test-data/sd/NULL" HDFRead
             _             <-           he_report "Custom HDF error %i" (177 :: Int32)
@@ -180,7 +181,7 @@ spec = do
             status_1 `shouldBe` (-1)
             (last hdfErrors) `shouldBe` expectedFirstLine
         it "clears HDF error stack" $ do
-            let logFileName = "hdf-error-trace-cleared.log"
+            let logFileName = testOutputPath </> "hdf-error-trace-cleared.log"
             (status_1, _) <-           sd_start "test-data/sd/NULL" HDFRead
             _             <-           he_clear
             _             <-           he_print logFileName
@@ -188,7 +189,7 @@ spec = do
             status_1 `shouldBe` (-1)
             contents `shouldBe` []
         it "builds custom HDF error stack" $ do
-            let logFileName = "hdf-error-trace-custom-2.log"
+            let logFileName = testOutputPath </> "hdf-error-trace-custom-2.log"
                 expectedTrace = "HDF error: (2) <Access to file denied>\n\
                                 \\tDetected in spec() [HESpec.hs line 1122]\n\
                                 \\tCustom HDF error report 1.23\n"

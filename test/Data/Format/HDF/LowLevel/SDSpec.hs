@@ -20,6 +20,7 @@ import qualified Data.Vector.Storable as VS
 import           Foreign.Ptr (castPtr)
 import           System.IO
 import           System.Directory (copyFileWithMetadata)
+import           System.FilePath ((</>))
 import           Testing.Common
 
 spec :: Spec
@@ -35,7 +36,7 @@ spec = do
             status_1 `shouldBe` (-1)
             status_2 `shouldBe` (-1)
         it "correctly creates new SDS" $ do
-            sd_id                  <- check =<< sd_start "empty_sds.hdf" HDFCreate
+            sd_id                  <- check =<< sd_start (testOutputPath </> "empty_sds.hdf") HDFCreate
             _                      <- check =<< sd_create sd_id "emptyDataSet" HFloat64 (D 1 :| 2 :| 3)
             _                      <- check =<< sd_end sd_id
             return ()
@@ -282,7 +283,7 @@ spec = do
                                     0 (HDFValue HNone ()) 0)
         context "SDsetdimname" $ do
             it "sets new dimension name" $ do
-                sd_id              <- check =<< sd_start "empty_sds.hdf" HDFCreate
+                sd_id              <- check =<< sd_start (testOutputPath </> "empty_sds.hdf") HDFCreate
                 sds_id             <- check =<< sd_create sd_id "emptyDataSet" HFloat64 (D 1 :| 2 :| 3)
                 dim_id             <- check =<< sd_getdimid sds_id 0
                 _                  <- check =<< sd_setdimname dim_id "MyDim"
@@ -295,7 +296,7 @@ spec = do
     context "Dimension scales" $ do
         context "SDsetdimscale" $ do
             it "sets dimension scale - 1" $ do
-                sd_id              <- check =<< sd_start "dimension_scale_1.hdf" HDFCreate
+                sd_id              <- check =<< sd_start (testOutputPath </> "dimension_scale_1.hdf") HDFCreate
                 sds_id             <- check =<< sd_create sd_id "emptyDataSet" HFloat64 (D 5 :| 2 :| 3)
                 dim_id             <- check =<< sd_getdimid sds_id 0
                 _                  <- check =<< sd_setdimname dim_id "MyDim"
@@ -308,7 +309,7 @@ spec = do
                                     5 (HDFValue HInt32 ()) 0)
             it "sets dimension scale - 2" $ do
                 let origDimScale = VS.fromList [5,4,3,2,1]
-                sd_id              <- check =<< sd_start "dimension_scale_2.hdf" HDFCreate
+                sd_id              <- check =<< sd_start (testOutputPath </> "dimension_scale_2.hdf") HDFCreate
                 sds_id             <- check =<< sd_create sd_id "emptyDataSet" HFloat64 (D 5 :| 2 :| 3)
                 dim_id             <- check =<< sd_getdimid sds_id 0
                 _                  <- check =<< sd_setdimname dim_id "MyDim"
@@ -333,7 +334,7 @@ spec = do
             it "gets unlimited dimension scale" $ do
                 let sdsData     = VS.fromList ([4,5,6,7] :: [Word8])
                     sdsDimScale = VS.fromList ([1,2,3,4] :: [Word16])
-                sd_id              <- check =<< sd_start "unlimited_dim_scale.hdf" HDFCreate
+                sd_id              <- check =<< sd_start (testOutputPath </> "unlimited_dim_scale.hdf") HDFCreate
                 sds_id             <- check =<< sd_create sd_id "DataSet" HWord8 (D 0)
                 _                  <- check =<< sd_writedata sds_id (D 0) (D 1) (D 4) sdsData
                 dim_id             <- check =<< sd_getdimid sds_id 0
@@ -409,7 +410,7 @@ spec = do
         context "SDsetattr" $ do
             it "sets global attribute - ByteString" $ do
                 let testAttr = BS8.pack "Test attribute - 1"
-                sd_id              <- check =<< sd_start "global_attr_1.hdf" HDFCreate
+                sd_id              <- check =<< sd_start (testOutputPath </> "global_attr_1.hdf") HDFCreate
                 _                  <- check =<< sd_setattr sd_id "Test_1" HChar8 testAttr
                 attrInfo           <- check =<< sd_attrinfo sd_id 0
                 _                  <- check =<< sd_end sd_id
@@ -419,7 +420,7 @@ spec = do
                                      (HDFValue HChar8 ()))
             it "sets global attribute - ByteString UChar" $ do
                 let testAttr = BS8.pack "Test attribute - 1"
-                sd_id              <- check =<< sd_start "global_attr_2.hdf" HDFCreate
+                sd_id              <- check =<< sd_start (testOutputPath </> "global_attr_2.hdf") HDFCreate
                 _                  <- check =<< sd_setattr sd_id "Test_1" HUChar8 testAttr
                 (HDFValue t v)     <- check =<< sd_readattr sd_id 0
                 attrInfo           <- check =<< sd_attrinfo sd_id 0
@@ -435,7 +436,7 @@ spec = do
                     _ -> expectationFailure "Unexpected dimension data type"
             it "sets global attribute - List" $ do
                 let testAttr = [1..10] :: [Int32]
-                sd_id              <- check =<< sd_start "global_attr_3.hdf" HDFCreate
+                sd_id              <- check =<< sd_start (testOutputPath </> "global_attr_3.hdf") HDFCreate
                 _                  <- check =<< sd_setattr sd_id "Test_2" HInt32 testAttr
                 attrInfo           <- check =<< sd_attrinfo sd_id 0
                 _                  <- check =<< sd_end sd_id
@@ -445,7 +446,7 @@ spec = do
                                      (HDFValue HInt32 ()))
             it "sets global attribute - Vector" $ do
                 let testAttr = VS.fromList ([-10..10] :: [Float])
-                sd_id              <- check =<< sd_start "global_attr_4.hdf" HDFCreate
+                sd_id              <- check =<< sd_start (testOutputPath </> "global_attr_4.hdf") HDFCreate
                 _                  <- check =<< sd_setattr sd_id "Test_2" HFloat32 testAttr
                 attrInfo           <- check =<< sd_attrinfo sd_id 0
                 _                  <- check =<< sd_end sd_id
@@ -455,7 +456,7 @@ spec = do
                                      (HDFValue HFloat32 ()))
             it "sets SDS attribute - ByteString" $ do
                 let testAttr = BS8.pack "Test attribute - 1"
-                sd_id              <- check =<< sd_start "sds_attr_1.hdf" HDFCreate
+                sd_id              <- check =<< sd_start (testOutputPath </> "sds_attr_1.hdf") HDFCreate
                 sds_id             <- check =<< sd_create sd_id "emptyDataSet" HFloat64 (D 1 :| 2 :| 3)
                 _                  <- check =<< sd_setattr sds_id "Test_1" HChar8 testAttr
                 attrInfo           <- check =<< sd_attrinfo sds_id 0
@@ -467,7 +468,7 @@ spec = do
                                      (HDFValue HChar8 ()))
             it "sets SDS attribute - ByteString UChar" $ do
                 let testAttr = BS8.pack "Test attribute - 1"
-                sd_id              <- check =<< sd_start "sds_attr_2.hdf" HDFCreate
+                sd_id              <- check =<< sd_start (testOutputPath </> "sds_attr_2.hdf") HDFCreate
                 sds_id             <- check =<< sd_create sd_id "emptyDataSet" HFloat64 (D 1 :| 2 :| 3)
                 _                  <- check =<< sd_setattr sds_id "Test_1" HUChar8 testAttr
                 attrInfo           <- check =<< sd_attrinfo sds_id 0
@@ -479,7 +480,7 @@ spec = do
                                      (HDFValue HUChar8 ()))
             it "sets SDS attribute - List" $ do
                 let testAttr = [1..10] :: [Int32]
-                sd_id              <- check =<< sd_start "sds_attr_3.hdf" HDFCreate
+                sd_id              <- check =<< sd_start (testOutputPath </> "sds_attr_3.hdf") HDFCreate
                 sds_id             <- check =<< sd_create sd_id "emptyDataSet" HFloat64 (D 1 :| 2 :| 3)
                 _                  <- check =<< sd_setattr sds_id "Test_2" HInt32 testAttr
                 attrInfo           <- check =<< sd_attrinfo sds_id 0
@@ -491,7 +492,7 @@ spec = do
                                      (HDFValue HInt32 ()))
             it "sets SDS attribute - Vector" $ do
                 let testAttr = VS.fromList ([-10..10] :: [Float])
-                sd_id              <- check =<< sd_start "sds_attr_4.hdf" HDFCreate
+                sd_id              <- check =<< sd_start (testOutputPath </> "sds_attr_4.hdf") HDFCreate
                 sds_id             <- check =<< sd_create sd_id "emptyDataSet" HFloat64 (D 1 :| 2 :| 3)
                 _                  <- check =<< sd_setattr sds_id "Test_2" HFloat32 testAttr
                 attrInfo           <- check =<< sd_attrinfo sds_id 0
@@ -503,7 +504,7 @@ spec = do
                                      (HDFValue HFloat32 ()))
             it "sets dimension attribute - ByteString" $ do
                 let testAttr = BS8.pack "Test attribute - 1"
-                sd_id              <- check =<< sd_start "dim_attr_1.hdf" HDFCreate
+                sd_id              <- check =<< sd_start (testOutputPath </> "dim_attr_1.hdf") HDFCreate
                 sds_id             <- check =<< sd_create sd_id "emptyDataSet" HFloat64 (D 1 :| 2 :| 3)
                 dim_id             <- check =<< sd_getdimid sds_id 0
                 _                  <- check =<< sd_setattr dim_id "Test_1" HChar8 testAttr
@@ -516,7 +517,7 @@ spec = do
                                      (HDFValue HChar8 ()))
             it "sets dimension attribute - ByteString UChar" $ do
                 let testAttr = BS8.pack "Test attribute - 1"
-                sd_id              <- check =<< sd_start "dim_attr_2.hdf" HDFCreate
+                sd_id              <- check =<< sd_start (testOutputPath </> "dim_attr_2.hdf") HDFCreate
                 sds_id             <- check =<< sd_create sd_id "emptyDataSet" HFloat64 (D 1 :| 2 :| 3)
                 dim_id             <- check =<< sd_getdimid sds_id 0
                 _                  <- check =<< sd_setattr dim_id "Test_1" HUChar8 testAttr
@@ -529,7 +530,7 @@ spec = do
                                      (HDFValue HUChar8 ()))
             it "sets dimension attribute - List" $ do
                 let testAttr = [1..10] :: [Int32]
-                sd_id              <- check =<< sd_start "dim_attr_3.hdf" HDFCreate
+                sd_id              <- check =<< sd_start (testOutputPath </> "dim_attr_3.hdf") HDFCreate
                 sds_id             <- check =<< sd_create sd_id "emptyDataSet" HFloat64 (D 1 :| 2 :| 3)
                 dim_id             <- check =<< sd_getdimid sds_id 0
                 _                  <- check =<< sd_setattr dim_id "Test_2" HInt32 testAttr
@@ -542,7 +543,7 @@ spec = do
                                      (HDFValue HInt32 ()))
             it "sets dimension attribute - Vector" $ do
                 let testAttr = VS.fromList ([-10..10] :: [Float])
-                sd_id              <- check =<< sd_start "dim_attr_4.hdf" HDFCreate
+                sd_id              <- check =<< sd_start (testOutputPath </> "dim_attr_4.hdf") HDFCreate
                 sds_id             <- check =<< sd_create sd_id "emptyDataSet" HFloat64 (D 1 :| 2 :| 3)
                 dim_id             <- check =<< sd_getdimid sds_id 0
                 _                  <- check =<< sd_setattr dim_id "Test_2" HFloat32 testAttr
@@ -665,7 +666,7 @@ spec = do
         context "SDsetcal" $ do
             it "sets calibration parameters" $ do
                 let calibrationParamsNew = SCalibrationParametersRaw 1.0 5.0 3.0 2.5 (HDFValue HFloat64 ())
-                sd_id              <- check =<< sd_start "empty_sds.hdf" HDFCreate
+                sd_id              <- check =<< sd_start (testOutputPath </> "empty_sds.hdf") HDFCreate
                 sds_id             <- check =<< sd_create sd_id "emptyDataSet" HWord8 (D 1 :| 2 :| 3)
                 _                  <- check =<< sd_setcal sds_id calibrationParamsNew
                 calibrationParams  <- check =<< sd_getcal sds_id
@@ -675,7 +676,7 @@ spec = do
         context "SDsetdatastrs" $ do
             it "sets all predefined string attributes" $ do
                 let defaultStringAttrsNew = SDsetDescStringsRaw "Label" "Unit" "Format" "Coordinate system"
-                sd_id              <- check =<< sd_start "empty_sds.hdf" HDFCreate
+                sd_id              <- check =<< sd_start (testOutputPath </> "empty_sds.hdf") HDFCreate
                 sds_id             <- check =<< sd_create sd_id "emptyDataSet" HWord8 (D 1 :| 2 :| 3)
                 _                  <- check =<< sd_setdatastrs sds_id defaultStringAttrsNew
                 defaultStringAttrs <- check =<< sd_getdatastrs sds_id
@@ -684,7 +685,7 @@ spec = do
                 defaultStringAttrs `shouldBe` defaultStringAttrsNew
             it "sets some predefined string attributes" $ do
                 let defaultStringAttrsNew = SDsetDescStringsRaw "Label" "Unit" "" ""
-                sd_id              <- check =<< sd_start "empty_sds.hdf" HDFCreate
+                sd_id              <- check =<< sd_start (testOutputPath </> "empty_sds.hdf") HDFCreate
                 sds_id             <- check =<< sd_create sd_id "emptyDataSet" HWord8 (D 1 :| 2 :| 3)
                 _                  <- check =<< sd_setdatastrs sds_id defaultStringAttrsNew
                 defaultStringAttrs <- check =<< sd_getdatastrs sds_id
@@ -697,7 +698,7 @@ spec = do
         context "SDsetdimstrs" $ do
             it "sets all predefined string attributes" $ do
                 let defaultStringAttrsNew = SDimDescStringsRaw "Label" "Unit" "Format"
-                sd_id              <- check =<< sd_start "empty_sds.hdf" HDFCreate
+                sd_id              <- check =<< sd_start (testOutputPath </> "empty_sds.hdf") HDFCreate
                 sds_id             <- check =<< sd_create sd_id "emptyDataSet" HWord8 (D 1 :| 2 :| 3)
                 dim_id             <- check =<< sd_getdimid sds_id 0
                 _                  <- check =<< sd_setdimstrs dim_id defaultStringAttrsNew
@@ -707,7 +708,7 @@ spec = do
                 defaultStringAttrs `shouldBe` defaultStringAttrsNew
             it "sets some predefined string attributes" $ do
                 let defaultStringAttrsNew = SDimDescStringsRaw "Label" "Unit" ""
-                sd_id              <- check =<< sd_start "empty_sds.hdf" HDFCreate
+                sd_id              <- check =<< sd_start (testOutputPath </> "empty_sds.hdf") HDFCreate
                 sds_id             <- check =<< sd_create sd_id "emptyDataSet" HWord8 (D 1 :| 2 :| 3)
                 dim_id             <- check =<< sd_getdimid sds_id 0
                 _                  <- check =<< sd_setdimstrs dim_id defaultStringAttrsNew
@@ -720,7 +721,7 @@ spec = do
                 defaultStringAttrs `shouldBe` defaultStringAttrsNew
         context "SDsetfillvalue" $ do
             it "sets fill value" $ do
-                sd_id              <- check =<< sd_start "empty_sds.hdf" HDFCreate
+                sd_id              <- check =<< sd_start (testOutputPath </> "empty_sds.hdf") HDFCreate
                 sds_id             <- check =<< sd_create sd_id "emptyDataSet" HInt32 (D 1 :| 2 :| 3)
                 _                  <- check =<< sd_setfillvalue sds_id (-777 :: Int32)
                 fillValue          <- check =<< sd_getfillvalue sds_id
@@ -731,7 +732,7 @@ spec = do
             it "sets fill mode" $ do
                 let sdsData = VS.fromList ([7] :: [Word8] )
                     expectedSdsData = VS.fromList ([5,7] :: [Word8] )
-                sd_id              <- check =<< sd_start "sds_fill_1.hdf" HDFCreate
+                sd_id              <- check =<< sd_start (testOutputPath </> "sds_fill_1.hdf") HDFCreate
                 sds_id             <- check =<< sd_create sd_id "DataSet" HWord8 (D 2)
                 _                  <- check =<< sd_setfillmode sd_id HDFFill
                 _                  <- check =<< sd_setfillvalue sds_id 5
@@ -743,7 +744,7 @@ spec = do
             it "sets no-fill mode" $ do
                 let sdsData = VS.fromList ([7] :: [Word8] )
                     expectedSdsData = VS.fromList ([5,7] :: [Word8] )
-                sd_id              <- check =<< sd_start "sds_nofill_1.hdf" HDFCreate
+                sd_id              <- check =<< sd_start (testOutputPath </> "sds_nofill_1.hdf") HDFCreate
                 sds_id             <- check =<< sd_create sd_id "DataSet" HWord8 (D 2)
                 _                  <- check =<< sd_setfillmode sd_id HDFNoFill
                 _                  <- check =<< sd_setfillvalue sds_id 5
@@ -753,14 +754,14 @@ spec = do
                 _                  <- check =<< sd_end sd_id
                 v `shouldNotBe` expectedSdsData
             it "returns correct old fill mode" $ do
-                sd_id              <- check =<< sd_start "sds_nofill_2.hdf" HDFCreate
+                sd_id              <- check =<< sd_start (testOutputPath </> "sds_nofill_2.hdf") HDFCreate
                 _                  <- check =<< sd_setfillmode sd_id HDFNoFill
                 oldfillMode        <- check =<< sd_setfillmode sd_id HDFFill
                 _                  <- check =<< sd_end sd_id
                 oldfillMode `shouldBe` HDFNoFill
         context "SDsetrange" $ do
             it "sets valid range for dataset" $ do
-                sd_id              <- check =<< sd_start "empty_sds.hdf" HDFCreate
+                sd_id              <- check =<< sd_start (testOutputPath </> "empty_sds.hdf") HDFCreate
                 sds_id             <- check =<< sd_create sd_id "emptyDataSet" HInt32 (D 1 :| 2 :| 3)
                 _                  <- check =<< sd_setrange sds_id (0 :: Int32) (100 :: Int32)
                 validRange         <- check =<< sd_getrange sds_id
@@ -771,7 +772,7 @@ spec = do
         context "SDsetcompress/SDgetcompinfo" $ do
             it "sets compression parameters" $ do
                 let compParamsNew = HDFCompDeflate 9
-                sd_id              <- check =<< sd_start "empty_sds.hdf" HDFCreate
+                sd_id              <- check =<< sd_start (testOutputPath </> "empty_sds.hdf") HDFCreate
                 sds_id             <- check =<< sd_create sd_id "emptyDataSet" HInt32 (D 1 :| 2 :| 3)
                 _                  <- check =<< sd_setcompress sds_id compParamsNew
                 compParams         <- check =<< sd_getcompinfo sds_id
@@ -781,7 +782,7 @@ spec = do
         context "SDsetnbitdataset" $ do
             it "sets n-bit compression parameters" $ do
                 let compParamsNew = SDNBitCompParams 0 3 False False
-                sd_id              <- check =<< sd_start "empty_sds.hdf" HDFCreate
+                sd_id              <- check =<< sd_start (testOutputPath </> "empty_sds.hdf") HDFCreate
                 sds_id             <- check =<< sd_create sd_id "emptyDataSet" HInt32 (D 1 :| 2 :| 3)
                 _                  <- check =<< sd_setnbitdataset sds_id compParamsNew
                 compParams         <- check =<< sd_getcompinfo sds_id
@@ -791,7 +792,7 @@ spec = do
     context "Chunking/Tiling" $ do
         context "SDgetchunkinfo" $ do
             it "handles empty SDS" $ do
-                sd_id              <- check =<< sd_start "empty_sds.hdf" HDFCreate
+                sd_id              <- check =<< sd_start (testOutputPath </> "empty_sds.hdf") HDFCreate
                 sds_id             <- check =<< sd_create sd_id "emptyDataSet" HInt32 (D 1 :| 2 :| 3)
                 chunkParams        <- check =<< sd_getchunkinfo sds_id
                 _                  <- check =<< sd_endaccess sds_id
@@ -827,7 +828,7 @@ spec = do
                 chunkParams `shouldBe` (HDFChunkParams [2,2] $ HDFCompNBit (HDFValue HNone ()) 0 0 6 7)
         context "SDsetchunk" $ do
             it "converts SDS to chunked SDS" $ do
-                sd_id              <- check =<< sd_start "new_chunked_sds.hdf" HDFCreate
+                sd_id              <- check =<< sd_start (testOutputPath </> "new_chunked_sds.hdf") HDFCreate
                 sds_id             <- check =<< sd_create sd_id "emptyDataSet" HInt32 (D 4 :| 8)
                 _                  <- check =<< sd_setchunk sds_id (HDFChunkParams [4,1] HDFCompNone)
                 _                  <- check =<< sd_endaccess sds_id
@@ -869,7 +870,7 @@ spec = do
         context "SDwritechunk" $ do
             it "writes data to a chunked SDS" $ do
                 let expectedData = VS.fromList ([1, 2, 3, 4] :: [Int32])
-                sd_id              <- check =<< sd_start "chunked_sds.hdf" HDFCreate
+                sd_id              <- check =<< sd_start (testOutputPath </> "chunked_sds.hdf") HDFCreate
                 sds_id             <- check =<< sd_create sd_id "emptyDataSet" HInt32 (D 4 :| 8)
                 _                  <- check =<< sd_setfillvalue sds_id 0
                 _                  <- check =<< sd_setchunk sds_id (HDFChunkParams [4,1] HDFCompNone)
@@ -1126,8 +1127,8 @@ spec = do
         context "SDsetexternalfile" $ do
             it "moves existing SDS to an external file" $ do
                 let origFilePath     = "test-data/sd/test1.hdf"
-                    filePath         = "test1.primary.hdf"
-                    externalFilePath = "test1.external.hdf"
+                    filePath         = testOutputPath </> "test1.primary.hdf"
+                    externalFilePath = testOutputPath </> "test1.external.hdf"
                     expected         = (externalFilePath, (0,120))
                     expectedData     =
                         "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
@@ -1155,8 +1156,8 @@ spec = do
                 hClose hndl
                 rawData `shouldBe` expectedData
             it "creates new SDS in external file" $ do
-                let filePath         = "external_sds.primary.hdf"
-                    externalFilePath = "external_sds.external.hdf"
+                let filePath         = testOutputPath </> "external_sds.primary.hdf"
+                    externalFilePath = testOutputPath </> "external_sds.external.hdf"
                     sdsData = VS.fromList ([4,5,6,7] :: [Word8] )
                 sd_id              <- check =<< sd_start filePath HDFCreate
                 sds_id             <- check =<< sd_create sd_id "DataSet" HWord8 (D 2 :| 2)
@@ -1190,7 +1191,7 @@ spec = do
         context "SDsetdimval_comp" $ do
             it "set backward compatible mode for dimension" $ do
                 let origFilePath     = "test-data/sd/test1.hdf"
-                    filePath         = "test1.compat.hdf"
+                    filePath         = testOutputPath </> "test1.compat.hdf"
                 copyFileWithMetadata origFilePath filePath
                 sd_id              <- check =<< sd_start filePath HDFWrite
                 sds_index          <- check =<< sd_nametoindex sd_id "DataSetAlpha"
@@ -1232,7 +1233,7 @@ spec = do
         context "SDwritedata" $ do
             it "writes data to SDS - 1" $ do
                 let sdsData = VS.fromList ([4,5,6,7] :: [Word8] )
-                sd_id  <- check =<< sd_start "write_sds_1.hdf" HDFCreate
+                sd_id  <- check =<< sd_start (testOutputPath </> "write_sds_1.hdf") HDFCreate
                 sds_id <- check =<< sd_create sd_id "DataSet" HWord8 (D 2 :| 2)
                 _      <- check =<< sd_writedata sds_id (D 0 :| 0) (D 1 :| 1) (D 2 :| 2) sdsData
                 v      <- check =<< sd_readdata sds_id (D 0 :| 0) (D 1 :| 1) (D 2 :| 2)
@@ -1240,7 +1241,7 @@ spec = do
                 _      <- check =<< sd_end sd_id
                 v `shouldBe` sdsData
             it "writes data to SDS - 2" $ do
-                sd_id  <- check =<< sd_start "write_sds_2.hdf" HDFCreate
+                sd_id  <- check =<< sd_start (testOutputPath </> "write_sds_2.hdf") HDFCreate
                 sds_id <- check =<< sd_create sd_id "DataSet" HWord8 (D 2 :| 2)
                 _      <- check =<< sd_setfillvalue sds_id 5
                 _      <- check =<< sd_writedata sds_id (D 0 :| 0) (D 1 :| 1) (D 1 :| 1) (VS.fromList [0])
