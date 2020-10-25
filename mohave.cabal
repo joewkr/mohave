@@ -18,8 +18,12 @@ library
                      , Data.Format.HDF.LowLevel.HE
                      , Data.Format.HDF.LowLevel.SD
                      , Data.Format.HDF.SD
+                     , Data.Format.NetCDF.LowLevel
+                     , Data.Format.NetCDF.LowLevel.File
   other-modules:       Data.Format.HDF.LowLevel.C.Definitions
                      , Data.Format.HDF.LowLevel.Definitions.Internal
+                     , Data.Format.NetCDF.LowLevel.Definitions
+                     , Data.Format.NetCDF.LowLevel.C.Definitions
                      , Foreign.C.Lib.FFI
   C-Sources:           cbits/HDF/wrapper.c
   other-extensions:    BangPatterns
@@ -47,6 +51,7 @@ library
                      , vector >= 0.12 && < 0.13
   build-tool-depends:  hsc2hs:hsc2hs
   pkgconfig-depends:   hdf >= 4.2
+                     , netcdf >= 4.6.2
   hs-source-dirs:      src
   default-language:    Haskell2010
 --  include-dirs:        /opt/packages/hdf/4.2.14/include
@@ -60,6 +65,7 @@ test-suite test-main
   other-modules:       Data.Format.HDF.LowLevel.SDSpec
                      , Data.Format.HDF.LowLevel.HESpec
                      , Data.Format.HDF.SDSpec
+                     , Data.Format.NetCDF.LowLevel.FileSpec
                      , Testing.Common
                      , Spec
   other-extensions:    DataKinds
