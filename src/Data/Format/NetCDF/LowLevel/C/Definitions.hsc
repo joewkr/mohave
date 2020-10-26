@@ -12,7 +12,7 @@ toNCOpenModeTag NCNoWrite             = #{const NC_NOWRITE  }
 toNCOpenModeTag NCWrite               = #{const NC_WRITE    }
 toNCOpenModeTag NCShare               = #{const NC_SHARE    }
 toNCOpenModeTag NCDiskless            = #{const NC_DISKLESS }
-#ifndef USE_NETCDF_460
+#if PKG_CONFIG_NETCDF_VERSION >= PKG_VERSION(4,6,2)
 toNCOpenModeTag NCPersist             = #{const NC_PERSIST  }
 #endif
 toNCOpenModeTag NCClobber             = #{const NC_CLOBBER  }
@@ -32,7 +32,7 @@ fromNCOpenModeTag tag = case tag of
     #{const NC_WRITE    } -> NCWrite
     #{const NC_SHARE    } -> NCShare
     #{const NC_DISKLESS } -> NCDiskless
-#ifndef USE_NETCDF_460
+#if PKG_CONFIG_NETCDF_VERSION >= PKG_VERSION(4,6,2)
     #{const NC_PERSIST  } -> NCPersist
 #endif
     #{const NC_NOCLOBBER} -> NCNoClobber
@@ -76,9 +76,11 @@ toNCFormatXTag NCFormatXNChdf4    = #{const NC_FORMATX_NC_HDF4}
 toNCFormatXTag NCFormatXPNetCDF   = #{const NC_FORMATX_PNETCDF}
 toNCFormatXTag NCFormatXDAP2      = #{const NC_FORMATX_DAP2}
 toNCFormatXTag NCFormatXDAP4      = #{const NC_FORMATX_DAP4}
-#ifndef USE_NETCDF_460
+#if PKG_CONFIG_NETCDF_VERSION >= PKG_VERSION(4,6,2)
 toNCFormatXTag NCFormatXUDF0      = #{const NC_FORMATX_UDF0}
 toNCFormatXTag NCFormatXUDF1      = #{const NC_FORMATX_UDF1}
+#endif
+#if PKG_CONFIG_NETCDF_VERSION >= PKG_VERSION(4,7,0)
 toNCFormatXTag NCFormatXZARR      = #{const NC_FORMATX_ZARR}
 #endif
 toNCFormatXTag NCFormatXUndefined = #{const NC_FORMATX_UNDEFINED}
@@ -91,9 +93,11 @@ fromNCFormatXTag tag = case tag of
     #{const NC_FORMATX_PNETCDF}   -> Just NCFormatXPNetCDF
     #{const NC_FORMATX_DAP2}      -> Just NCFormatXDAP2
     #{const NC_FORMATX_DAP4}      -> Just NCFormatXDAP4
-#ifndef USE_NETCDF_460
+#if PKG_CONFIG_NETCDF_VERSION >= PKG_VERSION(4,6,2)
     #{const NC_FORMATX_UDF0}      -> Just NCFormatXUDF0
     #{const NC_FORMATX_UDF1}      -> Just NCFormatXUDF1
+#endif
+#if PKG_CONFIG_NETCDF_VERSION >= PKG_VERSION(4,7,0)
     #{const NC_FORMATX_ZARR}      -> Just NCFormatXZARR
 #endif
     #{const NC_FORMATX_UNDEFINED} -> Just NCFormatXUndefined

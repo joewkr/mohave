@@ -13,7 +13,7 @@ data NCOpenMode =
   | NCWrite
   | NCShare
   | NCDiskless
-#ifndef USE_NETCDF_460
+#if PKG_CONFIG_NETCDF_VERSION >= PKG_VERSION(4,6,2)
   | NCPersist
 #endif
   | NCClobber
@@ -36,9 +36,11 @@ data NCFormatX =
   | NCFormatXPNetCDF
   | NCFormatXDAP2
   | NCFormatXDAP4
-#ifndef USE_NETCDF_460
+#if PKG_CONFIG_NETCDF_VERSION >= PKG_VERSION(4,6,2)
   | NCFormatXUDF0
   | NCFormatXUDF1
+#endif
+#if PKG_CONFIG_NETCDF_VERSION >= PKG_VERSION(4,7,0)
   | NCFormatXZARR
 #endif
   | NCFormatXUndefined

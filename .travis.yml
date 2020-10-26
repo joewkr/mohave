@@ -88,9 +88,6 @@ before_install:
   # This term is spelled differently in vanilla HDF library and in the version provided with Ubuntu. So,
   # for Travis CI just replace the word in question while keeping the original spelling in the repository.
   - sed --in-place 's/syncronize/synchronize/g' ${TRAVIS_BUILD_DIR}/test/Data/Format/HDF/LowLevel/HESpec.hs
-  - |
-    sed --in-place 's/netcdf >= 4.6.2/netcdf >= 4.6.0/g' mohave.cabal
-    sed --in-place '/cc-options/ a\  cpp-options: -DUSE_NETCDF_460' mohave.cabal
   - test-data/nc/gen-all-files.sh
 install:
   - cabal update
