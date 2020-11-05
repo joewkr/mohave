@@ -55,3 +55,5 @@ data NC c where
 ncRawId :: NC id -> CInt
 ncRawId (NCFile ncid) = ncid
 ncRawId (NCGroup ncid) = ncid
+
+newtype NCDimensionId = NCDimensionId CInt deriving Eq

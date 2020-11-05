@@ -112,3 +112,9 @@ fromNCFillTag tag = case tag of
     #{const NC_FILL}   -> Just NCFill
     #{const NC_NOFILL} -> Just NCNoFill
     _ -> Nothing
+
+ncUnlimitedDimension :: CSize
+ncUnlimitedDimension = #{const NC_UNLIMITED}
+
+ncMaxNameLen :: CSize
+ncMaxNameLen = #{const NC_MAX_NAME}

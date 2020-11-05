@@ -1,0 +1,7 @@
+netcdf test1 {
+dimensions:
+  dim1 = 7;
+  dim2 = 3;
+  dim3 = 21;
+  dim4 = UNLIMITED;
+}
