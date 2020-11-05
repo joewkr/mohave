@@ -1,0 +1,69 @@
+name: CI
+
+# Trigger the workflow on push or pull request, but only for the master branch
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+jobs:
+  cabal:
+    name: ${{ matrix.os }} / ghc ${{ matrix.ghc }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        cabal: ["3.2"]
+        ghc:
+          - "8.4.4"
+          - "8.6.5"
+          - "8.8.4"
+          - "8.10.2"
+
+    steps:
+    - uses: actions/checkout@v2
+      if: github.event.action == 'opened' || github.event.action == 'synchronize' || github.event.ref == 'refs/heads/master'
+
+    - uses: actions/setup-haskell@v1.1.3
+      id: setup-haskell-cabal
+      name: Setup Haskell
+      with:
+        ghc-version: ${{ matrix.ghc }}
+        cabal-version: ${{ matrix.cabal }}
+
+    - name: Dependencies
+      run: |
+        sudo apt install libhdf4-alt-dev libnetcdf-dev netcdf-bin
+        echo "PKG_CONFIG_PATH=${GITHUB_WORKSPACE}:${PKG_CONFIG_PATH}" >> $GITHUB_ENV
+        echo 'libdir=/usr/lib/'                                                       >> ${GITHUB_WORKSPACE}/hdf.pc
+        echo 'includedir=/usr/include/hdf/'                                           >> ${GITHUB_WORKSPACE}/hdf.pc
+        echo 'ccompiler=/usr/bin/cc'                                                  >> ${GITHUB_WORKSPACE}/hdf.pc
+        echo 'Name: hdf'                                                              >> ${GITHUB_WORKSPACE}/hdf.pc
+        echo 'Description: HDF Library for C'                                         >> ${GITHUB_WORKSPACE}/hdf.pc
+        echo 'URL: https://www.hdfgroup.org/solutions/hdf4/'                          >> ${GITHUB_WORKSPACE}/hdf.pc
+        echo 'Version: 4.2.13'                                                        >> ${GITHUB_WORKSPACE}/hdf.pc
+        echo 'Libs: -L${libdir} -lmfhdfalt -ldfalt -Wl,-rpath,${libdir} -lz -ldl -lm' >> ${GITHUB_WORKSPACE}/hdf.pc
+        echo 'Cflags: -I${includedir}'                                                >> ${GITHUB_WORKSPACE}/hdf.pc
+
+    - name: Freeze
+      run: |
+        cabal freeze
+
+    - uses: actions/cache@v1
+      name: Cache ~/.cabal/store
+      with:
+        path: ${{ steps.setup-haskell-cabal.outputs.cabal-store }}
+        key: ${{ runner.os }}-${{ matrix.ghc }}-${{ hashFiles('cabal.project.freeze') }}
+
+    - name: Build
+      run: |
+        # This term is spelled differently in vanilla HDF library and in the version provided with Ubuntu. So,
+        # for CI just replace the word in question while keeping the original spelling in the repository.
+        sed --in-place 's/syncronize/synchronize/g' ${GITHUB_WORKSPACE}/test/Data/Format/HDF/LowLevel/HESpec.hs
+        cabal configure --enable-tests --enable-benchmarks --test-show-details=direct
+        cabal build all
+
+    - name: Test
+      run: |
+        test-data/nc/gen-all-files.sh
+        cabal test all
