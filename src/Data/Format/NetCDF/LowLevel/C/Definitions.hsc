@@ -1,9 +1,11 @@
+{-# LANGUAGE GADTs #-}
 module Data.Format.NetCDF.LowLevel.C.Definitions where
 
 import qualified Data.Bits as B
 import           Foreign.C.Types
 
 import           Data.Format.NetCDF.LowLevel.Definitions
+import           Internal.Definitions
 
 #include <netcdf.h>
 
@@ -113,8 +115,61 @@ fromNCFillTag tag = case tag of
     #{const NC_NOFILL} -> Just NCNoFill
     _ -> Nothing
 
+toNCStorageTypeTag :: NCStorageType -> CInt
+toNCStorageTypeTag NCContiguous = #{const NC_CONTIGUOUS}
+toNCStorageTypeTag NCChunked    = #{const NC_CHUNKED   }
+
+fromNCStorageTypeTag :: CInt -> Maybe NCStorageType
+fromNCStorageTypeTag tag = case tag of
+    #{const NC_CONTIGUOUS} -> Just NCContiguous
+    #{const NC_CHUNKED   } -> Just NCChunked
+    _ -> Nothing
+
+toNCEndiannessTypeTag :: NCEndianness -> CInt
+toNCEndiannessTypeTag NCEndianNative = #{const NC_ENDIAN_NATIVE}
+toNCEndiannessTypeTag NCEndianLittle = #{const NC_ENDIAN_LITTLE}
+toNCEndiannessTypeTag NCEndianBig    = #{const NC_ENDIAN_BIG   }
+
+fromNCEndiannessTypeTag :: CInt -> Maybe NCEndianness
+fromNCEndiannessTypeTag tag = case tag of
+    #{const NC_ENDIAN_NATIVE} -> Just NCEndianNative
+    #{const NC_ENDIAN_LITTLE} -> Just NCEndianLittle
+    #{const NC_ENDIAN_BIG   } -> Just NCEndianBig
+    _ -> Nothing
+
 ncUnlimitedDimension :: CSize
 ncUnlimitedDimension = #{const NC_UNLIMITED}
 
 ncMaxNameLen :: CSize
 ncMaxNameLen = #{const NC_MAX_NAME}
+
+fromNCDataType :: NCDataType a -> CInt
+fromNCDataType NCNone    = 0
+fromNCDataType NCByte    = #{const NC_BYTE  }
+fromNCDataType NCUByte   = #{const NC_UBYTE }
+fromNCDataType NCChar    = #{const NC_CHAR  }
+fromNCDataType NCShort   = #{const NC_SHORT }
+fromNCDataType NCUShort  = #{const NC_USHORT}
+fromNCDataType NCInt     = #{const NC_INT   }
+fromNCDataType NCUInt    = #{const NC_UINT  }
+fromNCDataType NCInt64   = #{const NC_INT64 }
+fromNCDataType NCUInt64  = #{const NC_UINT64}
+fromNCDataType NCFloat   = #{const NC_FLOAT }
+fromNCDataType NCDouble  = #{const NC_DOUBLE}
+fromNCDataType NCString  = #{const NC_STRING}
+
+fromNCTypeTag :: CInt -> NCType
+fromNCTypeTag tag = case tag of
+    #{const NC_BYTE  } -> TypedValue NCByte   ()
+    #{const NC_UBYTE } -> TypedValue NCUByte  ()
+    #{const NC_CHAR  } -> TypedValue NCChar   ()
+    #{const NC_SHORT } -> TypedValue NCShort  ()
+    #{const NC_USHORT} -> TypedValue NCUShort ()
+    #{const NC_INT   } -> TypedValue NCInt    ()
+    #{const NC_UINT  } -> TypedValue NCUInt   ()
+    #{const NC_INT64 } -> TypedValue NCInt64  ()
+    #{const NC_UINT64} -> TypedValue NCUInt64 ()
+    #{const NC_FLOAT } -> TypedValue NCFloat  ()
+    #{const NC_DOUBLE} -> TypedValue NCDouble ()
+    #{const NC_STRING} -> TypedValue NCString ()
+    _                  -> TypedValue NCNone   ()

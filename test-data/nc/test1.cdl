@@ -4,4 +4,19 @@ dimensions:
   dim2 = 3;
   dim3 = 21;
   dim4 = UNLIMITED;
+variables:
+  double dummy_var;
+    dummy_var:_Endianness = "little";
+  float scalar_var;
+    scalar_var:_Endianness = "big";
+    scalar_var:long_name = "scalar variable";
+    scalar_var:units = "m/s";
+  int vector_var(dim1);
+    vector_var:_DeflateLevel = 9;
+    vector_var:_FillValue = 1;
+    vector_var:_Fletcher32 = "true";
+  int var_2d(dim1, dim2);
+    var_2d:_ChunkSizes = 2, 3;
+    var_2d:_Shuffle = "true";
+  int var_unlim(dim4);
 }
