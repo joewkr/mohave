@@ -33,6 +33,7 @@ jobs:
 
     - name: Dependencies
       run: |
+        sudo apt update
         sudo apt install libhdf4-alt-dev libnetcdf-dev netcdf-bin
         echo "PKG_CONFIG_PATH=${GITHUB_WORKSPACE}:${PKG_CONFIG_PATH}" >> $GITHUB_ENV
         echo 'libdir=/usr/lib/'                                                       >> ${GITHUB_WORKSPACE}/hdf.pc
