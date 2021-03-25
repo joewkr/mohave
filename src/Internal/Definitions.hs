@@ -12,7 +12,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 module Internal.Definitions where
 
-import qualified Data.ByteString as BS
 import           Data.Int
 import           Data.Function (on)
 import           Data.Kind
@@ -24,66 +23,8 @@ import           Foreign.C.Types (CChar)
 import           Foreign.Ptr (Ptr)
 import           Foreign.Storable (Storable(..))
 import           Foreign.Marshal.Array (allocaArray, advancePtr)
-import           Foreign.Marshal.Utils (with)
 import           GHC.TypeNats
 import           Unsafe.Coerce
-
-
-type family PtrLoad (a :: Type) :: Type where
-    PtrLoad BS.ByteString = CChar
-    PtrLoad t = t
-
-class Marshallable a where
-    withPtr :: a -> (Ptr (PtrLoad a) -> IO b) -> IO b
-    fromPtr :: Ptr (PtrLoad a) -> IO a
-
-instance Marshallable ()     where
-    withPtr = with
-    fromPtr = peek
-
-instance Marshallable Int8   where
-    withPtr = with
-    fromPtr = peek
-
-instance Marshallable Word8  where
-    withPtr = with
-    fromPtr = peek
-
-instance Marshallable Int16  where
-    withPtr = with
-    fromPtr = peek
-
-instance Marshallable Word16 where
-    withPtr = with
-    fromPtr = peek
-
-instance Marshallable Int32  where
-    withPtr = with
-    fromPtr = peek
-
-instance Marshallable Word32 where
-    withPtr = with
-    fromPtr = peek
-
-instance Marshallable Int64  where
-    withPtr = with
-    fromPtr = peek
-
-instance Marshallable Word64 where
-    withPtr = with
-    fromPtr = peek
-
-instance Marshallable Float  where
-    withPtr = with
-    fromPtr = peek
-
-instance Marshallable Double where
-    withPtr = with
-    fromPtr = peek
-
-instance Marshallable BS.ByteString where
-    withPtr = BS.useAsCString
-    fromPtr = BS.packCString
 
 data VarShapeDef (n :: Nat) a where
     ScalarVar :: VarShapeDef 0 a
@@ -161,13 +102,14 @@ data ValueKind where
 
 data TypedValue (a :: ValueKind) dt where
     TypedValue :: (
-        Show (SelectKind a t)
+        Eq t
       , Eq (SelectKind a t)
-      , Marshallable t
+      , Show t
       , Show (dt t)
+      , Show (SelectKind a t)
+      , Storable t
       , TestEquality dt
-      , Eq t) =>
-        {valueType :: dt t, value :: SelectKind a t} -> TypedValue a dt
+      ) => {valueType :: dt t, value :: SelectKind a t} -> TypedValue a dt
 
 deriving instance Show (TypedValue a dt)
 
@@ -184,3 +126,4 @@ type family SelectKind (a :: ValueKind) (t :: Type) :: Type where
     SelectKind 'Empty _ = ()
     SelectKind 'Nullary t = t
     SelectKind ('Unary v) t = v t
+

@@ -10,6 +10,7 @@ import qualified Data.ByteString as BS
 import           Data.Int
 import           Data.Type.Equality (TestEquality, testEquality, (:~:)(Refl))
 import           Data.Word
+import           Foreign.C.String (CString)
 import           Foreign.C.Types
 import           Foreign.Ptr (castPtr)
 import           Foreign.Storable (Storable(..))
@@ -95,7 +96,7 @@ data NCDataType a where
     NCUInt64 :: NCDataType Word64
     NCFloat  :: NCDataType Float
     NCDouble :: NCDataType Double
-    NCString :: NCDataType BS.ByteString
+    NCString :: NCDataType CString -- When reading from a NetCDF file memory is allocated on the C-side
 
 deriving instance Show (NCDataType a)
 
