@@ -14,6 +14,7 @@ import           Foreign.Ptr
 import           Foreign.Storable
 
 import           Data.Format.HDF.LowLevel.Definitions
+import           Internal.Definitions
 
 #include <hdf.h>
 #include <mfhdf.h>
@@ -35,58 +36,58 @@ fromHDFFillModeTag tag = case tag of
 
 fromHDFTypeTag :: Int32 -> HDFType
 fromHDFTypeTag tag = case tag of
-    #{const (DFNT_HDF    | DFNT_UINT8  )} -> HDFValue HWord8   ()
-    #{const (DFNT_HDF    | DFNT_UINT16 )} -> HDFValue HWord16  ()
-    #{const (DFNT_HDF    | DFNT_UINT32 )} -> HDFValue HWord32  ()
-    #{const (DFNT_HDF    | DFNT_INT8   )} -> HDFValue HInt8    ()
-    #{const (DFNT_HDF    | DFNT_INT16  )} -> HDFValue HInt16   ()
-    #{const (DFNT_HDF    | DFNT_INT32  )} -> HDFValue HInt32   ()
-    #{const (DFNT_HDF    | DFNT_FLOAT32)} -> HDFValue HFloat32 ()
-    #{const (DFNT_HDF    | DFNT_FLOAT64)} -> HDFValue HFloat64 ()
+    #{const (DFNT_HDF    | DFNT_UINT8  )} -> TypedValue HWord8   ()
+    #{const (DFNT_HDF    | DFNT_UINT16 )} -> TypedValue HWord16  ()
+    #{const (DFNT_HDF    | DFNT_UINT32 )} -> TypedValue HWord32  ()
+    #{const (DFNT_HDF    | DFNT_INT8   )} -> TypedValue HInt8    ()
+    #{const (DFNT_HDF    | DFNT_INT16  )} -> TypedValue HInt16   ()
+    #{const (DFNT_HDF    | DFNT_INT32  )} -> TypedValue HInt32   ()
+    #{const (DFNT_HDF    | DFNT_FLOAT32)} -> TypedValue HFloat32 ()
+    #{const (DFNT_HDF    | DFNT_FLOAT64)} -> TypedValue HFloat64 ()
 
-    #{const (DFNT_HDF    | DFNT_CHAR8  )} -> HDFValue HChar8   ()
-    #{const (DFNT_HDF    | DFNT_UCHAR8 )} -> HDFValue HUChar8  ()
+    #{const (DFNT_HDF    | DFNT_CHAR8  )} -> TypedValue HChar8   ()
+    #{const (DFNT_HDF    | DFNT_UCHAR8 )} -> TypedValue HUChar8  ()
 
-    #{const (DFNT_NATIVE | DFNT_UINT8  )} -> HDFValue HWord8   ()
-    #{const (DFNT_NATIVE | DFNT_UINT16 )} -> HDFValue HWord16  ()
-    #{const (DFNT_NATIVE | DFNT_UINT32 )} -> HDFValue HWord32  ()
-    #{const (DFNT_NATIVE | DFNT_INT8   )} -> HDFValue HInt8    ()
-    #{const (DFNT_NATIVE | DFNT_INT16  )} -> HDFValue HInt16   ()
-    #{const (DFNT_NATIVE | DFNT_INT32  )} -> HDFValue HInt32   ()
-    #{const (DFNT_NATIVE | DFNT_FLOAT32)} -> HDFValue HFloat32 ()
-    #{const (DFNT_NATIVE | DFNT_FLOAT64)} -> HDFValue HFloat64 ()
+    #{const (DFNT_NATIVE | DFNT_UINT8  )} -> TypedValue HWord8   ()
+    #{const (DFNT_NATIVE | DFNT_UINT16 )} -> TypedValue HWord16  ()
+    #{const (DFNT_NATIVE | DFNT_UINT32 )} -> TypedValue HWord32  ()
+    #{const (DFNT_NATIVE | DFNT_INT8   )} -> TypedValue HInt8    ()
+    #{const (DFNT_NATIVE | DFNT_INT16  )} -> TypedValue HInt16   ()
+    #{const (DFNT_NATIVE | DFNT_INT32  )} -> TypedValue HInt32   ()
+    #{const (DFNT_NATIVE | DFNT_FLOAT32)} -> TypedValue HFloat32 ()
+    #{const (DFNT_NATIVE | DFNT_FLOAT64)} -> TypedValue HFloat64 ()
 
-    #{const (DFNT_NATIVE | DFNT_CHAR8  )} -> HDFValue HChar8   ()
-    #{const (DFNT_NATIVE | DFNT_UCHAR8 )} -> HDFValue HUChar8  ()
+    #{const (DFNT_NATIVE | DFNT_CHAR8  )} -> TypedValue HChar8   ()
+    #{const (DFNT_NATIVE | DFNT_UCHAR8 )} -> TypedValue HUChar8  ()
 
-    #{const (DFNT_CUSTOM | DFNT_UINT8  )} -> HDFValue HWord8   ()
-    #{const (DFNT_CUSTOM | DFNT_UINT16 )} -> HDFValue HWord16  ()
-    #{const (DFNT_CUSTOM | DFNT_UINT32 )} -> HDFValue HWord32  ()
-    #{const (DFNT_CUSTOM | DFNT_INT8   )} -> HDFValue HInt8    ()
-    #{const (DFNT_CUSTOM | DFNT_INT16  )} -> HDFValue HInt16   ()
-    #{const (DFNT_CUSTOM | DFNT_INT32  )} -> HDFValue HInt32   ()
-    #{const (DFNT_CUSTOM | DFNT_FLOAT32)} -> HDFValue HFloat32 ()
-    #{const (DFNT_CUSTOM | DFNT_FLOAT64)} -> HDFValue HFloat64 ()
+    #{const (DFNT_CUSTOM | DFNT_UINT8  )} -> TypedValue HWord8   ()
+    #{const (DFNT_CUSTOM | DFNT_UINT16 )} -> TypedValue HWord16  ()
+    #{const (DFNT_CUSTOM | DFNT_UINT32 )} -> TypedValue HWord32  ()
+    #{const (DFNT_CUSTOM | DFNT_INT8   )} -> TypedValue HInt8    ()
+    #{const (DFNT_CUSTOM | DFNT_INT16  )} -> TypedValue HInt16   ()
+    #{const (DFNT_CUSTOM | DFNT_INT32  )} -> TypedValue HInt32   ()
+    #{const (DFNT_CUSTOM | DFNT_FLOAT32)} -> TypedValue HFloat32 ()
+    #{const (DFNT_CUSTOM | DFNT_FLOAT64)} -> TypedValue HFloat64 ()
 
-    #{const (DFNT_CUSTOM | DFNT_CHAR8  )} -> HDFValue HChar8   ()
-    #{const (DFNT_CUSTOM | DFNT_UCHAR8 )} -> HDFValue HUChar8  ()
+    #{const (DFNT_CUSTOM | DFNT_CHAR8  )} -> TypedValue HChar8   ()
+    #{const (DFNT_CUSTOM | DFNT_UCHAR8 )} -> TypedValue HUChar8  ()
 
-    #{const (DFNT_LITEND | DFNT_UINT8  )} -> HDFValue HWord8   ()
-    #{const (DFNT_LITEND | DFNT_UINT16 )} -> HDFValue HWord16  ()
-    #{const (DFNT_LITEND | DFNT_UINT32 )} -> HDFValue HWord32  ()
-    #{const (DFNT_LITEND | DFNT_INT8   )} -> HDFValue HInt8    ()
-    #{const (DFNT_LITEND | DFNT_INT16  )} -> HDFValue HInt16   ()
-    #{const (DFNT_LITEND | DFNT_INT32  )} -> HDFValue HInt32   ()
-    #{const (DFNT_LITEND | DFNT_FLOAT32)} -> HDFValue HFloat32 ()
-    #{const (DFNT_LITEND | DFNT_FLOAT64)} -> HDFValue HFloat64 ()
+    #{const (DFNT_LITEND | DFNT_UINT8  )} -> TypedValue HWord8   ()
+    #{const (DFNT_LITEND | DFNT_UINT16 )} -> TypedValue HWord16  ()
+    #{const (DFNT_LITEND | DFNT_UINT32 )} -> TypedValue HWord32  ()
+    #{const (DFNT_LITEND | DFNT_INT8   )} -> TypedValue HInt8    ()
+    #{const (DFNT_LITEND | DFNT_INT16  )} -> TypedValue HInt16   ()
+    #{const (DFNT_LITEND | DFNT_INT32  )} -> TypedValue HInt32   ()
+    #{const (DFNT_LITEND | DFNT_FLOAT32)} -> TypedValue HFloat32 ()
+    #{const (DFNT_LITEND | DFNT_FLOAT64)} -> TypedValue HFloat64 ()
 
-    #{const (DFNT_LITEND | DFNT_CHAR8  )} -> HDFValue HChar8   ()
-    #{const (DFNT_LITEND | DFNT_UCHAR8 )} -> HDFValue HUChar8  ()
+    #{const (DFNT_LITEND | DFNT_CHAR8  )} -> TypedValue HChar8   ()
+    #{const (DFNT_LITEND | DFNT_UCHAR8 )} -> TypedValue HUChar8  ()
 
-    _                     -> HDFValue HNone    ()
+    _                     -> TypedValue HNone    ()
 
 toHDFTypeTag :: HDFType -> Int32
-toHDFTypeTag (HDFValue t _) = fromHDataType t
+toHDFTypeTag (TypedValue t _) = fromHDataType t
 
 fromHDataType :: HDataType a -> Int32
 fromHDataType HNone    = 0
@@ -289,7 +290,7 @@ instance Storable HDFChunkParams where
         bitLen   <- #{peek HDF_CHUNK_DEF, nbit.bit_len} ptr
         return $! HDFChunkParams chunks $
           HDFCompNBit
-            (HDFValue HNone ())
+            (TypedValue HNone ())
             signExt
             fillOne
             startBit

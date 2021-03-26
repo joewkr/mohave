@@ -12,16 +12,12 @@
 module Data.Format.HDF.LowLevel.Definitions where
 
 import           Data.Int
-import           Data.Kind
-import           Data.Proxy (Proxy(..))
 import           Data.Type.Equality (TestEquality, testEquality, (:~:)(Refl))
-import qualified Data.Vector.Storable as VS
 import           Data.Word
-import           Foreign.Ptr (Ptr, castPtr)
+import           Foreign.Ptr (castPtr)
 import           Foreign.Storable (Storable(..))
-import           Foreign.Marshal.Array (allocaArray, advancePtr)
-import           GHC.TypeNats
 
+import           Internal.Definitions
 
 data HDFData
 
@@ -99,50 +95,11 @@ instance TestEquality HDataType where
         HFloat64 -> Just Refl
         _ -> Nothing
 
-data HKind where
-    Empty :: HKind
-    Nullary :: HKind
-    Unary :: (Type -> Type) -> HKind
+type HDFType   = TType   HDataType
+type HDFScalar = TScalar HDataType
+type HDFVector = TVector HDataType
 
-data HDFValue (a :: HKind) where
-    HDFValue :: (Show (SelectKind a t), Eq (SelectKind a t), Storable t, Show t, Eq t) =>
-        {hValueType :: HDataType t, hValue :: SelectKind a t} -> HDFValue a
-
-deriving instance Show (HDFValue a)
-
-type HDFType = HDFValue 'Empty
-type HDFVector = HDFValue ('Unary VS.Vector)
-
-instance Eq (HDFValue a) where
-  (HDFValue t1 a) == (HDFValue t2 b) = case testEquality t1 t2 of
-    Just Refl -> a == b
-    Nothing -> False
-
-type family SelectKind (a :: HKind) (t :: Type) :: Type where
-    SelectKind 'Empty _ = ()
-    SelectKind 'Nullary t = t
-    SelectKind ('Unary v) t = v t
-
-data Index (n :: Nat) where
-    D :: Int32 -> Index 1
-    (:|) :: Index n -> Int32 -> Index (n + 1)
-
-withIndex :: forall (n :: Nat) b. KnownNat n =>
-    Index n -> (Ptr Int32 -> IO b) -> IO b
-withIndex index f = allocaArray indexRank $ \indexPtr -> do
-    fillIndexArray (advancePtr indexPtr (indexRank - 1)) index
-    res <- f indexPtr
-    return $! res
-  where
-    indexRank :: Int
-    indexRank = fromIntegral $ natVal (Proxy :: Proxy n)
-
-fillIndexArray :: Ptr Int32 -> Index n -> IO ()
-fillIndexArray ptr idx = case idx of
-    (D a) -> poke ptr a
-    (:|) rest a -> do
-        poke ptr a
-        fillIndexArray (advancePtr ptr (-1)) rest
+type Index n = StaticVector n Int32
 
 data HDFError =
     DFE_NONE                 -- ^ no error
