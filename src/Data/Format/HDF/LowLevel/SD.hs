@@ -1629,13 +1629,35 @@ The origin parameter specifies the coordinates of the chunk according to the
 chunk position in the chunked array. Refer to the Chapter 3, "Scientific Data
 Sets (SD API)" of the HDF User's Guide, for a description of the organization
 of chunks in a data set.
+
+Note that chunked SDS can contain ghost areas, or regions of excess array space
+beyond the defined dimensions of the SDS. Ghost areas are created in cases where
+the size of the SDS array is not an even multiple of the chunk size. Thus, data
+chunks passed to 'sd_writechunk' should have the same number of values for any valid
+chunk coordinates.
 -}
 sd_writechunk :: forall a (t :: HDataType a) (n :: Nat). Storable a =>
      SDataSetId n t
   -> [Int32] -- ^ origin of chunk to be written
   -> VS.Vector a
   -> IO (Int32, ())
-sd_writechunk (SDataSetId sds_id) chunkCoords dataChunk =
+sd_writechunk sds chunkCoords dataChunk = do
+    (h_result, chunkSize) <- second (product . hdfChunkSizes) <$> sd_getchunkinfo sds
+    if h_result == (-1)
+        then return (h_result, ())
+        else sd_writechunk_of chunkSize sds chunkCoords dataChunk
+
+sd_writechunk_of :: forall a (t :: HDataType a) (n :: Nat). Storable a =>
+     Int32
+  -> SDataSetId n t
+  -> [Int32]
+  -> VS.Vector a
+  -> IO (Int32, ())
+sd_writechunk_of chunkSize (SDataSetId sds_id) chunkCoords dataChunk
+  | VS.length dataChunk /= (fromIntegral chunkSize) = do
+      he_push DFE_BADLEN "sd_writechunk" "Data.Format.HDF.LowLevel.SD" currentLine
+      return (-1, ())
+  | otherwise =
     withArray chunkCoords $ \chunkCoordsPtr ->
     VS.unsafeWith dataChunk $ \dataChunkPtr -> do
         h_result <- c_sdwritechunk
@@ -1713,10 +1735,14 @@ sd_writedata :: forall a (t :: HDataType a) (n :: Nat). (Storable a, KnownNat n)
   -> Index n -- ^ number of values to be written along each dimension
   -> VS.Vector a
   -> IO (Int32, ())
-sd_writedata (SDataSetId sds_id) start stride edges sdsData =
-    withStaticVector start $ \startPtr ->
-    withStaticVector stride $ \stridePtr ->
-    withStaticVector edges $ \edgesPtr ->
-    VS.unsafeWith sdsData $ \sdsDataPtr -> do
-        h_result <- c_sdwritedata sds_id startPtr stridePtr edgesPtr (castPtr sdsDataPtr)
-        return $! (fromIntegral h_result, ())
+sd_writedata (SDataSetId sds_id) start stride edges sdsData
+  | VS.length sdsData /= (fromIntegral . product $ fromStaticVector edges) = do
+      he_push DFE_BADLEN "sd_writedata" "Data.Format.HDF.LowLevel.SD" currentLine
+      return (-1, ())
+  | otherwise =
+      withStaticVector start $ \startPtr ->
+      withStaticVector stride $ \stridePtr ->
+      withStaticVector edges $ \edgesPtr ->
+      VS.unsafeWith sdsData $ \sdsDataPtr -> do
+          h_result <- c_sdwritedata sds_id startPtr stridePtr edgesPtr (castPtr sdsDataPtr)
+          return $! (fromIntegral h_result, ())
