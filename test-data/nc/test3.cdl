@@ -1,0 +1,12 @@
+netcdf test1 {
+dimensions:
+  dim1 = 3;
+variables:
+  int scalar_int;
+  int vector_int(dim1);
+  string string_vector(dim1);
+data:
+  scalar_int = 7;
+  vector_int = 3, 4, 5;
+  string_vector = "one", "two", "three";
+}

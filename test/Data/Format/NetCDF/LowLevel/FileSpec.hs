@@ -1,10 +1,13 @@
 module Data.Format.NetCDF.LowLevel.FileSpec(spec) where
 
+import qualified Data.Vector.Storable as VS
 import           Test.Hspec
 import           System.FilePath ((</>))
 
 import           Data.Format.NetCDF.LowLevel
+import           Data.Format.NetCDF.LowLevel.Dimension
 import           Data.Format.NetCDF.LowLevel.File
+import           Data.Format.NetCDF.LowLevel.Variable
 import           Testing.Common
 
 spec :: Spec
@@ -60,4 +63,11 @@ spec = do
             format `shouldBe` NCFormatXNChdf5
             mode `shouldSatisfy` (queryOpenMode NCShare)
         it "correctly sets the fill mode" $ do
-            pendingWith "read/write bindings are not implemented yet"
+            nc_id                  <- checkNC =<< nc_create (testOutputPath </> "file1.nc") NCNetCDF4 NCClobber
+            _                      <- checkNC =<< nc_set_fill nc_id NCFill
+            dim_id                 <- checkNC =<< nc_def_dim nc_id "nc_dimension" (Just 2)
+            var_id                 <- checkNC =<< nc_def_var nc_id "variable" NCInt64 (D dim_id)
+            _                      <- checkNC =<< nc_def_var_fill nc_id var_id (Just 100)
+            v                      <- checkNC =<< nc_get_var nc_id var_id
+            _                      <- checkNC =<< nc_close nc_id
+            v `shouldBe` VS.fromList [100, 100]

@@ -10,19 +10,22 @@ module Data.Format.NetCDF.LowLevel.Variable where
 import           Data.Int
 import           Data.Maybe (fromMaybe)
 import           Data.Proxy (Proxy(..))
+import qualified Data.Vector.Storable as VS
 import           Data.Word
-import           Foreign.Ptr
 import           Foreign.C.String
 import           Foreign.C.Types
+import           Foreign.ForeignPtr
 import           Foreign.Marshal.Alloc
 import           Foreign.Marshal.Array
 import           Foreign.Marshal.Utils
+import           Foreign.Ptr
 import           Foreign.Storable
 import           GHC.TypeNats (natVal, someNatVal, SomeNat(..), Nat, KnownNat)
 
 import           Internal.Definitions
 import           Data.Format.NetCDF.LowLevel.Definitions
 import           Data.Format.NetCDF.LowLevel.C.Definitions
+import           Data.Format.NetCDF.LowLevel.Dimension (nc_inq_dimlen)
 
 foreign import ccall unsafe "nc_def_var" c_nc_def_var :: CInt -> CString -> CInt -> CInt -> Ptr CInt -> Ptr CInt -> IO CInt
 foreign import ccall unsafe "nc_def_var_fill" c_nc_def_var_fill :: CInt -> CInt -> CInt -> Ptr NCData -> IO CInt
@@ -40,7 +43,7 @@ foreign import ccall unsafe "nc_rename_var" c_nc_rename_var :: CInt -> CInt -> C
 -- int     nc_set_var_chunk_cache (int ncid, int varid, size_t size, size_t nelems, float preemption)
 -- int     nc_get_var_chunk_cache (int ncid, int varid, size_t *sizep, size_t *nelemsp, float *preemptionp)
 
--- int     nc_get_vara (int ncid, int varid, const size_t *startp, const size_t *countp, void *ip)
+foreign import ccall unsafe "nc_get_vara" c_nc_get_vara :: CInt -> CInt -> Ptr CSize -> Ptr CSize -> Ptr NCData -> IO CInt
 -- int     nc_get_vara_text (int ncid, int varid, const size_t *startp, const size_t *countp, char *ip)
 -- int     nc_get_vara_schar (int ncid, int varid, const size_t *startp, const size_t *countp, signed char *ip)
 -- int     nc_get_vara_uchar (int ncid, int varid, const size_t *startp, const size_t *countp, unsigned char *ip)
@@ -55,7 +58,7 @@ foreign import ccall unsafe "nc_rename_var" c_nc_rename_var :: CInt -> CInt -> C
 -- int     nc_get_vara_longlong (int ncid, int varid, const size_t *startp, const size_t *countp, long long *ip)
 -- int     nc_get_vara_ulonglong (int ncid, int varid, const size_t *startp, const size_t *countp, unsigned long long *ip)
 -- int     nc_get_vara_string (int ncid, int varid, const size_t *startp, const size_t *countp, char **ip)
--- int     nc_get_var1 (int ncid, int varid, const size_t *indexp, void *ip)
+foreign import ccall unsafe "nc_get_var1" c_nc_get_var1 :: CInt -> CInt -> Ptr CSize -> Ptr NCData -> IO CInt
 -- int     nc_get_var1_text (int ncid, int varid, const size_t *indexp, char *ip)
 -- int     nc_get_var1_schar (int ncid, int varid, const size_t *indexp, signed char *ip)
 -- int     nc_get_var1_uchar (int ncid, int varid, const size_t *indexp, unsigned char *ip)
@@ -70,7 +73,7 @@ foreign import ccall unsafe "nc_rename_var" c_nc_rename_var :: CInt -> CInt -> C
 -- int     nc_get_var1_longlong (int ncid, int varid, const size_t *indexp, long long *ip)
 -- int     nc_get_var1_ulonglong (int ncid, int varid, const size_t *indexp, unsigned long long *ip)
 -- int     nc_get_var1_string (int ncid, int varid, const size_t *indexp, char **ip)
--- int     nc_get_var (int ncid, int varid, void *ip)
+foreign import ccall unsafe "nc_get_var" c_nc_get_var :: CInt -> CInt -> Ptr NCData -> IO CInt
 -- int     nc_get_var_text (int ncid, int varid, char *ip)
 -- int     nc_get_var_schar (int ncid, int varid, signed char *ip)
 -- int     nc_get_var_uchar (int ncid, int varid, unsigned char *ip)
@@ -85,7 +88,7 @@ foreign import ccall unsafe "nc_rename_var" c_nc_rename_var :: CInt -> CInt -> C
 -- int     nc_get_var_longlong (int ncid, int varid, long long *ip)
 -- int     nc_get_var_ulonglong (int ncid, int varid, unsigned long long *ip)
 -- int     nc_get_var_string (int ncid, int varid, char **ip)
--- int     nc_get_vars (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, void *ip)
+foreign import ccall unsafe "nc_get_vars" c_nc_get_vars :: CInt -> CInt -> Ptr CSize -> Ptr CSize -> Ptr CPtrdiff -> Ptr NCData -> IO CInt
 -- int     nc_get_vars_text (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, char *ip)
 -- int     nc_get_vars_schar (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, signed char *ip)
 -- int     nc_get_vars_uchar (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, unsigned char *ip)
@@ -134,7 +137,7 @@ foreign import ccall unsafe "nc_inq_var_endian" c_nc_inq_var_endian :: CInt -> C
 foreign import ccall unsafe "nc_inq_unlimdims" c_nc_inq_unlimdims :: CInt -> Ptr CInt -> Ptr CInt -> IO CInt
 -- int     NC_inq_var_all (int ncid, int varid, char *name, nc_type *xtypep, int *ndimsp, int *dimidsp, int *nattsp, int *shufflep, int *deflatep, int *deflate_levelp, int *fletcher32p, int *contiguousp, size_t *chunksizesp, int *no_fill, void *fill_valuep, int *endiannessp, unsigned int *idp, size_t *nparamsp, unsigned int *params)
 
--- int     nc_put_vara (int ncid, int varid, const size_t *startp, const size_t *countp, const void *op)
+foreign import ccall unsafe "nc_put_vara" c_nc_put_vara :: CInt -> CInt -> Ptr CSize -> Ptr CSize -> Ptr NCData -> IO CInt
 -- int     nc_put_vara_text (int ncid, int varid, const size_t *startp, const size_t *countp, const char *op)
 -- int     nc_put_vara_schar (int ncid, int varid, const size_t *startp, const size_t *countp, const signed char *op)
 -- int     nc_put_vara_uchar (int ncid, int varid, const size_t *startp, const size_t *countp, const unsigned char *op)
@@ -149,7 +152,7 @@ foreign import ccall unsafe "nc_inq_unlimdims" c_nc_inq_unlimdims :: CInt -> Ptr
 -- int     nc_put_vara_longlong (int ncid, int varid, const size_t *startp, const size_t *countp, const long long *op)
 -- int     nc_put_vara_ulonglong (int ncid, int varid, const size_t *startp, const size_t *countp, const unsigned long long *op)
 -- int     nc_put_vara_string (int ncid, int varid, const size_t *startp, const size_t *countp, const char **op)
--- int     nc_put_var1 (int ncid, int varid, const size_t *indexp, const void *op)
+foreign import ccall unsafe "nc_put_var1" c_nc_put_var1 :: CInt -> CInt -> Ptr CSize -> Ptr NCData -> IO CInt
 -- int     nc_put_var1_text (int ncid, int varid, const size_t *indexp, const char *op)
 -- int     nc_put_var1_schar (int ncid, int varid, const size_t *indexp, const signed char *op)
 -- int     nc_put_var1_uchar (int ncid, int varid, const size_t *indexp, const unsigned char *op)
@@ -164,7 +167,7 @@ foreign import ccall unsafe "nc_inq_unlimdims" c_nc_inq_unlimdims :: CInt -> Ptr
 -- int     nc_put_var1_longlong (int ncid, int varid, const size_t *indexp, const long long *op)
 -- int     nc_put_var1_ulonglong (int ncid, int varid, const size_t *indexp, const unsigned long long *op)
 -- int     nc_put_var1_string (int ncid, int varid, const size_t *indexp, const char **op)
--- int     nc_put_var (int ncid, int varid, const void *op)
+foreign import ccall unsafe "nc_put_var" c_nc_put_var :: CInt -> CInt -> Ptr NCData -> IO CInt
 -- int     nc_put_var_text (int ncid, int varid, const char *op)
 -- int     nc_put_var_schar (int ncid, int varid, const signed char *op)
 -- int     nc_put_var_uchar (int ncid, int varid, const unsigned char *op)
@@ -179,7 +182,7 @@ foreign import ccall unsafe "nc_inq_unlimdims" c_nc_inq_unlimdims :: CInt -> Ptr
 -- int     nc_put_var_longlong (int ncid, int varid, const long long *op)
 -- int     nc_put_var_ulonglong (int ncid, int varid, const unsigned long long *op)
 -- int     nc_put_var_string (int ncid, int varid, const char **op)
--- int     nc_put_vars (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const void *op)
+foreign import ccall unsafe "nc_put_vars" c_nc_put_vars :: CInt -> CInt -> Ptr CSize -> Ptr CSize -> Ptr CPtrdiff -> Ptr NCData -> IO CInt
 -- int     nc_put_vars_text (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const char *op)
 -- int     nc_put_vars_schar (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const signed char *op)
 -- int     nc_put_vars_uchar (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const unsigned char *op)
@@ -475,4 +478,161 @@ nc_inq_unlimdims ncid = do
                 res <- c_nc_inq_unlimdims (ncRawId ncid) nullPtr dimIdsPtr
                 dimIds <- peekArray numDimsPtr dimIdsPtr
                 return $! (fromIntegral res, map NCDimensionId dimIds)
+
+nc_get_vara :: forall id a (t :: NCDataType a) (n :: Nat). (KnownNat n, Storable a) =>
+       NC id
+    -> NCVariableId n t
+    -> StaticVector n Int
+    -> StaticVector n Int
+    -> IO (Int32, VS.Vector a)
+nc_get_vara ncid (NCVariableId varid) start count =
+    withStaticVector (fromIntegral <$> start) $ \startPtr ->
+    withStaticVector (fromIntegral <$> count) $ \countPtr -> do
+        countList <- peekArray (fromIntegral $! natVal (Proxy :: Proxy n)) countPtr
+        fp <- mallocForeignPtrArray . fromIntegral $ product countList
+        res <- withForeignPtr fp $ \ncDataPtr ->
+            c_nc_get_vara (ncRawId ncid) varid startPtr countPtr (castPtr ncDataPtr)
+        return $!
+            ( fromIntegral res
+            , VS.unsafeFromForeignPtr0 fp (fromIntegral $ product countList))
+
+nc_get_var1 :: forall id a (t :: NCDataType a) (n :: Nat). (KnownNat n, Storable a) =>
+       NC id
+    -> NCVariableId n t
+    -> StaticVector n Int
+    -> IO (Int32, a)
+nc_get_var1 ncid (NCVariableId varid) start =
+    withStaticVector (fromIntegral <$> start) $ \startPtr ->
+    alloca $ \ncDataPtr -> do
+        res <- c_nc_get_var1 (ncRawId ncid) varid startPtr (castPtr ncDataPtr)
+        ncData <- peek ncDataPtr
+        return $! (fromIntegral res, ncData)
+
+nc_get_var :: forall id a (t :: NCDataType a) (n :: Nat). (KnownNat n, Storable a) =>
+       NC id
+    -> NCVariableId n t
+    -> IO (Int32, VS.Vector a)
+nc_get_var ncid v@(NCVariableId varid) = do
+    (res1, maybeDimids) <- nc_inq_vardimid ncid v
+    if res1 /= 0
+        then return $! (res1, VS.empty)
+        else do
+            let varDimids = fromMaybe [] $ fromStaticVector <$> maybeDimids
+            (ress,dimLens) <- unzip <$> mapM (nc_inq_dimlen ncid) varDimids
+            if any (/= 0) ress
+                then return $! (-1, VS.empty) -- TODO: return a custom error code
+                else do
+                    fp <- mallocForeignPtrArray . fromIntegral $ product dimLens
+                    res <- withForeignPtr fp $ \ncDataPtr ->
+                        c_nc_get_var (ncRawId ncid) varid (castPtr ncDataPtr)
+                    return $!
+                        ( fromIntegral res
+                        , VS.unsafeFromForeignPtr0 fp (fromIntegral $ product dimLens))
+
+nc_get_vars :: forall id a (t :: NCDataType a) (n :: Nat). (KnownNat n, Storable a) =>
+       NC id
+    -> NCVariableId n t
+    -> StaticVector n Int
+    -> StaticVector n Int
+    -> StaticVector n Int
+    -> IO (Int32, VS.Vector a)
+nc_get_vars ncid (NCVariableId varid) start count stride =
+    withStaticVector (fromIntegral <$>  start) $ \startPtr  ->
+    withStaticVector (fromIntegral <$>  count) $ \countPtr  ->
+    withStaticVector (fromIntegral <$> stride) $ \stridePtr -> do
+        countList <- peekArray (fromIntegral $! natVal (Proxy :: Proxy n)) countPtr
+        fp <- mallocForeignPtrArray . fromIntegral $ product countList
+        res <- withForeignPtr fp $ \ncDataPtr ->
+            c_nc_get_vars (ncRawId ncid) varid startPtr countPtr stridePtr (castPtr ncDataPtr)
+        return $!
+            ( fromIntegral res
+            , VS.unsafeFromForeignPtr0 fp (fromIntegral $ product countList))
+
+nc_put_vara :: forall id a (t :: NCDataType a) (n :: Nat). (KnownNat n, Storable a) =>
+       NC id
+    -> NCVariableId n t
+    -> StaticVector n Int
+    -> StaticVector n Int
+    -> VS.Vector a
+    -> IO (Int32, ())
+nc_put_vara ncid (NCVariableId varid) start count ncData
+  | VS.length ncData /= (product $ fromStaticVector count) =
+      return (-62 {- NC_EVARSIZE -}, ()) -- TODO: Introduce a sum type for NC error codes
+  | otherwise =
+    withStaticVector (fromIntegral <$> start) $ \startPtr ->
+    withStaticVector (fromIntegral <$> count) $ \countPtr ->
+    VS.unsafeWith ncData $ \ncDataPtr -> do
+        res <- c_nc_put_vara (ncRawId ncid) varid startPtr countPtr (castPtr ncDataPtr)
+        return $! (fromIntegral res, ())
+
+nc_put_var1 :: forall id a (t :: NCDataType a) (n :: Nat). (KnownNat n, Storable a) =>
+       NC id
+    -> NCVariableId n t
+    -> StaticVector n Int
+    -> a
+    -> IO (Int32, ())
+nc_put_var1 ncid (NCVariableId varid) start ncData =
+    withStaticVector (fromIntegral <$> start) $ \startPtr ->
+    with ncData $ \ncDataPtr -> do
+        res <- c_nc_put_var1 (ncRawId ncid) varid startPtr (castPtr ncDataPtr)
+        return $! (fromIntegral res, ())
+
+nc_put_var :: forall id a (t :: NCDataType a) (n :: Nat). (KnownNat n, Storable a) =>
+       NC id
+    -> NCVariableId n t
+    -> VS.Vector a
+    -> IO (Int32, ())
+nc_put_var ncid v@(NCVariableId varid) ncData = do
+    (res1, maybeDimids) <- nc_inq_vardimid ncid v
+    if res1 /= 0
+        then return $! (res1, ())
+        else do
+            let varDimids = fromMaybe [] $ fromStaticVector <$> maybeDimids
+            (ress,dimLens) <- unzip <$> mapM (nc_inq_dimlen ncid) varDimids
+            if any (/= 0) ress
+                then return $! (-1, ()) -- TODO: return a custom error code
+                else if VS.length ncData /= (fromIntegral $ product dimLens)
+                    then return (-62 {- NC_EVARSIZE -}, ()) -- TODO: Introduce a sum type for NC error codes
+                    else VS.unsafeWith ncData $ \ncDataPtr -> do
+                        res <- c_nc_put_var (ncRawId ncid) varid (castPtr ncDataPtr)
+                        return $! (fromIntegral res, ())
+
+nc_put_vars :: forall id a (t :: NCDataType a) (n :: Nat). (KnownNat n, Storable a) =>
+       NC id
+    -> NCVariableId n t
+    -> StaticVector n Int
+    -> StaticVector n Int
+    -> StaticVector n Int
+    -> VS.Vector a
+    -> IO (Int32, ())
+nc_put_vars ncid (NCVariableId varid) start count stride ncData
+  | VS.length ncData /= (product $ fromStaticVector count) =
+      return (-62 {- NC_EVARSIZE -}, ()) -- TODO: Introduce a sum type for NC error codes
+  | otherwise =
+    withStaticVector (fromIntegral <$>  start) $ \startPtr  ->
+    withStaticVector (fromIntegral <$>  count) $ \countPtr  ->
+    withStaticVector (fromIntegral <$> stride) $ \stridePtr ->
+    VS.unsafeWith ncData $ \ncDataPtr -> do
+        res <- c_nc_put_vars (ncRawId ncid) varid startPtr countPtr stridePtr (castPtr ncDataPtr)
+        return $! (fromIntegral res, ())
+
+nc_get_scalar :: forall id a (t :: NCDataType a). Storable a =>
+       NC id
+    -> NCVariableId 0 t
+    -> IO (Int32, a)
+nc_get_scalar ncid (NCVariableId varid) =
+    alloca $ \ncDataPtr -> do
+        res <- c_nc_get_var (ncRawId ncid) varid (castPtr ncDataPtr)
+        ncData <- peek ncDataPtr
+        return $! (fromIntegral res, ncData)
+
+nc_put_scalar :: forall id a (t :: NCDataType a). Storable a =>
+       NC id
+    -> NCVariableId 0 t
+    -> a
+    -> IO (Int32, ())
+nc_put_scalar ncid (NCVariableId varid) ncData =
+    with ncData $ \ncDataPtr -> do
+        res <- c_nc_put_var (ncRawId ncid) varid (castPtr ncDataPtr)
+        return $! (fromIntegral res, ())
 

@@ -6,4 +6,4 @@ module Data.Format.NetCDF.LowLevel(
 
 import           Data.Format.NetCDF.LowLevel.Definitions
 import           Data.Format.NetCDF.LowLevel.C.Definitions ((.|.), queryOpenMode)
-import           Internal.Definitions (StaticVector(..), TypedValue(..), fromStaticVector)
+import           Internal.Definitions (StaticVector(..), TypedValue(..), VarShapeDef(..), fromStaticVector)

@@ -3,8 +3,10 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Data.Format.NetCDF.LowLevel.VariableSpec(spec) where
 
+import           Data.Int (Int64)
 import           Data.Proxy
 import           Data.Type.Equality ((:~:)(Refl))
+import qualified Data.Vector.Storable as VS
 import           GHC.TypeNats
 import           System.FilePath ((</>))
 import           Test.Hspec
@@ -259,3 +261,144 @@ spec = do
                 unlimDims              <- checkNC =<< nc_inq_unlimdims nc_id
                 _                      <- checkNC =<< nc_close nc_id
                 unlimDims == [dim1_id, dim2_id, dim3_id] `shouldBe` True
+        context "nc_get_vara" $ do
+            it "correctly reads a vector variable" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable t (var :: NCVariableId n a)) <-
+                                          checkNC =<< nc_inq_varid nc_id "vector_int"
+                case t of
+                    NCInt -> case sameNat (Proxy :: Proxy n) (Proxy :: Proxy 1) of
+                        Just Refl -> do
+                            nc_data <- checkNC =<< nc_get_vara nc_id var (D 0) (D 3)
+                            _       <- checkNC =<< nc_close nc_id
+                            nc_data `shouldBe` VS.fromList [3, 4, 5]
+                        Nothing -> expectationFailure "Unexpected NC variable rank"
+                    _ -> expectationFailure "Unexpected data type"
+            it "correctly reads a subset of a vector variable" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable t (var :: NCVariableId n a)) <-
+                                          checkNC =<< nc_inq_varid nc_id "vector_int"
+                case t of
+                    NCInt -> case sameNat (Proxy :: Proxy n) (Proxy :: Proxy 1) of
+                        Just Refl -> do
+                            nc_data <- checkNC =<< nc_get_vara nc_id var (D 1) (D 1)
+                            _       <- checkNC =<< nc_close nc_id
+                            nc_data `shouldBe` VS.fromList [4]
+                        Nothing -> expectationFailure "Unexpected NC variable rank"
+                    _ -> expectationFailure "Unexpected data type"
+        context "nc_get_var1" $ do
+            it "correctly reads a single value from vector" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable t (var :: NCVariableId n a)) <-
+                                          checkNC =<< nc_inq_varid nc_id "vector_int"
+                case t of
+                    NCInt -> case sameNat (Proxy :: Proxy n) (Proxy :: Proxy 1) of
+                        Just Refl -> do
+                            nc_data <- checkNC =<< nc_get_var1 nc_id var (D 1)
+                            _       <- checkNC =<< nc_close nc_id
+                            nc_data `shouldBe` 4
+                        Nothing -> expectationFailure "Unexpected NC variable rank"
+                    _ -> expectationFailure "Unexpected data type"
+        context "nc_get_var" $ do
+            it "correctly reads a scalar variable" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "vector_int"
+                case t of
+                    NCInt -> do
+                        nc_data <- checkNC =<< nc_get_var nc_id var
+                        _       <- checkNC =<< nc_close nc_id
+                        nc_data `shouldBe` VS.fromList [3,4,5]
+                    _ -> expectationFailure "Unexpected data type"
+            it "correctly reads a vector variable" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable t (var :: NCVariableId n a)) <-
+                                          checkNC =<< nc_inq_varid nc_id "scalar_int"
+                case t of
+                    NCInt -> do
+                        nc_data <- checkNC =<< nc_get_var nc_id var
+                        _       <- checkNC =<< nc_close nc_id
+                        nc_data `shouldBe` VS.fromList [7]
+                    _ -> expectationFailure "Unexpected data type"
+        context "nc_get_vars" $ do
+            it "correctly reads a vector variable" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable t (var :: NCVariableId n a)) <-
+                                          checkNC =<< nc_inq_varid nc_id "vector_int"
+                case t of
+                    NCInt -> case sameNat (Proxy :: Proxy n) (Proxy :: Proxy 1) of
+                        Just Refl -> do
+                            nc_data <- checkNC =<< nc_get_vars nc_id var (D 0) (D 2) (D 2)
+                            _       <- checkNC =<< nc_close nc_id
+                            nc_data `shouldBe` VS.fromList [3,5]
+                        Nothing -> expectationFailure "Unexpected NC variable rank"
+                    _ -> expectationFailure "Unexpected data type"
+        context "nc_put_vara" $ do
+            it "correctly writes a vector variable" $ do
+                let nc_data = VS.fromList ([4,5,6,7] :: [Int64] )
+                nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var1_write.nc") NCNetCDF4 NCClobber
+                dim_id                 <- checkNC =<< nc_def_dim nc_id "nc_dimension" (Just 4)
+                var_id                 <- checkNC =<< nc_def_var nc_id "variable" NCInt64 (D dim_id)
+                _                      <- checkNC =<< nc_put_vara nc_id var_id (D 0) (D 4) nc_data
+                v                      <- checkNC =<< nc_get_var nc_id var_id
+                _                      <- checkNC =<< nc_close nc_id
+                v `shouldBe` nc_data
+        context "nc_put_var1" $ do
+            it "correctly writes a single value" $ do
+                nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var2_write.nc") NCNetCDF4 NCClobber
+                dim_id                 <- checkNC =<< nc_def_dim nc_id "nc_dimension" (Just 2)
+                var_id                 <- checkNC =<< nc_def_var nc_id "variable" NCInt64 (D dim_id)
+                _                      <- checkNC =<< nc_def_var_fill nc_id var_id (Just 100)
+                _                      <- checkNC =<< nc_put_var1 nc_id var_id (D 1) 7
+                v                      <- checkNC =<< nc_get_var nc_id var_id
+                _                      <- checkNC =<< nc_close nc_id
+                v `shouldBe` VS.fromList [100, 7]
+        context "nc_put_var" $ do
+            it "correctly writes a vector variable" $ do
+                let nc_data = VS.fromList ([4,5,6,7] :: [Int64] )
+                nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var3_write.nc") NCNetCDF4 NCClobber
+                dim_id                 <- checkNC =<< nc_def_dim nc_id "nc_dimension" (Just 4)
+                var_id                 <- checkNC =<< nc_def_var nc_id "variable" NCInt64 (D dim_id)
+                _                      <- checkNC =<< nc_put_var nc_id var_id nc_data
+                v                      <- checkNC =<< nc_get_var nc_id var_id
+                _                      <- checkNC =<< nc_close nc_id
+                v `shouldBe` nc_data
+        context "nc_put_vars" $ do
+            it "correctly writes a vector variable" $ do
+                let nc_data = VS.fromList ([2,3] :: [Int64] )
+                nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var4_write.nc") NCNetCDF4 NCClobber
+                dim_id                 <- checkNC =<< nc_def_dim nc_id "nc_dimension" (Just 4)
+                var_id                 <- checkNC =<< nc_def_var nc_id "variable" NCInt64 (D dim_id)
+                _                      <- checkNC =<< nc_def_var_fill nc_id var_id (Just 100)
+                _                      <- checkNC =<< nc_put_vars nc_id var_id (D 0) (D 2) (D 2) nc_data
+                v                      <- checkNC =<< nc_get_var nc_id var_id
+                _                      <- checkNC =<< nc_close nc_id
+                v `shouldBe` VS.fromList [2,100,3,100]
+        context "nc_get_scalar" $ do
+            it "correctly reads a scalar variable" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable t (var :: NCVariableId n a)) <-
+                                          checkNC =<< nc_inq_varid nc_id "scalar_int"
+                case t of
+                    NCInt -> case sameNat (Proxy :: Proxy n) (Proxy :: Proxy 0) of
+                        Just Refl -> do
+                            nc_data <- checkNC =<< nc_get_scalar nc_id var
+                            _       <- checkNC =<< nc_close nc_id
+                            nc_data `shouldBe` 7
+                        Nothing -> expectationFailure "Unexpected NC variable rank"
+                    _ -> expectationFailure "Unexpected data type"
+        context "nc_put_scalar" $ do
+            it "correctly writes a scalar variable - 1" $ do
+                nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var5_write.nc") NCNetCDF4 NCClobber
+                var_id                 <- checkNC =<< nc_def_var' nc_id "variable" NCInt64 ScalarVar
+                _                      <- checkNC =<< nc_put_scalar nc_id var_id 7
+                v                      <- checkNC =<< nc_get_scalar nc_id var_id
+                _                      <- checkNC =<< nc_close nc_id
+                v `shouldBe` 7
+            it "correctly writes a scalar variable - 2" $ do
+                nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var6_write.nc") NCClassic NCClobber
+                var_id                 <- checkNC =<< nc_def_var' nc_id "variable" NCDouble ScalarVar
+                _                      <- checkNC =<< nc_enddef nc_id
+                _                      <- checkNC =<< nc_put_scalar nc_id var_id 11.5
+                v                      <- checkNC =<< nc_get_scalar nc_id var_id
+                _                      <- checkNC =<< nc_close nc_id
+                v `shouldBe` 11.5
