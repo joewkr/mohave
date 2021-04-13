@@ -83,6 +83,14 @@ instance Storable NCDimensionId where
     peek ptr                        = NCDimensionId <$> peek (castPtr ptr)
     poke ptr  (NCDimensionId dimId) = poke (castPtr ptr) dimId
 
+newtype NCStringPtr = NCStringPtr CString deriving (Eq, Show)
+
+instance Storable NCStringPtr where
+    sizeOf    (NCStringPtr strPtr) = sizeOf strPtr
+    alignment (NCStringPtr strPtr) = alignment strPtr
+    peek ptr                        = NCStringPtr <$> peek (castPtr ptr)
+    poke ptr  (NCStringPtr strPtr) = poke (castPtr ptr) strPtr
+
 data NCDataType a where
     NCNone   :: NCDataType ()
     NCByte   :: NCDataType Int8
@@ -96,7 +104,7 @@ data NCDataType a where
     NCUInt64 :: NCDataType Word64
     NCFloat  :: NCDataType Float
     NCDouble :: NCDataType Double
-    NCString :: NCDataType CString -- When reading from a NetCDF file memory is allocated on the C-side
+    NCString :: NCDataType NCStringPtr -- When reading from a NetCDF file memory is allocated on the C-side
 
 deriving instance Show (NCDataType a)
 
