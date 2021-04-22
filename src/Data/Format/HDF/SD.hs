@@ -100,7 +100,7 @@ newtype SDataSetId (n :: Nat) (t :: HDataType a) (mode :: HDFOpenMode) s where
 
 data SomeSDS (mode :: HDFOpenMode) s where
     SomeSDS :: forall a (n :: Nat) (t :: HDataType a) (mode :: HDFOpenMode) s. KnownNat n =>
-        HDataType a -> SDataSetId n t mode s -> SomeSDS mode s
+        HDataTypeS t -> SDataSetId n t mode s -> SomeSDS mode s
 
 newtype SDimensionId (mode :: HDFOpenMode) s = SDimensionId LowLevel.SD.SDimensionId
 

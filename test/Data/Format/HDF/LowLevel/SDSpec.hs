@@ -635,7 +635,7 @@ spec = do
                 sd_id              <- check =<< sd_start "test-data/sd/test1.hdf" HDFRead
                 (SomeSDS t sds_id) <- check =<< sd_select sd_id 0
                 case t of
-                    HFloat32 -> do
+                    SHFloat32 -> do
                         fillValue <- check =<< sd_getfillvalue sds_id
                         _         <- check =<< sd_endaccess sds_id
                         _         <- check =<< sd_end sd_id
@@ -646,7 +646,7 @@ spec = do
                 sds_index          <- check =<< sd_nametoindex sd_id "FIXED1"
                 (SomeSDS t sds_id) <- check =<< sd_select sd_id sds_index
                 case t of
-                    HInt32 -> do
+                    SHInt32 -> do
                         fillValue <- check =<< sd_getfillvalue sds_id
                         _         <- check =<< sd_endaccess sds_id
                         _         <- check =<< sd_end sd_id
@@ -657,7 +657,7 @@ spec = do
                 sd_id              <- check =<< sd_start "test-data/sd/test1.hdf" HDFRead
                 (SomeSDS t sds_id) <- check =<< sd_select sd_id 0
                 case t of
-                    HFloat32 -> do
+                    SHFloat32 -> do
                         validRange <- check =<< sd_getrange sds_id
                         _          <- check =<< sd_endaccess sds_id
                         _          <- check =<< sd_end sd_id
@@ -840,7 +840,7 @@ spec = do
                 sd_id              <- check =<< sd_start "test-data/sd/chktst.hdf" HDFRead
                 (SomeSDS t sds_id) <- check =<< sd_select sd_id 0
                 case t of
-                    HWord16 -> do
+                    SHWord16 -> do
                         sdsChunk <- check =<< sd_readchunk sds_id [0,0]
                         _        <- check =<< sd_endaccess sds_id
                         _        <- check =<< sd_end sd_id
@@ -851,7 +851,7 @@ spec = do
                 sd_id              <- check =<< sd_start "test-data/sd/chktst.hdf" HDFRead
                 (SomeSDS t sds_id) <- check =<< sd_select sd_id 0
                 case t of
-                    HWord16 -> do
+                    SHWord16 -> do
                         sdsChunk <- check =<< sd_readchunk sds_id [2,1]
                         _        <- check =<< sd_endaccess sds_id
                         _        <- check =<< sd_end sd_id
@@ -861,7 +861,7 @@ spec = do
                 sd_id              <- check =<< sd_start "test-data/sd/chktst.hdf" HDFRead
                 (SomeSDS t sds_id) <- check =<< sd_select sd_id 0
                 case t of
-                    HWord16 -> do
+                    SHWord16 -> do
                         (status, _) <- sd_readchunk sds_id [999,999]
                         _           <- check =<< sd_endaccess sds_id
                         _           <- check =<< sd_end sd_id
@@ -1209,7 +1209,7 @@ spec = do
                 (SomeSDS t (sds_id :: SDataSetId n a)) <-
                                       check =<< sd_select sd_id 0
                 case t of
-                    HFloat32 -> case sameNat (Proxy :: Proxy n) (Proxy :: Proxy 2) of
+                    SHFloat32 -> case sameNat (Proxy :: Proxy n) (Proxy :: Proxy 2) of
                         Just Refl -> do
                             v <- check =<< sd_readdata sds_id (D 1:|1) (D 1:|1) (D 3:|3)
                             _ <- check =<< sd_endaccess sds_id
@@ -1222,7 +1222,7 @@ spec = do
                 (SomeSDS t (sds_id :: SDataSetId n a)) <-
                                       check =<< sd_select sd_id 0
                 case t of
-                    HFloat32 -> case sameNat (Proxy :: Proxy n) (Proxy :: Proxy 2) of
+                    SHFloat32 -> case sameNat (Proxy :: Proxy n) (Proxy :: Proxy 2) of
                         Just Refl -> do
                             v <- check =<< sd_readdata sds_id (D 1:|1) (D 2:|1) (D 2:|1)
                             _ <- check =<< sd_endaccess sds_id

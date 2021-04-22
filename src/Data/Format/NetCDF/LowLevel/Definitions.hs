@@ -4,6 +4,7 @@
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TypeInType #-} -- Required with ghc 8.4.3
 module Data.Format.NetCDF.LowLevel.Definitions where
 
 import qualified Data.ByteString as BS
@@ -106,7 +107,23 @@ data NCDataType a where
     NCDouble :: NCDataType Double
     NCString :: NCDataType NCStringPtr -- When reading from a NetCDF file memory is allocated on the C-side
 
-deriving instance Show (NCDataType a)
+data NCDataTypeS (t :: NCDataType a) where
+    SNCNone   :: NCDataTypeS 'NCNone
+    SNCByte   :: NCDataTypeS 'NCByte
+    SNCUByte  :: NCDataTypeS 'NCUByte
+    SNCChar   :: NCDataTypeS 'NCChar
+    SNCShort  :: NCDataTypeS 'NCShort
+    SNCUShort :: NCDataTypeS 'NCUShort
+    SNCInt    :: NCDataTypeS 'NCInt
+    SNCUInt   :: NCDataTypeS 'NCUInt
+    SNCInt64  :: NCDataTypeS 'NCInt64
+    SNCUInt64 :: NCDataTypeS 'NCUInt64
+    SNCFloat  :: NCDataTypeS 'NCFloat
+    SNCDouble :: NCDataTypeS 'NCDouble
+    SNCString :: NCDataTypeS 'NCString
+
+deriving instance Show (NCDataType  a)
+deriving instance Show (NCDataTypeS t)
 
 instance TestEquality NCDataType where
     testEquality a b = case a of
@@ -154,7 +171,7 @@ newtype NCVariableId (n :: Nat) (t :: NCDataType a) = NCVariableId CInt deriving
 
 data SomeNCVariable where
     SomeNCVariable :: forall a (n :: Nat) (t :: NCDataType a). KnownNat n =>
-        NCDataType a -> NCVariableId n t -> SomeNCVariable
+        NCDataTypeS t -> NCVariableId n t -> SomeNCVariable
 
 type NCType   = TType   NCDataType
 type NCScalar = TScalar NCDataType

@@ -7,6 +7,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeInType #-} -- Required with ghc 8.4.3
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 module Data.Format.HDF.LowLevel.Definitions where
@@ -57,7 +58,21 @@ data HDataType a where
     HFloat32 :: HDataType Float
     HFloat64 :: HDataType Double
 
-deriving instance Show (HDataType a)
+data HDataTypeS (t :: HDataType a) where
+    SHNone    :: HDataTypeS 'HNone
+    SHUChar8  :: HDataTypeS 'HUChar8
+    SHChar8   :: HDataTypeS 'HChar8
+    SHWord8   :: HDataTypeS 'HWord8
+    SHWord16  :: HDataTypeS 'HWord16
+    SHWord32  :: HDataTypeS 'HWord32
+    SHInt8    :: HDataTypeS 'HInt8
+    SHInt16   :: HDataTypeS 'HInt16
+    SHInt32   :: HDataTypeS 'HInt32
+    SHFloat32 :: HDataTypeS 'HFloat32
+    SHFloat64 :: HDataTypeS 'HFloat64
+
+deriving instance Show (HDataType  a)
+deriving instance Show (HDataTypeS t)
 
 instance TestEquality HDataType where
     testEquality a b = case a of

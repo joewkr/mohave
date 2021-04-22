@@ -136,7 +136,7 @@ spec = do
                 tv                     <- checkNC =<< nc_inq_vartype nc_id var
                 _                      <- checkNC =<< nc_close nc_id
                 case t of
-                    NCInt -> tv `shouldBe` (TypedValue t ())
+                    SNCInt -> tv `shouldBe` (TypedValue NCInt ())
                     _ -> expectationFailure $ "Unexpected variable data type: " ++ show t
         context "nc_inq_varname" $ do
             it "correctly returns variable name" $ do
@@ -227,7 +227,7 @@ spec = do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test1.nc" NCNoWrite
                 (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "vector_var"
                 case t of
-                    NCInt -> do
+                    SNCInt -> do
                         fillValue <- checkNC =<< nc_inq_var_fill nc_id var
                         _         <- checkNC =<< nc_close nc_id
                         fillValue `shouldBe` Just 1
@@ -267,7 +267,7 @@ spec = do
                 (SomeNCVariable t (var :: NCVariableId n a)) <-
                                           checkNC =<< nc_inq_varid nc_id "vector_int"
                 case t of
-                    NCInt -> case sameNat (Proxy :: Proxy n) (Proxy :: Proxy 1) of
+                    SNCInt -> case sameNat (Proxy :: Proxy n) (Proxy :: Proxy 1) of
                         Just Refl -> do
                             nc_data <- checkNC =<< nc_get_vara nc_id var (D 0) (D 3)
                             _       <- checkNC =<< nc_close nc_id
@@ -279,7 +279,7 @@ spec = do
                 (SomeNCVariable t (var :: NCVariableId n a)) <-
                                           checkNC =<< nc_inq_varid nc_id "vector_int"
                 case t of
-                    NCInt -> case sameNat (Proxy :: Proxy n) (Proxy :: Proxy 1) of
+                    SNCInt -> case sameNat (Proxy :: Proxy n) (Proxy :: Proxy 1) of
                         Just Refl -> do
                             nc_data <- checkNC =<< nc_get_vara nc_id var (D 1) (D 1)
                             _       <- checkNC =<< nc_close nc_id
@@ -292,7 +292,7 @@ spec = do
                 (SomeNCVariable t (var :: NCVariableId n a)) <-
                                           checkNC =<< nc_inq_varid nc_id "vector_int"
                 case t of
-                    NCInt -> case sameNat (Proxy :: Proxy n) (Proxy :: Proxy 1) of
+                    SNCInt -> case sameNat (Proxy :: Proxy n) (Proxy :: Proxy 1) of
                         Just Refl -> do
                             nc_data <- checkNC =<< nc_get_var1 nc_id var (D 1)
                             _       <- checkNC =<< nc_close nc_id
@@ -304,7 +304,7 @@ spec = do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
                 (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "vector_int"
                 case t of
-                    NCInt -> do
+                    SNCInt -> do
                         nc_data <- checkNC =<< nc_get_var nc_id var
                         _       <- checkNC =<< nc_close nc_id
                         nc_data `shouldBe` VS.fromList [3,4,5]
@@ -314,7 +314,7 @@ spec = do
                 (SomeNCVariable t (var :: NCVariableId n a)) <-
                                           checkNC =<< nc_inq_varid nc_id "scalar_int"
                 case t of
-                    NCInt -> do
+                    SNCInt -> do
                         nc_data <- checkNC =<< nc_get_var nc_id var
                         _       <- checkNC =<< nc_close nc_id
                         nc_data `shouldBe` VS.fromList [7]
@@ -325,7 +325,7 @@ spec = do
                 (SomeNCVariable t (var :: NCVariableId n a)) <-
                                           checkNC =<< nc_inq_varid nc_id "vector_int"
                 case t of
-                    NCInt -> case sameNat (Proxy :: Proxy n) (Proxy :: Proxy 1) of
+                    SNCInt -> case sameNat (Proxy :: Proxy n) (Proxy :: Proxy 1) of
                         Just Refl -> do
                             nc_data <- checkNC =<< nc_get_vars nc_id var (D 0) (D 2) (D 2)
                             _       <- checkNC =<< nc_close nc_id
@@ -379,7 +379,7 @@ spec = do
                 (SomeNCVariable t (var :: NCVariableId n a)) <-
                                           checkNC =<< nc_inq_varid nc_id "scalar_int"
                 case t of
-                    NCInt -> case sameNat (Proxy :: Proxy n) (Proxy :: Proxy 0) of
+                    SNCInt -> case sameNat (Proxy :: Proxy n) (Proxy :: Proxy 0) of
                         Just Refl -> do
                             nc_data <- checkNC =<< nc_get_scalar nc_id var
                             _       <- checkNC =<< nc_close nc_id

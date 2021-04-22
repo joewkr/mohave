@@ -246,7 +246,7 @@ about rank and type, e.g., 'sd_readdata', pattern-match on 'SomeSDS'
 -}
 data SomeSDS where
     SomeSDS :: forall a (n :: Nat) (t :: HDataType a). KnownNat n =>
-        HDataType a -> SDataSetId n t -> SomeSDS
+        HDataTypeS t -> SDataSetId n t -> SomeSDS
 
 instance SDObjectId SDId where
     getRawObjectId (SDId sd_id) = sd_id
@@ -353,10 +353,20 @@ sd_select (SDId sd_id) sds_index = do
     (h_result, SDataSetInfoRaw{
         sDataSetRank=sdsRank
       , sDataSetDataType=TypedValue{valueType=t}}) <- sd_getinfo (SDataSetId sds_id)
+    let ret_code = if h_result == (-1) then h_result else sds_id
     case someNatVal (fromIntegral sdsRank) of
-        SomeNat (_ :: Proxy n) -> return $! (
-            if h_result == (-1) then h_result else sds_id,
-            SomeSDS t (SDataSetId sds_id :: SDataSetId n t))
+        SomeNat (_ :: Proxy n) -> case t of
+            HNone    -> return (ret_code, SomeSDS SHNone    (SDataSetId sds_id :: SDataSetId n t))
+            HUChar8  -> return (ret_code, SomeSDS SHUChar8  (SDataSetId sds_id :: SDataSetId n t))
+            HChar8   -> return (ret_code, SomeSDS SHChar8   (SDataSetId sds_id :: SDataSetId n t))
+            HWord8   -> return (ret_code, SomeSDS SHWord8   (SDataSetId sds_id :: SDataSetId n t))
+            HWord16  -> return (ret_code, SomeSDS SHWord16  (SDataSetId sds_id :: SDataSetId n t))
+            HWord32  -> return (ret_code, SomeSDS SHWord32  (SDataSetId sds_id :: SDataSetId n t))
+            HInt8    -> return (ret_code, SomeSDS SHInt8    (SDataSetId sds_id :: SDataSetId n t))
+            HInt16   -> return (ret_code, SomeSDS SHInt16   (SDataSetId sds_id :: SDataSetId n t))
+            HInt32   -> return (ret_code, SomeSDS SHInt32   (SDataSetId sds_id :: SDataSetId n t))
+            HFloat32 -> return (ret_code, SomeSDS SHFloat32 (SDataSetId sds_id :: SDataSetId n t))
+            HFloat64 -> return (ret_code, SomeSDS SHFloat64 (SDataSetId sds_id :: SDataSetId n t))
 
 {-| Terminates access to a data set.
 
