@@ -498,7 +498,19 @@ nc_get_vara :: forall id a (t :: NCDataType a) (n :: Nat). (KnownNat n, Storable
     -> StaticVector n Int
     -> StaticVector n Int
     -> IO (Int32, VS.Vector a)
-nc_get_vara ncid (NCVariableId varid) start count =
+nc_get_vara ncid varid start count = do
+    (res, (fp, len)) <- nc_get_vara_fptr ncid varid start count
+    if res /= 0
+        then return $! (res, VS.empty)
+        else return $! (res, VS.unsafeFromForeignPtr0 fp len)
+
+nc_get_vara_fptr :: forall id a (t :: NCDataType a) (n :: Nat). (KnownNat n, Storable a) =>
+       NC id
+    -> NCVariableId n t
+    -> StaticVector n Int
+    -> StaticVector n Int
+    -> IO (Int32, (ForeignPtr a, Int))
+nc_get_vara_fptr ncid (NCVariableId varid) start count =
     withStaticVector (fromIntegral <$> start) $ \startPtr ->
     withStaticVector (fromIntegral <$> count) $ \countPtr -> do
         countList <- peekArray (fromIntegral $! natVal (Proxy :: Proxy n)) countPtr
@@ -507,7 +519,7 @@ nc_get_vara ncid (NCVariableId varid) start count =
             c_nc_get_vara (ncRawId ncid) varid startPtr countPtr (castPtr ncDataPtr)
         return $!
             ( fromIntegral res
-            , VS.unsafeFromForeignPtr0 fp (fromIntegral $ product countList))
+            , (fp, fromIntegral $ product countList))
 
 nc_get_var1 :: forall id a (t :: NCDataType a) (n :: Nat). (KnownNat n, Storable a) =>
        NC id
@@ -525,22 +537,33 @@ nc_get_var :: forall id a (t :: NCDataType a) (n :: Nat). (KnownNat n, Storable 
        NC id
     -> NCVariableId n t
     -> IO (Int32, VS.Vector a)
-nc_get_var ncid v@(NCVariableId varid) = do
+nc_get_var ncid varid = do
+    (res, (fp, len)) <- nc_get_var_fptr ncid varid
+    if res /= 0
+        then return $! (res, VS.empty)
+        else return $! (res, VS.unsafeFromForeignPtr0 fp len)
+
+nc_get_var_fptr :: forall id a (t :: NCDataType a) (n :: Nat). (KnownNat n, Storable a) =>
+       NC id
+    -> NCVariableId n t
+    -> IO (Int32, (ForeignPtr a, Int))
+nc_get_var_fptr ncid v@(NCVariableId varid) = do
     (res1, maybeDimids) <- nc_inq_vardimid ncid v
+    fNullPtr <- newForeignPtr_ nullPtr
     if res1 /= 0
-        then return $! (res1, VS.empty)
+        then return $! (res1, (fNullPtr, 0))
         else do
             let varDimids = fromMaybe [] $ fromStaticVector <$> maybeDimids
             (ress,dimLens) <- unzip <$> mapM (nc_inq_dimlen ncid) varDimids
             if any (/= 0) ress
-                then return $! (-1, VS.empty) -- TODO: return a custom error code
+                then return $! (-1, (fNullPtr, 0)) -- TODO: return a custom error code
                 else do
                     fp <- mallocForeignPtrArray . fromIntegral $ product dimLens
                     res <- withForeignPtr fp $ \ncDataPtr ->
                         c_nc_get_var (ncRawId ncid) varid (castPtr ncDataPtr)
                     return $!
                         ( fromIntegral res
-                        , VS.unsafeFromForeignPtr0 fp (fromIntegral $ product dimLens))
+                        , (fp, fromIntegral $ product dimLens))
 
 nc_get_vars :: forall id a (t :: NCDataType a) (n :: Nat). (KnownNat n, Storable a) =>
        NC id
@@ -549,7 +572,20 @@ nc_get_vars :: forall id a (t :: NCDataType a) (n :: Nat). (KnownNat n, Storable
     -> StaticVector n Int
     -> StaticVector n Int
     -> IO (Int32, VS.Vector a)
-nc_get_vars ncid (NCVariableId varid) start count stride =
+nc_get_vars ncid varid start count stride = do
+    (res, (fp, len)) <- nc_get_vars_fptr ncid varid start count stride
+    if res /= 0
+        then return $! (res, VS.empty)
+        else return $! (res, VS.unsafeFromForeignPtr0 fp len)
+
+nc_get_vars_fptr :: forall id a (t :: NCDataType a) (n :: Nat). (KnownNat n, Storable a) =>
+       NC id
+    -> NCVariableId n t
+    -> StaticVector n Int
+    -> StaticVector n Int
+    -> StaticVector n Int
+    -> IO (Int32, (ForeignPtr a, Int))
+nc_get_vars_fptr ncid (NCVariableId varid) start count stride =
     withStaticVector (fromIntegral <$>  start) $ \startPtr  ->
     withStaticVector (fromIntegral <$>  count) $ \countPtr  ->
     withStaticVector (fromIntegral <$> stride) $ \stridePtr -> do
@@ -559,7 +595,7 @@ nc_get_vars ncid (NCVariableId varid) start count stride =
             c_nc_get_vars (ncRawId ncid) varid startPtr countPtr stridePtr (castPtr ncDataPtr)
         return $!
             ( fromIntegral res
-            , VS.unsafeFromForeignPtr0 fp (fromIntegral $ product countList))
+            , (fp, fromIntegral $ product countList))
 
 nc_put_vara :: forall id a (t :: NCDataType a) (n :: Nat). (KnownNat n, Storable a) =>
        NC id
