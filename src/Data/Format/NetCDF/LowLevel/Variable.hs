@@ -682,4 +682,3 @@ nc_put_scalar ncid (NCVariableId varid) ncData =
     with ncData $ \ncDataPtr -> do
         res <- c_nc_put_var (ncRawId ncid) varid (castPtr ncDataPtr)
         return $! (fromIntegral res, ())
-
