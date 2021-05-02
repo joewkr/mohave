@@ -26,6 +26,7 @@ library
                      , Data.Format.NetCDF.LowLevel.Dimension
                      , Data.Format.NetCDF.LowLevel.Variable
                      , Data.Format.NetCDF.LowLevel.File
+                     , Data.Format.NetCDF.LowLevel.String
   other-modules:       Data.Format.HDF.LowLevel.C.Definitions
                      , Data.Format.HDF.LowLevel.Definitions.Internal
                      , Data.Format.NetCDF.LowLevel.Definitions
@@ -74,6 +75,7 @@ test-suite test-main
                      , Data.Format.HDF.SDSpec
                      , Data.Format.NetCDF.LowLevel.DimensionSpec
                      , Data.Format.NetCDF.LowLevel.FileSpec
+                     , Data.Format.NetCDF.LowLevel.StringSpec
                      , Data.Format.NetCDF.LowLevel.VariableSpec
                      , Testing.Common
                      , Spec

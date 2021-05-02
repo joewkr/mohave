@@ -1,12 +1,17 @@
 netcdf test1 {
 dimensions:
   dim1 = 3;
+  dim2 = 2;
 variables:
   int scalar_int;
   int vector_int(dim1);
+  string just_string;
   string string_vector(dim1);
+  string string_matrix(dim2, dim1);
 data:
   scalar_int = 7;
   vector_int = 3, 4, 5;
+  just_string = "some text";
   string_vector = "one", "two", "three";
+  string_matrix = "aa", "bb", "cc", "dd", "ee", "ff";
 }

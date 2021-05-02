@@ -84,9 +84,14 @@ instance Storable NCDimensionId where
     peek ptr                        = NCDimensionId <$> peek (castPtr ptr)
     poke ptr  (NCDimensionId dimId) = poke (castPtr ptr) dimId
 
-newtype NCStringPtr = NCStringPtr CString deriving (Eq, Show)
+-- Memory allocation mode for NetCDF strings. M -- allocated space is managed
+-- by the runtime and will be allocated automatically. U -- allocation is not
+-- managed and should be allocated manually by user.
+data NCStringMode = M | U
 
-instance Storable NCStringPtr where
+newtype NCStringPtr (mode :: NCStringMode) = NCStringPtr CString deriving (Eq, Show)
+
+instance Storable (NCStringPtr mode) where
     sizeOf    (NCStringPtr strPtr) = sizeOf strPtr
     alignment (NCStringPtr strPtr) = alignment strPtr
     peek ptr                        = NCStringPtr <$> peek (castPtr ptr)
@@ -105,7 +110,7 @@ data NCDataType a where
     NCUInt64 :: NCDataType Word64
     NCFloat  :: NCDataType Float
     NCDouble :: NCDataType Double
-    NCString :: NCDataType NCStringPtr -- When reading from a NetCDF file memory is allocated on the C-side
+    NCString :: NCDataType (NCStringPtr 'U) -- When reading from a NetCDF file memory is allocated on the C-side
 
 data NCDataTypeS (t :: NCDataType a) where
     SNCNone   :: NCDataTypeS 'NCNone

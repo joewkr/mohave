@@ -38,8 +38,6 @@ foreign import ccall unsafe "nc_def_var_endian" c_nc_def_var_endian :: CInt -> C
 
 foreign import ccall unsafe "nc_rename_var" c_nc_rename_var :: CInt -> CInt -> CString -> IO CInt
 
--- int     nc_free_string (size_t len, char **data)
-
 -- int     nc_set_var_chunk_cache (int ncid, int varid, size_t size, size_t nelems, float preemption)
 -- int     nc_get_var_chunk_cache (int ncid, int varid, size_t *sizep, size_t *nelemsp, float *preemptionp)
 
