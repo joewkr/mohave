@@ -1621,8 +1621,8 @@ sd_readattr objId attrId = do
             HNone -> return (h_result_1, TypedValue HNone VS.empty)
             _ -> do
                 (fp :: ForeignPtr dt) <- mallocForeignPtrArray $ fromIntegral attrNValues
-                h_result_2 <- withForeignPtr fp $ \dimScalePtr -> do
-                    c_sdreadattr (getRawObjectId objId) attrId (castPtr dimScalePtr)
+                h_result_2 <- withForeignPtr fp $ \attrValuePtr -> do
+                    c_sdreadattr (getRawObjectId objId) attrId (castPtr attrValuePtr)
                 return $!
                     ( fromIntegral h_result_2
                     , TypedValue t $ VS.unsafeFromForeignPtr0 fp (fromIntegral attrNValues))
