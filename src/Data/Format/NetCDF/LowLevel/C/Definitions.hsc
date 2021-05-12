@@ -173,3 +173,6 @@ fromNCTypeTag tag = case tag of
     #{const NC_DOUBLE} -> TypedValue NCDouble ()
     #{const NC_STRING} -> TypedValue NCString ()
     _                  -> TypedValue NCNone   ()
+
+ncGlobalAttribute :: CInt
+ncGlobalAttribute = #{const NC_GLOBAL}

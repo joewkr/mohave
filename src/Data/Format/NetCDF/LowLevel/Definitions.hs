@@ -172,7 +172,7 @@ instance TestEquality NCDataType where
         NCString -> Just Refl
         _ -> Nothing
 
-newtype NCVariableId (n :: Nat) (t :: NCDataType a) = NCVariableId CInt deriving Eq
+newtype NCVariableId (n :: Nat) (t :: NCDataType a) = NCVariableId{ncRawVarId :: CInt} deriving Eq
 
 data SomeNCVariable where
     SomeNCVariable :: forall a (n :: Nat) (t :: NCDataType a). KnownNat n =>
