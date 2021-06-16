@@ -159,3 +159,58 @@ spec = do
                 numAttr2               <- checkNC =<< nc_inq_natts nc_id
                 _                      <- checkNC =<< nc_close nc_id
                 numAttr2 `shouldBe` 2
+        context "nc_get_scalar_att" $ do
+            it "correctly reads scalar attribute - 1" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable _ var) <- checkNC =<< nc_inq_varid nc_id "string_vector"
+                (TypedValue t v)       <- checkNC =<< nc_get_scalar_att nc_id (Just var) "test_attr"
+                _                      <- checkNC =<< nc_close nc_id
+                case t of
+                    NCDouble -> v `shouldBe` 1.5
+                    _ -> expectationFailure "Unexpected data type"
+            it "correctly reads scalar attribute - 2" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable _ var) <- checkNC =<< nc_inq_varid nc_id "string_vector"
+                (TypedValue t v)       <- checkNC =<< nc_get_scalar_att nc_id (Just var) "long_name"
+                _                      <- checkNC =<< nc_close nc_id
+                case t of
+                    NCString -> do
+                        nc_str  <- fromNCString v
+                        _       <- nc_free_string v
+                        nc_str `shouldBe` "a vector of strings"
+                    _ -> expectationFailure "Unexpected data type"
+            it "correctly reads scalar attribute - 3" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable _ var) <- checkNC =<< nc_inq_varid nc_id "scalar_int"
+                (TypedValue t v)       <- checkNC =<< nc_get_scalar_att nc_id (Just var) "many_ints"
+                _                      <- checkNC =<< nc_close nc_id
+                case t of
+                    NCInt64 -> v `shouldBe` 3
+                    _ -> expectationFailure "Unexpected data type"
+            it "correctly reads a global scalar attribute" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (TypedValue t v)       <- checkNC =<< nc_get_scalar_att nc_id Nothing "version"
+                _                      <- checkNC =<< nc_close nc_id
+                case t of
+                    NCInt -> v `shouldBe` 2021
+                    _ -> expectationFailure "Unexpected data type"
+        context "nc_put_scalar_att" $ do
+            it "correctly sets scalar attribute - 1" $ do
+                nc_id                  <- checkNC =<< nc_create (testOutputPath </> "attr3_put.nc") NCNetCDF4 NCClobber
+                var_id                 <- checkNC =<< nc_def_scalar_var nc_id "variable" NCInt
+                _                      <- checkNC =<< nc_put_scalar_att nc_id (Just var_id) "attribute" NCInt64 11
+                (TypedValue t v)       <- checkNC =<< nc_get_scalar_att nc_id (Just var_id) "attribute"
+                _                      <- checkNC =<< nc_close nc_id
+                case t of
+                    NCInt64 -> do
+                        v `shouldBe` 11
+                    _ -> expectationFailure "Unexpected data type"
+            it "correctly sets scalar attribute - 2" $ do
+                nc_id                  <- checkNC =<< nc_create (testOutputPath </> "attr4_put.nc") NCNetCDF4 NCClobber
+                _                      <- checkNC =<< nc_put_scalar_att nc_id Nothing "attribute" NCFloat 21.1
+                (TypedValue t v)       <- checkNC =<< nc_get_scalar_att nc_id Nothing "attribute"
+                _                      <- checkNC =<< nc_close nc_id
+                case t of
+                    NCFloat -> do
+                        v `shouldBe` 21.1
+                    _ -> expectationFailure "Unexpected data type"

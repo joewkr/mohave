@@ -190,6 +190,25 @@ nc_get_att ncid varid attrName = do
                     ( fromIntegral res
                     , TypedValue t $ VS.unsafeFromForeignPtr0 fp (fromIntegral attrLen))
 
+nc_get_scalar_att :: forall id a (t :: NCDataType a) (n :: Nat).
+       NC id
+    -> Maybe (NCVariableId n t)
+    -> String
+    -> IO (Int32, NCScalar)
+nc_get_scalar_att ncid varid attrName = do
+    (res1, NCAttributeInfoRaw{
+          ncAttributeNValues=attrLen
+        , ncAttributeDataType=TypedValue{valueType=t :: NCDataType dt}}) <- nc_inq_att ncid varid attrName
+    if res1 /= 0
+        then return $! (res1, TypedValue NCNone ())
+        else case t of
+            NCNone -> return $! (res1, TypedValue NCNone ())
+            _ -> withCString attrName $ \c_attrName ->
+                allocaArray (fromIntegral attrLen) $ \attrDataPtr -> do
+                    res <- c_nc_get_att (ncRawId ncid) (fromMaybeVarId varid) c_attrName (castPtr attrDataPtr)
+                    attrValue <- peek attrDataPtr
+                    return $! (fromIntegral res, TypedValue t attrValue)
+
 class NCAttributeContainer t where
     withAttributePtr :: Storable a => t a -> (Ptr a -> IO b) -> IO b
     attributeLen :: Storable a => t a -> Int
@@ -218,5 +237,24 @@ nc_put_att ncid varid attrName attrType attrValue =
                 c_attrName
                 (fromNCDataType attrType)
                 (fromIntegral $ attributeLen attrValue)
+                (castPtr attrValuePtr)
+        return $! (fromIntegral res, ())
+
+nc_put_scalar_att :: forall id a b (t :: NCDataType a) (n :: Nat). Storable b =>
+       NC id
+    -> Maybe (NCVariableId n t)
+    -> String
+    -> NCDataType b
+    -> b
+    -> IO (Int32, ())
+nc_put_scalar_att ncid varid attrName attrType attrValue =
+    withCString attrName $ \c_attrName ->
+    with attrValue $ \attrValuePtr -> do
+        res <- c_nc_put_att
+                (ncRawId ncid)
+                (fromMaybeVarId varid)
+                c_attrName
+                (fromNCDataType attrType)
+                1
                 (castPtr attrValuePtr)
         return $! (fromIntegral res, ())
