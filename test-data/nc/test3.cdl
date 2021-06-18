@@ -13,7 +13,7 @@ variables:
   string string_matrix(dim2, dim1);
 
 // global attributes:
-  :summary = "test NetCDF file";
+  string :summary = "test NetCDF file", "NetCDF4";
   int :version = 2021;
 data:
   scalar_int = 7;

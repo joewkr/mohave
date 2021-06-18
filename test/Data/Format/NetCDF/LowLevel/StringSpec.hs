@@ -124,3 +124,61 @@ spec = do
                 forM_ (zip [0..] ["Lorem", "ipsum", "dolor", "sit"]) $ \(p,str) -> do
                     nc_str  <- fromNCString (nc_data VS.! p)
                     nc_str `shouldBe` str
+        context "attributes" $ do
+            context "nc_get_scalar_string_att" $ do
+                it "correctly reads a string attribute - NetCDF4" $ do
+                    nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                    attrValue              <- checkNC =<< nc_get_scalar_string_att nc_id Nothing "summary"
+                    _                      <- checkNC =<< nc_close nc_id
+                    attrValue `shouldBe` "test NetCDF file"
+                it "correctly reads a string attribute - nc3" $ do
+                    nc_id                  <- checkNC =<< nc_open "test-data/nc/test4.nc" NCNoWrite
+                    attrValue              <- checkNC =<< nc_get_scalar_string_att nc_id Nothing "summary"
+                    _                      <- checkNC =<< nc_close nc_id
+                    attrValue `shouldBe` "test NetCDF file--classic format"
+                it "reports error on a wrong attribute type" $ do
+                    pendingWith "Haskell equivalents for NetCDF error codes are not implemented"
+            context "nc_put_scalar_string_att" $ do
+                it "correctly sets a string attribute - NetCDF4" $ do
+                    nc_id                  <- checkNC =<< nc_create (testOutputPath </> "str1_attr.nc") NCNetCDF4 NCClobber
+                    var_id                 <- checkNC =<< nc_def_scalar_var nc_id "variable" NCInt
+                    _                      <- checkNC =<< nc_put_scalar_string_att nc_id (Just var_id) "summary" "test"
+                    attrValue              <- checkNC =<< nc_get_scalar_string_att nc_id (Just var_id) "summary"
+                    _                      <- checkNC =<< nc_close nc_id
+                    attrValue `shouldBe` "test"
+                it "correctly sets a string attribute - nc3" $ do
+                    nc_id                  <- checkNC =<< nc_create (testOutputPath </> "str2_attr.nc") NCClassic NCClobber
+                    var_id                 <- checkNC =<< nc_def_scalar_var nc_id "variable" NCInt
+                    _                      <- checkNC =<< nc_put_scalar_string_att nc_id (Just var_id) "summary" "test nc3"
+                    _                      <- checkNC =<< nc_enddef nc_id
+                    attrValue              <- checkNC =<< nc_get_scalar_string_att nc_id (Just var_id) "summary"
+                    _                      <- checkNC =<< nc_close nc_id
+                    attrValue `shouldBe` "test nc3"
+            context "nc_get_string_att" $ do
+                it "correctly reads a string attribute - NetCDF4" $ do
+                    nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                    attrValue              <- checkNC =<< nc_get_string_att nc_id Nothing "summary"
+                    _                      <- checkNC =<< nc_close nc_id
+                    attrValue `shouldBe` ["test NetCDF file", "NetCDF4"]
+                it "correctly reads a string attribute - nc3" $ do
+                    nc_id                  <- checkNC =<< nc_open "test-data/nc/test4.nc" NCNoWrite
+                    attrValue              <- checkNC =<< nc_get_string_att nc_id Nothing "summary"
+                    _                      <- checkNC =<< nc_close nc_id
+                    -- Classic format can not store multiple strings in a single attribute
+                    attrValue `shouldBe` ["test NetCDF file--classic format"]
+            context "nc_put_string_att" $ do
+                it "correctly sets a string attribute - NetCDF4" $ do
+                    nc_id                  <- checkNC =<< nc_create (testOutputPath </> "str3_attr.nc") NCNetCDF4 NCClobber
+                    var_id                 <- checkNC =<< nc_def_scalar_var nc_id "variable" NCInt
+                    _                      <- checkNC =<< nc_put_string_att nc_id (Just var_id) "summary" ["test", "nc4"]
+                    attrValue              <- checkNC =<< nc_get_string_att nc_id (Just var_id) "summary"
+                    _                      <- checkNC =<< nc_close nc_id
+                    attrValue `shouldBe` ["test", "nc4"]
+                it "correctly sets a string attribute - nc3" $ do
+                    nc_id                  <- checkNC =<< nc_create (testOutputPath </> "str4_attr.nc") NCClassic NCClobber
+                    var_id                 <- checkNC =<< nc_def_scalar_var nc_id "variable" NCInt
+                    _                      <- checkNC =<< nc_put_string_att nc_id (Just var_id) "summary" ["test", "nc3"]
+                    _                      <- checkNC =<< nc_enddef nc_id
+                    attrValue              <- checkNC =<< nc_get_string_att nc_id (Just var_id) "summary"
+                    _                      <- checkNC =<< nc_close nc_id
+                    attrValue `shouldBe` ["testnc3"]

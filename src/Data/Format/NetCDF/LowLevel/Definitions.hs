@@ -76,6 +76,10 @@ ncRawId :: NC id -> CInt
 ncRawId (NCFile ncid) = ncid
 ncRawId (NCGroup ncid) = ncid
 
+ifFileOrGroup :: NC id -> (NC FileId -> IO a) -> (NC GroupId -> IO a) -> IO a
+ifFileOrGroup ncid@NCFile{}  f _ = f ncid
+ifFileOrGroup ncid@NCGroup{} _ g = g ncid
+
 newtype NCDimensionId = NCDimensionId CInt deriving Eq
 
 instance Storable NCDimensionId where

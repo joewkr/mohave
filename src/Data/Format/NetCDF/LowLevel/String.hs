@@ -3,11 +3,14 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeInType #-} -- Required with ghc 8.4.3
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE GADTs #-}
 module Data.Format.NetCDF.LowLevel.String where
 
 import           Control.Monad (void)
 import qualified Data.ByteString as BS
 import           Data.Int
+import           Data.Monoid (Monoid, mempty)
 import qualified Data.Vector.Storable as VS
 import           Foreign.Concurrent (addForeignPtrFinalizer)
 import           Foreign.C.String
@@ -20,6 +23,14 @@ import           GHC.TypeNats (Nat, KnownNat)
 
 import           Internal.Definitions
 import           Data.Format.NetCDF.LowLevel.Definitions
+import           Data.Format.NetCDF.LowLevel.Attribute
+                  ( nc_inq_attlen
+                  , nc_put_scalar_att
+                  , nc_get_att
+                  , nc_put_att
+                    )
+import           Data.Format.NetCDF.LowLevel.File
+                  ( nc_inq_format)
 import           Data.Format.NetCDF.LowLevel.Variable
                   ( nc_get_vara_fptr
                   , nc_get_var_fptr
@@ -127,3 +138,105 @@ nc_put_var1_string :: forall id (n :: Nat). KnownNat n =>
 nc_put_var1_string ncid varid start ncData =
     BS.useAsCString ncData $ \ncDataPtr ->
         nc_put_var1 ncid varid start (toNCString ncDataPtr)
+
+nc_get_string_att' :: forall id a r (t :: NCDataType a) (n :: Nat). Monoid r =>
+       NC id
+    -> Maybe (NCVariableId n t)
+    -> String
+    -> (VS.Vector (NCStringPtr 'U) -> IO r)
+    -> (BS.ByteString -> r)
+    -> IO (Int32, r)
+nc_get_string_att' ncid varid attrName ncStringConvert ncStringWrap = do
+    (res, (TypedValue t v)) <- nc_get_att ncid varid attrName
+    if res /= 0
+        then return $! (res, mempty)
+        else case t of
+            NCString -> do
+                attrValue <- ncStringConvert v
+                return $! (fromIntegral res, attrValue)
+            NCChar -> do
+                (res1, attrLen) <- nc_inq_attlen ncid varid attrName
+                ncString <- VS.unsafeWith v $ \attrDataPtr ->
+                    BS.packCStringLen (castPtr attrDataPtr, fromIntegral attrLen)
+                return $! (fromIntegral res1, ncStringWrap ncString)
+            _ -> return $! (res, mempty) -- TODO: return with an unxpected type error
+
+nc_get_string_att :: forall id a (t :: NCDataType a) (n :: Nat).
+       NC id
+    -> Maybe (NCVariableId n t)
+    -> String
+    -> IO (Int32, [BS.ByteString])
+nc_get_string_att ncid varid attrName =
+    nc_get_string_att' ncid varid attrName ncStringConvert (:[])
+  where
+    ncStringConvert :: VS.Vector (NCStringPtr 'U) -> IO [BS.ByteString]
+    ncStringConvert v = VS.foldM'
+        (\l attrValue -> (:l) <$> fromNCString attrValue <* nc_free_string attrValue)
+        []
+        (VS.reverse v)
+
+nc_get_scalar_string_att :: forall id a (t :: NCDataType a) (n :: Nat).
+       NC id
+    -> Maybe (NCVariableId n t)
+    -> String
+    -> IO (Int32, BS.ByteString)
+nc_get_scalar_string_att ncid varid attrName =
+    nc_get_string_att' ncid varid attrName ncStringConvert id
+  where
+    ncStringConvert :: VS.Vector (NCStringPtr 'U) -> IO BS.ByteString
+    ncStringConvert v = do
+        let attrValue = v VS.! 0
+        ncString <- fromNCString attrValue
+        void $ nc_free_string attrValue
+        return ncString
+
+doStringOrChar :: forall id.
+       NC id
+    -> IO (Int32, ())
+    -> IO (Int32, ())
+    -> IO (Int32, ())
+doStringOrChar ncid doString doChar = do
+    (res, format) <- ifFileOrGroup ncid
+        nc_inq_format
+        (\_ -> return (0, NCNetCDF4)) -- if ncid is a group id the file is a NetCDF4 file and supports String type
+    if res /= 0
+        then return $! (res, ())
+        else case format of
+            NCNetCDF4 -> doString
+            _         -> doChar
+
+nc_put_string_att :: forall id a (t :: NCDataType a) (n :: Nat).
+       NC id
+    -> Maybe (NCVariableId n t)
+    -> String
+    -> [BS.ByteString]
+    -> IO (Int32, ())
+nc_put_string_att ncid varid attrName attrValue = doStringOrChar ncid doString doChar
+  where
+    doString = withNCStrings attrValue $ \ncStrings ->
+        nc_put_att ncid varid attrName NCString ncStrings
+
+    doChar   = BS.useAsCStringLen (BS.concat attrValue) $ \(attrValuePtr, attrLen) -> do
+        fptr <- newForeignPtr_ (castPtr attrValuePtr)
+        nc_put_att ncid varid attrName NCChar (VS.unsafeFromForeignPtr0 fptr attrLen)
+
+withNCStrings :: [BS.ByteString] -> ([NCStringPtr 'U] -> IO (Int32, ())) -> IO (Int32, ())
+withNCStrings strs func = go [] (reverse strs)
+  where
+    go ncStrings []     = func ncStrings
+    go ncStrings (s:ss) = BS.useAsCString s (\sPtr -> go (toNCString sPtr:ncStrings) ss)
+
+nc_put_scalar_string_att :: forall id a (t :: NCDataType a) (n :: Nat).
+       NC id
+    -> Maybe (NCVariableId n t)
+    -> String
+    -> BS.ByteString
+    -> IO (Int32, ())
+nc_put_scalar_string_att ncid varid attrName attrValue = doStringOrChar ncid doString doChar
+  where
+    doString = BS.useAsCString attrValue $ \attrValuePtr ->
+        nc_put_scalar_att ncid varid attrName NCString (toNCString attrValuePtr)
+
+    doChar   = BS.useAsCStringLen attrValue $ \(attrValuePtr, attrLen) -> do
+        fptr <- newForeignPtr_ (castPtr attrValuePtr)
+        nc_put_att ncid varid attrName NCChar (VS.unsafeFromForeignPtr0 fptr attrLen)

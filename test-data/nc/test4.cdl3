@@ -1,0 +1,14 @@
+netcdf test4 {
+variables:
+  int scalar_int;
+    int  scalar_int:an_int    = 9;
+    int  scalar_int:many_ints = 3, 7, 21;
+    char scalar_int:long_name = "long name";
+    char scalar_int:strings = "one", "two";
+
+// global attributes:
+  :summary = "test NetCDF file", "--", "classic format";
+  int :version = 2021;
+data:
+  scalar_int = 7;
+}
