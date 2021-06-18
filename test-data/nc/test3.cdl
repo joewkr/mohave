@@ -1,4 +1,4 @@
-netcdf test1 {
+netcdf test3 {
 dimensions:
   dim1 = 3;
   dim2 = 2;
