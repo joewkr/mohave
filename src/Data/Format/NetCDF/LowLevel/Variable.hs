@@ -324,25 +324,28 @@ nc_inq_varid ncid varName =
     withCString varName $ \c_varName ->
     alloca $ \varidPtr -> do
         res <- c_nc_inq_varid (ncRawId ncid) c_varName varidPtr
-        varid <- peek varidPtr
-        (_, numDims)                 <- nc_inq_varndims ncid (NCVariableId varid)
-        (_, TypedValue{valueType=t}) <- nc_inq_vartype  ncid (NCVariableId varid)
-        let (ret_code :: Int32) = fromIntegral res
-        case someNatVal (fromIntegral numDims) of
-            SomeNat (_ :: Proxy n) -> case t of
-                NCNone   -> return (ret_code, SomeNCVariable SNCNone   (NCVariableId varid :: NCVariableId n t ))
-                NCByte   -> return (ret_code, SomeNCVariable SNCByte   (NCVariableId varid :: NCVariableId n t ))
-                NCUByte  -> return (ret_code, SomeNCVariable SNCUByte  (NCVariableId varid :: NCVariableId n t ))
-                NCChar   -> return (ret_code, SomeNCVariable SNCChar   (NCVariableId varid :: NCVariableId n t ))
-                NCShort  -> return (ret_code, SomeNCVariable SNCShort  (NCVariableId varid :: NCVariableId n t ))
-                NCUShort -> return (ret_code, SomeNCVariable SNCUShort (NCVariableId varid :: NCVariableId n t ))
-                NCInt    -> return (ret_code, SomeNCVariable SNCInt    (NCVariableId varid :: NCVariableId n t ))
-                NCUInt   -> return (ret_code, SomeNCVariable SNCUInt   (NCVariableId varid :: NCVariableId n t ))
-                NCInt64  -> return (ret_code, SomeNCVariable SNCInt64  (NCVariableId varid :: NCVariableId n t ))
-                NCUInt64 -> return (ret_code, SomeNCVariable SNCUInt64 (NCVariableId varid :: NCVariableId n t ))
-                NCFloat  -> return (ret_code, SomeNCVariable SNCFloat  (NCVariableId varid :: NCVariableId n t ))
-                NCDouble -> return (ret_code, SomeNCVariable SNCDouble (NCVariableId varid :: NCVariableId n t ))
-                NCString -> return (ret_code, SomeNCVariable SNCString (NCVariableId varid :: NCVariableId n t ))
+        varid <- peek varidPtr >>= mkSomeNCVariable ncid
+        return $! (fromIntegral res, varid)
+
+mkSomeNCVariable :: NC id -> CInt -> IO SomeNCVariable
+mkSomeNCVariable ncid varid = do
+    (_, numDims)                 <- nc_inq_varndims ncid (NCVariableId varid)
+    (_, TypedValue{valueType=t}) <- nc_inq_vartype  ncid (NCVariableId varid)
+    case someNatVal (fromIntegral numDims) of
+        SomeNat (_ :: Proxy n) -> case t of
+            NCNone   -> return $ SomeNCVariable SNCNone   (NCVariableId varid :: NCVariableId n t )
+            NCByte   -> return $ SomeNCVariable SNCByte   (NCVariableId varid :: NCVariableId n t )
+            NCUByte  -> return $ SomeNCVariable SNCUByte  (NCVariableId varid :: NCVariableId n t )
+            NCChar   -> return $ SomeNCVariable SNCChar   (NCVariableId varid :: NCVariableId n t )
+            NCShort  -> return $ SomeNCVariable SNCShort  (NCVariableId varid :: NCVariableId n t )
+            NCUShort -> return $ SomeNCVariable SNCUShort (NCVariableId varid :: NCVariableId n t )
+            NCInt    -> return $ SomeNCVariable SNCInt    (NCVariableId varid :: NCVariableId n t )
+            NCUInt   -> return $ SomeNCVariable SNCUInt   (NCVariableId varid :: NCVariableId n t )
+            NCInt64  -> return $ SomeNCVariable SNCInt64  (NCVariableId varid :: NCVariableId n t )
+            NCUInt64 -> return $ SomeNCVariable SNCUInt64 (NCVariableId varid :: NCVariableId n t )
+            NCFloat  -> return $ SomeNCVariable SNCFloat  (NCVariableId varid :: NCVariableId n t )
+            NCDouble -> return $ SomeNCVariable SNCDouble (NCVariableId varid :: NCVariableId n t )
+            NCString -> return $ SomeNCVariable SNCString (NCVariableId varid :: NCVariableId n t )
 
 nc_inq_varndims :: forall id a (t :: NCDataType a) (n :: Nat).
        NC id

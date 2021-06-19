@@ -1,0 +1,35 @@
+netcdf test5 {
+dimensions:
+  dim1 = 3;
+  dim2 = 2;
+variables:
+  int scalar_int;
+data:
+  scalar_int = 7;
+group: vectors {
+  dimensions:
+    dim3 = 4;
+  variables:
+    int vector_int1(dim1);
+    int vector_int2(dim3);
+  data:
+    vector_int1 = 1, 2, 3;
+    vector_int2 = 4, 5, 6, 7;
+  group: nested {
+    variables:
+      int nested_var;
+    data:
+      nested_var = 21;
+    }
+  group: nested2 {
+    variables:
+      int nested_var;
+      int nested_var2;
+      int nested_var3;
+    data:
+      nested_var  = 42;
+      nested_var2 = 84;
+      nested_var3 = -21;
+    }
+  }
+}

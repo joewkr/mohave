@@ -25,6 +25,7 @@ library
                      , Data.Format.NetCDF.LowLevel
                      , Data.Format.NetCDF.LowLevel.Attribute
                      , Data.Format.NetCDF.LowLevel.Dimension
+                     , Data.Format.NetCDF.LowLevel.Group
                      , Data.Format.NetCDF.LowLevel.Variable
                      , Data.Format.NetCDF.LowLevel.File
                      , Data.Format.NetCDF.LowLevel.String
@@ -77,6 +78,7 @@ test-suite test-main
                      , Data.Format.NetCDF.LowLevel.AttributeSpec
                      , Data.Format.NetCDF.LowLevel.DimensionSpec
                      , Data.Format.NetCDF.LowLevel.FileSpec
+                     , Data.Format.NetCDF.LowLevel.GroupSpec
                      , Data.Format.NetCDF.LowLevel.StringSpec
                      , Data.Format.NetCDF.LowLevel.VariableSpec
                      , Testing.Common
