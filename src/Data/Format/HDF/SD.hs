@@ -243,7 +243,7 @@ sd_getnamelen obj = check =<< (liftIO $ LowLevel.SD.sd_getnamelen $ getRawObject
 sd_getfilename :: SDFile any s -> HDFio s String
 sd_getfilename (SDFile file) = check =<< (liftIO $ LowLevel.SD.sd_getfilename file)
 
-sd_getinfo :: SDataSetId n t any (r,s) -> HDFio s LowLevel.SD.SDataSetInfoRaw
+sd_getinfo :: SDataSetId n t any (r,s) -> HDFio (r,s) LowLevel.SD.SDataSetInfoRaw
 sd_getinfo (SDataSetId sds) = check =<< (liftIO $ LowLevel.SD.sd_getinfo sds)
 
 sd_get_maxopenfiles :: HDFio s (Int32, Int32)
