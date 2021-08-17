@@ -82,8 +82,10 @@ toNCFormatXTag NCFormatXDAP4      = #{const NC_FORMATX_DAP4}
 toNCFormatXTag NCFormatXUDF0      = #{const NC_FORMATX_UDF0}
 toNCFormatXTag NCFormatXUDF1      = #{const NC_FORMATX_UDF1}
 #endif
-#if PKG_CONFIG_NETCDF_VERSION >= PKG_VERSION(4,7,0)
+#if   PKG_CONFIG_NETCDF_VERSION >= PKG_VERSION(4,7,0) && PKG_CONFIG_NETCDF_VERSION < PKG_VERSION(4,8,0)
 toNCFormatXTag NCFormatXZARR      = #{const NC_FORMATX_ZARR}
+#elif PKG_CONFIG_NETCDF_VERSION >= PKG_VERSION(4,8,0)
+toNCFormatXTag NCFormatXZARR      = #{const NC_FORMATX_NCZARR}
 #endif
 toNCFormatXTag NCFormatXUndefined = #{const NC_FORMATX_UNDEFINED}
 
@@ -99,8 +101,10 @@ fromNCFormatXTag tag = case tag of
     #{const NC_FORMATX_UDF0}      -> Just NCFormatXUDF0
     #{const NC_FORMATX_UDF1}      -> Just NCFormatXUDF1
 #endif
-#if PKG_CONFIG_NETCDF_VERSION >= PKG_VERSION(4,7,0)
+#if   PKG_CONFIG_NETCDF_VERSION >= PKG_VERSION(4,7,0) && PKG_CONFIG_NETCDF_VERSION < PKG_VERSION(4,8,0)
     #{const NC_FORMATX_ZARR}      -> Just NCFormatXZARR
+#elif PKG_CONFIG_NETCDF_VERSION >= PKG_VERSION(4,8,0)
+    #{const NC_FORMATX_NCZARR}    -> Just NCFormatXZARR
 #endif
     #{const NC_FORMATX_UNDEFINED} -> Just NCFormatXUndefined
     _ -> Nothing
