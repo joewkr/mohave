@@ -29,6 +29,8 @@ import           Data.Format.NetCDF.LowLevel.Attribute
                   , nc_get_att
                   , nc_put_att
                     )
+import           Data.Format.NetCDF.LowLevel.Error
+                  ( toNCErrorCode)
 import           Data.Format.NetCDF.LowLevel.File
                   ( nc_inq_format)
 import           Data.Format.NetCDF.LowLevel.Variable
@@ -159,7 +161,7 @@ nc_get_string_att' ncid varid attrName ncStringConvert ncStringWrap = do
                 ncString <- VS.unsafeWith v $ \attrDataPtr ->
                     BS.packCStringLen (castPtr attrDataPtr, fromIntegral attrLen)
                 return $! (fromIntegral res1, ncStringWrap ncString)
-            _ -> return $! (res, mempty) -- TODO: return with an unxpected type error
+            _ -> return $! (fromIntegral $ toNCErrorCode NC_EBADTYPE, mempty)
 
 nc_get_string_att :: forall id a (t :: NCDataType a) (n :: Nat).
        NC id
