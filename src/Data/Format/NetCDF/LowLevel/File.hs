@@ -11,8 +11,8 @@ import           Foreign.Marshal.Alloc
 import           Foreign.Marshal.Array
 import           Foreign.Storable
 
-import           Data.Format.NetCDF.LowLevel.Definitions
 import           Data.Format.NetCDF.LowLevel.C.Definitions
+import           Data.Format.NetCDF.LowLevel.Definitions
 
 -- int     nc__create (const char *path, int cmode, size_t initialsz, size_t *chunksizehintp, int *ncidp)
 -- int     nc__enddef (int ncid, size_t h_minfree, size_t v_align, size_t v_minfree, size_t r_align)
@@ -107,8 +107,8 @@ nc_inq_format (NCFile ncid) =
         res <- c_nc_inq_format ncid ncFormatPtr
         ncFormat <- fromNCInqFormatTag <$> peek ncFormatPtr
         case ncFormat of
-            Nothing -> return (-1, undefined)
             Just format -> return $! (fromIntegral res, format)
+            Nothing -> return (ncErrorOrUnexpected res, undefined)
 
 nc_inq_format_extended :: NC FileId -> IO (Int32, (NCFormatX, NCOpenMode))
 nc_inq_format_extended (NCFile ncid) =
@@ -118,8 +118,8 @@ nc_inq_format_extended (NCFile ncid) =
         ncFormat <- fromNCFormatXTag <$> peek ncFormatPtr
         mode <- fromNCOpenModeTag <$> peek ncModePtr
         case ncFormat of
-            Nothing -> return (-1, undefined)
             Just format -> return $! (fromIntegral res, (format, mode))
+            Nothing -> return (ncErrorOrUnexpected res, undefined)
 
 nc_inq_path :: NC FileId -> IO (Int32, String)
 nc_inq_path (NCFile ncid) = do
@@ -141,4 +141,7 @@ nc_set_fill (NCFile ncid) fillMode =
         oldMode <- fromNCFillTag <$> peek oldModePtr
         case oldMode of
             Just mode -> return $! (fromIntegral res, mode)
-            Nothing -> return (if res /= 0 then fromIntegral res else (-1), undefined)
+            Nothing -> return (ncErrorOrUnexpected res, undefined)
+
+ncErrorOrUnexpected :: CInt -> Int32
+ncErrorOrUnexpected e = fromIntegral $ if e /= 0 then e else (toNCErrorCode NC_UNEXPECTED)

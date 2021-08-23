@@ -473,7 +473,7 @@ nc_inq_var_endian ncid (NCVariableId varid) =
         endianness <- fromNCEndiannessTypeTag <$> peek endiannessPtr
         case endianness of
             Just e -> return $! (fromIntegral res, e)
-            Nothing -> return $! (-1, NCEndianNative) -- TODO: return a custom error code
+            Nothing -> return $! (fromIntegral $ toNCErrorCode NC_UNEXPECTED, NCEndianNative)
 
 nc_inq_num_unlimdims :: NC id -> IO (Int32, Int)
 nc_inq_num_unlimdims ncid =
@@ -557,7 +557,7 @@ nc_get_var_fptr ncid v@(NCVariableId varid) = do
             let varDimids = fromMaybe [] $ fromStaticVector <$> maybeDimids
             (ress,dimLens) <- unzip <$> mapM (nc_inq_dimlen ncid) varDimids
             if any (/= 0) ress
-                then return $! (-1, (fNullPtr, 0)) -- TODO: return a custom error code
+                then return $! (fromIntegral . head $ filter (/= 0) ress, (fNullPtr, 0))
                 else do
                     fp <- mallocForeignPtrArray . fromIntegral $ product dimLens
                     res <- withForeignPtr fp $ \ncDataPtr ->
@@ -607,7 +607,7 @@ nc_put_vara :: forall id a (t :: NCDataType a) (n :: Nat). (KnownNat n, Storable
     -> IO (Int32, ())
 nc_put_vara ncid (NCVariableId varid) start count ncData
   | VS.length ncData /= (product $ fromStaticVector count) =
-      return (-62 {- NC_EVARSIZE -}, ()) -- TODO: Introduce a sum type for NC error codes
+      return (fromIntegral $ toNCErrorCode NC_EVARSIZE, ())
   | otherwise =
     withStaticVector (fromIntegral <$> start) $ \startPtr ->
     withStaticVector (fromIntegral <$> count) $ \countPtr ->
@@ -640,9 +640,9 @@ nc_put_var ncid v@(NCVariableId varid) ncData = do
             let varDimids = fromMaybe [] $ fromStaticVector <$> maybeDimids
             (ress,dimLens) <- unzip <$> mapM (nc_inq_dimlen ncid) varDimids
             if any (/= 0) ress
-                then return $! (-1, ()) -- TODO: return a custom error code
+                then return $! (fromIntegral . head $ filter (/= 0) ress, ())
                 else if VS.length ncData /= (fromIntegral $ product dimLens)
-                    then return (-62 {- NC_EVARSIZE -}, ()) -- TODO: Introduce a sum type for NC error codes
+                    then return (fromIntegral $ toNCErrorCode NC_EVARSIZE, ())
                     else VS.unsafeWith ncData $ \ncDataPtr -> do
                         res <- c_nc_put_var (ncRawId ncid) varid (castPtr ncDataPtr)
                         return $! (fromIntegral res, ())
@@ -657,7 +657,7 @@ nc_put_vars :: forall id a (t :: NCDataType a) (n :: Nat). (KnownNat n, Storable
     -> IO (Int32, ())
 nc_put_vars ncid (NCVariableId varid) start count stride ncData
   | VS.length ncData /= (product $ fromStaticVector count) =
-      return (-62 {- NC_EVARSIZE -}, ()) -- TODO: Introduce a sum type for NC error codes
+      return (fromIntegral $ toNCErrorCode NC_EVARSIZE, ())
   | otherwise =
     withStaticVector (fromIntegral <$>  start) $ \startPtr  ->
     withStaticVector (fromIntegral <$>  count) $ \countPtr  ->
