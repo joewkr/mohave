@@ -312,5 +312,6 @@ data NCError =
 #endif
 
 --  | NC4_LAST_ERROR
+  | NC_UNEXPECTED
   | NC_OTHER_ERROR CInt
   deriving (Show, Eq)

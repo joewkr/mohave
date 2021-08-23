@@ -308,6 +308,7 @@ fromNCErrorCode e = case e of
 #endif
 
 -- #{const NC4_LAST_ERROR   } -> NC4_LAST_ERROR
+  #{const NC4_LAST_ERROR - 1} -> NC_UNEXPECTED
   _                           -> NC_OTHER_ERROR e
 
 toNCErrorCode :: NCError -> CInt
@@ -436,4 +437,5 @@ toNCErrorCode NC_EPLUGIN         = #{const NC_EPLUGIN        }
 #endif
 
 --toNCErrorCode NC4_LAST_ERROR   = #{const NC4_LAST_ERROR    }
+toNCErrorCode NC_UNEXPECTED      = #{const NC4_LAST_ERROR - 1}
 toNCErrorCode (NC_OTHER_ERROR e) = e

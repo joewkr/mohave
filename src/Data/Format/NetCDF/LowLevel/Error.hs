@@ -10,4 +10,5 @@ import           Data.Format.NetCDF.LowLevel.C.Definitions
 foreign import ccall unsafe "nc_strerror" c_nc_strerror :: CInt -> IO CString
 
 nc_strerror :: NCError -> IO String
+nc_strerror NC_UNEXPECTED = return "mohave NetCDF: unexpected value was returned after a foreign call"
 nc_strerror ncerr = c_nc_strerror (toNCErrorCode ncerr) >>= peekCString

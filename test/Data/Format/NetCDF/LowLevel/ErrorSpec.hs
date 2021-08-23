@@ -19,3 +19,5 @@ spec = do
             nc_strerror NC_EPERM  `shouldReturn` "NetCDF: Write to read only"
 
             nc_strerror NC_EMPI   `shouldReturn` "NetCDF: MPI operation failed."
+
+            nc_strerror NC_UNEXPECTED `shouldReturn` "mohave NetCDF: unexpected value was returned after a foreign call"
