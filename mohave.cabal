@@ -45,6 +45,7 @@ library
                      , ForeignFunctionInterface
                      , GADTs
                      , MultiParamTypeClasses
+                     , PatternSynonyms
                      , PolyKinds
                      , RankNTypes
                      , ScopedTypeVariables
@@ -53,6 +54,7 @@ library
                      , TypeInType
                      , TypeOperators
                      , UndecidableInstances
+                     , ViewPatterns
   ghc-options:        -Wall
   cc-options:         -Wall -Wextra -pedantic
   build-depends:       base >=4.11 && <4.16

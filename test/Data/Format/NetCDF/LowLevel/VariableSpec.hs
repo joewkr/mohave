@@ -5,7 +5,6 @@ module Data.Format.NetCDF.LowLevel.VariableSpec(spec) where
 
 import           Data.Int (Int64)
 import           Data.Proxy
-import           Data.Type.Equality ((:~:)(Refl))
 import qualified Data.Vector.Storable as VS
 import           GHC.TypeNats
 import           System.FilePath ((</>))
@@ -156,9 +155,9 @@ spec = do
                 varDims                <- checkNC =<< nc_inq_vardimid nc_id var
                 _                      <- checkNC =<< nc_close nc_id
                 ((fromStaticVector <$> varDims) == Just [dim1_id, dim2_id]) `shouldBe` True
-                case sameNat (Proxy :: Proxy n) (Proxy :: Proxy 2) of
-                    Just Refl -> (varDims == Just (D dim1_id :| dim2_id)) `shouldBe` True
-                    Nothing -> expectationFailure $ "Unexpected rank: " ++ (show $ natVal (Proxy :: Proxy n))
+                case (Proxy :: Proxy n) of
+                    Var2D -> (varDims == Just (D dim1_id :| dim2_id)) `shouldBe` True
+                    _     -> expectationFailure $ "Unexpected rank: " ++ (show $ natVal (Proxy :: Proxy n))
             it "correctly handles scalar variables" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test1.nc" NCNoWrite
                 (SomeNCVariable _ (var :: NCVariableId n a)) <-
@@ -219,9 +218,9 @@ spec = do
                 chunks                 <- checkNC =<< nc_inq_var_chunking nc_id var
                 _                      <- checkNC =<< nc_close nc_id
                 (fromStaticVector <$> chunks) `shouldBe` (Just [2, 3])
-                case sameNat (Proxy :: Proxy n) (Proxy :: Proxy 2) of
-                    Just Refl -> chunks `shouldBe` Just (D 2 :| 3)
-                    Nothing -> expectationFailure $ "Unexpected rank: " ++ (show $ natVal (Proxy :: Proxy n))
+                case (Proxy :: Proxy n) of
+                    Var2D -> chunks `shouldBe` Just (D 2 :| 3)
+                    _     -> expectationFailure $ "Unexpected rank: " ++ (show $ natVal (Proxy :: Proxy n))
         context "nc_inq_var_fill" $ do
             it "correctly reports filling value" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test1.nc" NCNoWrite
@@ -267,24 +266,24 @@ spec = do
                 (SomeNCVariable t (var :: NCVariableId n a)) <-
                                           checkNC =<< nc_inq_varid nc_id "vector_int"
                 case t of
-                    SNCInt -> case sameNat (Proxy :: Proxy n) (Proxy :: Proxy 1) of
-                        Just Refl -> do
+                    SNCInt -> case (Proxy :: Proxy n) of
+                        Var1D -> do
                             nc_data <- checkNC =<< nc_get_vara nc_id var (D 0) (D 3)
                             _       <- checkNC =<< nc_close nc_id
                             nc_data `shouldBe` VS.fromList [3, 4, 5]
-                        Nothing -> expectationFailure "Unexpected NC variable rank"
+                        _ -> expectationFailure "Unexpected NC variable rank"
                     _ -> expectationFailure "Unexpected data type"
             it "correctly reads a subset of a vector variable" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
                 (SomeNCVariable t (var :: NCVariableId n a)) <-
                                           checkNC =<< nc_inq_varid nc_id "vector_int"
                 case t of
-                    SNCInt -> case sameNat (Proxy :: Proxy n) (Proxy :: Proxy 1) of
-                        Just Refl -> do
+                    SNCInt -> case (Proxy :: Proxy n) of
+                        Var1D -> do
                             nc_data <- checkNC =<< nc_get_vara nc_id var (D 1) (D 1)
                             _       <- checkNC =<< nc_close nc_id
                             nc_data `shouldBe` VS.fromList [4]
-                        Nothing -> expectationFailure "Unexpected NC variable rank"
+                        _ -> expectationFailure "Unexpected NC variable rank"
                     _ -> expectationFailure "Unexpected data type"
         context "nc_get_var1" $ do
             it "correctly reads a single value from vector" $ do
@@ -292,12 +291,12 @@ spec = do
                 (SomeNCVariable t (var :: NCVariableId n a)) <-
                                           checkNC =<< nc_inq_varid nc_id "vector_int"
                 case t of
-                    SNCInt -> case sameNat (Proxy :: Proxy n) (Proxy :: Proxy 1) of
-                        Just Refl -> do
+                    SNCInt -> case (Proxy :: Proxy n) of
+                        Var1D -> do
                             nc_data <- checkNC =<< nc_get_var1 nc_id var (D 1)
                             _       <- checkNC =<< nc_close nc_id
                             nc_data `shouldBe` 4
-                        Nothing -> expectationFailure "Unexpected NC variable rank"
+                        _ -> expectationFailure "Unexpected NC variable rank"
                     _ -> expectationFailure "Unexpected data type"
         context "nc_get_var" $ do
             it "correctly reads a scalar variable" $ do
@@ -325,12 +324,12 @@ spec = do
                 (SomeNCVariable t (var :: NCVariableId n a)) <-
                                           checkNC =<< nc_inq_varid nc_id "vector_int"
                 case t of
-                    SNCInt -> case sameNat (Proxy :: Proxy n) (Proxy :: Proxy 1) of
-                        Just Refl -> do
+                    SNCInt -> case (Proxy :: Proxy n) of
+                        Var1D -> do
                             nc_data <- checkNC =<< nc_get_vars nc_id var (D 0) (D 2) (D 2)
                             _       <- checkNC =<< nc_close nc_id
                             nc_data `shouldBe` VS.fromList [3,5]
-                        Nothing -> expectationFailure "Unexpected NC variable rank"
+                        _ -> expectationFailure "Unexpected NC variable rank"
                     _ -> expectationFailure "Unexpected data type"
         context "nc_put_vara" $ do
             it "correctly writes a vector variable" $ do
@@ -379,12 +378,12 @@ spec = do
                 (SomeNCVariable t (var :: NCVariableId n a)) <-
                                           checkNC =<< nc_inq_varid nc_id "scalar_int"
                 case t of
-                    SNCInt -> case sameNat (Proxy :: Proxy n) (Proxy :: Proxy 0) of
-                        Just Refl -> do
+                    SNCInt -> case (Proxy :: Proxy n) of
+                        Var0D -> do
                             nc_data <- checkNC =<< nc_get_scalar nc_id var
                             _       <- checkNC =<< nc_close nc_id
                             nc_data `shouldBe` 7
-                        Nothing -> expectationFailure "Unexpected NC variable rank"
+                        _ -> expectationFailure "Unexpected NC variable rank"
                     _ -> expectationFailure "Unexpected data type"
         context "nc_put_scalar" $ do
             it "correctly writes a scalar variable - 1" $ do
