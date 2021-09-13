@@ -1,7 +1,6 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 module Data.Format.NetCDF.LowLevel.Group where
 
-import           Control.Monad (mapM)
 import           Data.Int
 import           Foreign.Ptr
 import           Foreign.C.String
