@@ -8,8 +8,6 @@ import           Data.Int (Int32)
 import           Data.Proxy
 import           Data.Word (Word8, Word16)
 import           Test.Hspec
-import           GHC.TypeNats
-import           Data.Type.Equality ((:~:)(Refl))
 
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BS8
@@ -1209,26 +1207,26 @@ spec = do
                 (SomeSDS t (sds_id :: SDataSetId n a)) <-
                                       check =<< sd_select sd_id 0
                 case t of
-                    SHFloat32 -> case sameNat (Proxy :: Proxy n) (Proxy :: Proxy 2) of
-                        Just Refl -> do
+                    SHFloat32 -> case (Proxy :: Proxy n) of
+                        Var2D -> do
                             v <- check =<< sd_readdata sds_id (D 1:|1) (D 1:|1) (D 3:|3)
                             _ <- check =<< sd_endaccess sds_id
                             _ <- check =<< sd_end sd_id
                             v `shouldBe` (VS.fromList [0,1,2,3,4,5,6,7,8])
-                        Nothing -> expectationFailure "Unexpected SDS rank"
+                        _ -> expectationFailure "Unexpected SDS rank"
                     _ -> expectationFailure "Unexpected dimension data type"
             it "reads data from SDS - 2" $ do
                 sd_id              <- check =<< sd_start "test-data/sd/test1.hdf" HDFRead
                 (SomeSDS t (sds_id :: SDataSetId n a)) <-
                                       check =<< sd_select sd_id 0
                 case t of
-                    SHFloat32 -> case sameNat (Proxy :: Proxy n) (Proxy :: Proxy 2) of
-                        Just Refl -> do
+                    SHFloat32 -> case (Proxy :: Proxy n) of
+                        Var2D -> do
                             v <- check =<< sd_readdata sds_id (D 1:|1) (D 2:|1) (D 2:|1)
                             _ <- check =<< sd_endaccess sds_id
                             _ <- check =<< sd_end sd_id
                             v `shouldBe` (VS.fromList [0,6])
-                        Nothing -> expectationFailure "Unexpected SDS rank"
+                        _ -> expectationFailure "Unexpected SDS rank"
                     _ -> expectationFailure "Unexpected dimension data type"
         context "SDwritedata" $ do
             it "writes data to SDS - 1" $ do

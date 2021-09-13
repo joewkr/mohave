@@ -2,6 +2,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -127,7 +128,16 @@ import           Data.Format.HDF.LowLevel.Definitions
 import           Data.Format.HDF.LowLevel.Definitions.Internal
 import           Data.Format.HDF.LowLevel.HE
 import           Internal.Definitions
-import qualified Internal.Definitions as InternalDefs (StaticVector(..), TypedValue(..))
+import qualified Internal.Definitions as InternalDefs (
+                      StaticVector(..)
+                    , TypedValue(..)
+                    , pattern Var0D
+                    , pattern Var1D
+                    , pattern Var2D
+                    , pattern Var3D
+                    , pattern Var4D
+                    , pattern Var5D
+                    , pattern Var6D)
 
 -- Access
 foreign import ccall unsafe "SDstart" c_sdstart :: CString -> Int32 -> IO Int32

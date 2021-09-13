@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -75,6 +76,8 @@ module Data.Format.HDF.SD(
   , sd_readchunk
   , sd_readdata
   , sd_writedata
+
+  , module InternalDefs
     ) where
 
 import           Control.Monad.Catch
@@ -92,6 +95,17 @@ import           Data.Format.HDF.LowLevel.Definitions.Internal hiding (SDObjectI
 import qualified Data.Format.HDF.LowLevel.Definitions.Internal as Internal (SDObjectId)
 import           Data.Format.HDF.LowLevel.HE
 import qualified Data.Format.HDF.LowLevel.SD as LowLevel.SD
+import           Internal.Definitions
+import qualified Internal.Definitions as InternalDefs (
+                      StaticVector(..)
+                    , TypedValue(..)
+                    , pattern Var0D
+                    , pattern Var1D
+                    , pattern Var2D
+                    , pattern Var3D
+                    , pattern Var4D
+                    , pattern Var5D
+                    , pattern Var6D)
 
 newtype SDFile (mode :: HDFOpenMode) s = SDFile LowLevel.SD.SDId
 
