@@ -12,7 +12,7 @@ import           Foreign.Storable
 
 import           Data.Format.NetCDF.LowLevel.Definitions
 import           Data.Format.NetCDF.LowLevel.C.Definitions
-import           Data.Format.NetCDF.LowLevel.Variable
+import           Data.Format.NetCDF.LowLevel.Variable.Internal (mkSomeNCVariable)
 
 foreign import ccall unsafe "nc_def_grp" c_nc_def_grp :: CInt -> CString -> Ptr CInt -> IO CInt
 foreign import ccall unsafe "nc_inq_dimids" c_nc_inq_dimids :: CInt -> Ptr CInt -> Ptr CInt -> Int -> IO CInt

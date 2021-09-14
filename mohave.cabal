@@ -34,6 +34,7 @@ library
                      , Data.Format.HDF.LowLevel.Definitions.Internal
                      , Data.Format.NetCDF.LowLevel.Definitions
                      , Data.Format.NetCDF.LowLevel.C.Definitions
+                     , Data.Format.NetCDF.LowLevel.Variable.Internal
                      , Internal.Definitions
                      , Foreign.C.Lib.FFI
   C-Sources:           cbits/HDF/wrapper.c
