@@ -388,14 +388,14 @@ spec = do
         context "nc_put_scalar" $ do
             it "correctly writes a scalar variable - 1" $ do
                 nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var5_write.nc") NCNetCDF4 NCClobber
-                var_id                 <- checkNC =<< nc_def_var' nc_id "variable" NCInt64 ScalarVar
+                var_id                 <- checkNC =<< nc_def_scalar_var nc_id "variable" NCInt64
                 _                      <- checkNC =<< nc_put_scalar nc_id var_id 7
                 v                      <- checkNC =<< nc_get_scalar nc_id var_id
                 _                      <- checkNC =<< nc_close nc_id
                 v `shouldBe` 7
             it "correctly writes a scalar variable - 2" $ do
                 nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var6_write.nc") NCClassic NCClobber
-                var_id                 <- checkNC =<< nc_def_var' nc_id "variable" NCDouble ScalarVar
+                var_id                 <- checkNC =<< nc_def_scalar_var nc_id "variable" NCDouble
                 _                      <- checkNC =<< nc_enddef nc_id
                 _                      <- checkNC =<< nc_put_scalar nc_id var_id 11.5
                 v                      <- checkNC =<< nc_get_scalar nc_id var_id
