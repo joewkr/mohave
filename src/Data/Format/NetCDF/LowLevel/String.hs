@@ -5,7 +5,23 @@
 {-# LANGUAGE TypeInType #-} -- Required with ghc 8.4.3
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE GADTs #-}
-module Data.Format.NetCDF.LowLevel.String where
+module Data.Format.NetCDF.LowLevel.String(
+    fromNCString
+  , toNCString
+
+  , nc_free_string
+  , nc_get_vara_string
+  , nc_get_var1_string
+  , nc_get_var_string
+  , nc_get_vars_string
+  , nc_get_string
+  , nc_put_string
+  , nc_put_var1_string
+  , nc_get_string_att
+  , nc_get_scalar_string_att
+  , nc_put_string_att
+  , nc_put_scalar_string_att
+) where
 
 import           Control.Monad (void)
 import qualified Data.ByteString as BS

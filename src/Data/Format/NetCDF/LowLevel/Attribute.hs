@@ -5,7 +5,21 @@
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-module Data.Format.NetCDF.LowLevel.Attribute where
+module Data.Format.NetCDF.LowLevel.Attribute(
+    NCAttributeInfoRaw(..)
+  , nc_inq_att
+  , nc_inq_attid
+  , nc_inq_attname
+  , nc_inq_natts
+  , nc_inq_atttype
+  , nc_inq_attlen
+  , nc_rename_att
+  , nc_del_att
+  , nc_get_att
+  , nc_get_scalar_att
+  , nc_put_att
+  , nc_put_scalar_att
+) where
 
 import           Data.Int
 import           Data.Maybe (fromMaybe)

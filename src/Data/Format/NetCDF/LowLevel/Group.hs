@@ -1,5 +1,18 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
-module Data.Format.NetCDF.LowLevel.Group where
+module Data.Format.NetCDF.LowLevel.Group(
+    nc_def_grp
+  , nc_inq_dimids
+  , nc_inq_grp_full_ncid
+  , nc_inq_ncid
+  , nc_inq_grp_ncid
+  , nc_inq_grp_parent
+  , nc_inq_grpname
+  , nc_inq_grpname_full
+  , nc_inq_grpname_len
+  , nc_inq_grps
+  , nc_inq_varids
+  , nc_rename_grp
+) where
 
 import           Data.Int
 import           Foreign.Ptr

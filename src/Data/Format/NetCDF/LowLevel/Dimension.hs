@@ -1,6 +1,15 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE GADTs #-}
-module Data.Format.NetCDF.LowLevel.Dimension where
+module Data.Format.NetCDF.LowLevel.Dimension(
+    nc_def_dim
+  , nc_inq_dim
+  , nc_inq_dimid
+  , nc_inq_dimlen
+  , nc_inq_dimname
+  , nc_inq_ndims
+  , nc_inq_unlimdim
+  , nc_rename_dim
+) where
 
 import           Data.Int
 import           Data.Maybe (fromMaybe)

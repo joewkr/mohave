@@ -1,6 +1,20 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE GADTs #-}
-module Data.Format.NetCDF.LowLevel.File where
+module Data.Format.NetCDF.LowLevel.File(
+    NCInfo(..)
+
+  , nc_open
+  , nc_close
+  , nc_sync
+  , nc_redef
+  , nc_enddef
+  , nc_create
+  , nc_inq
+  , nc_inq_format
+  , nc_inq_format_extended
+  , nc_inq_path
+  , nc_set_fill
+) where
 
 import           Data.Bits as B
 import           Data.Int
