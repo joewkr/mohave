@@ -37,8 +37,9 @@ combineMMP (major, minor, path) = major*255^2 + minor*255 + path
 
 addPkgConfigVersionDefs :: [String] -> UserHooks -> UserHooks
 addPkgConfigVersionDefs cppOpts oldUserHooks = oldUserHooks{
-    preBuild = pkgConfigHook cppOpts $ preBuild oldUserHooks
-  , preRepl  = pkgConfigHook cppOpts $ preRepl  oldUserHooks}
+    preBuild   = pkgConfigHook cppOpts $ preBuild   oldUserHooks
+  , preHaddock = pkgConfigHook cppOpts $ preHaddock oldUserHooks
+  , preRepl    = pkgConfigHook cppOpts $ preRepl    oldUserHooks}
 
 pkgConfigHook :: [String] -> (args -> flags -> IO HookedBuildInfo) -> args -> flags -> IO HookedBuildInfo
 pkgConfigHook cppOpts oldFunc args flags = do
