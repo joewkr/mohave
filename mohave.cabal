@@ -64,8 +64,8 @@ library
                      , mtl >= 2.2 && < 2.3
                      , vector >= 0.12 && < 0.13
   build-tool-depends:  hsc2hs:hsc2hs
-  pkgconfig-depends:   hdf >= 4.2
-                     , netcdf >= 4.6.0
+  pkgconfig-depends:   hdf >= 4.2.12 && < 4.3
+                     , netcdf >= 4.6.0 && < 4.8.2
   hs-source-dirs:      src
   default-language:    Haskell2010
 --  include-dirs:        /opt/packages/hdf/4.2.14/include
