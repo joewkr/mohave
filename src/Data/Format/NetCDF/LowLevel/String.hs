@@ -165,7 +165,7 @@ nc_get_string_att' :: forall id a r (t :: NCDataType a) (n :: Nat). Monoid r =>
     -> (BS.ByteString -> r)
     -> IO (Int32, r)
 nc_get_string_att' ncid varid attrName ncStringConvert ncStringWrap = do
-    (res, (TypedValue t v)) <- nc_get_att ncid varid attrName
+    (res, TypedValue t v) <- nc_get_att ncid varid attrName
     if res /= 0
         then return $! (res, mempty)
         else case t of

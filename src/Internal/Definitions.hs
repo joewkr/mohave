@@ -29,25 +29,25 @@ import           GHC.TypeNats
 import           Unsafe.Coerce
 
 pattern Var0D :: forall (a :: Nat). KnownNat a => (0 ~ a) => Proxy a
-pattern Var0D <- ((\x -> sameNat x (Proxy :: Proxy 0)) -> Just Refl)
+pattern Var0D <- (sameNat (Proxy :: Proxy 0) -> Just Refl)
 
 pattern Var1D :: forall (a :: Nat). KnownNat a => (1 ~ a) => Proxy a
-pattern Var1D <- ((\x -> sameNat x (Proxy :: Proxy 1)) -> Just Refl)
+pattern Var1D <- (sameNat (Proxy :: Proxy 1) -> Just Refl)
 
 pattern Var2D :: forall (a :: Nat). KnownNat a => (2 ~ a) => Proxy a
-pattern Var2D <- ((\x -> sameNat x (Proxy :: Proxy 2)) -> Just Refl)
+pattern Var2D <- (sameNat (Proxy :: Proxy 2) -> Just Refl)
 
 pattern Var3D :: forall (a :: Nat). KnownNat a => (3 ~ a) => Proxy a
-pattern Var3D <- ((\x -> sameNat x (Proxy :: Proxy 3)) -> Just Refl)
+pattern Var3D <- (sameNat (Proxy :: Proxy 3) -> Just Refl)
 
 pattern Var4D :: forall (a :: Nat). KnownNat a => (4 ~ a) => Proxy a
-pattern Var4D <- ((\x -> sameNat x (Proxy :: Proxy 4)) -> Just Refl)
+pattern Var4D <- (sameNat (Proxy :: Proxy 4) -> Just Refl)
 
 pattern Var5D :: forall (a :: Nat). KnownNat a => (5 ~ a) => Proxy a
-pattern Var5D <- ((\x -> sameNat x (Proxy :: Proxy 5)) -> Just Refl)
+pattern Var5D <- (sameNat (Proxy :: Proxy 5) -> Just Refl)
 
 pattern Var6D :: forall (a :: Nat). KnownNat a => (6 ~ a) => Proxy a
-pattern Var6D <- ((\x -> sameNat x (Proxy :: Proxy 6)) -> Just Refl)
+pattern Var6D <- (sameNat (Proxy :: Proxy 6) -> Just Refl)
 
 data VarShapeDef (n :: Nat) a where
     ScalarVar :: VarShapeDef 0 a

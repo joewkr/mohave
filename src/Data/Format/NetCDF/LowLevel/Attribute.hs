@@ -22,7 +22,7 @@ module Data.Format.NetCDF.LowLevel.Attribute(
 ) where
 
 import           Data.Int
-import           Data.Maybe (fromMaybe)
+import           Data.Maybe (maybe)
 import qualified Data.Vector.Storable as VS
 import           Data.Word
 import           Foreign.ForeignPtr
@@ -84,7 +84,7 @@ foreign import ccall unsafe "nc_del_att" c_nc_del_att :: CInt -> CInt -> CString
 fromMaybeVarId :: forall a (t :: NCDataType a) (n :: Nat).
        Maybe (NCVariableId n t)
     -> CInt
-fromMaybeVarId varid = fromMaybe ncGlobalAttribute $ ncRawVarId <$> varid
+fromMaybeVarId varid = maybe ncGlobalAttribute ncRawVarId varid
 
 data NCAttributeInfoRaw = NCAttributeInfoRaw {
       ncAttributeName     :: String

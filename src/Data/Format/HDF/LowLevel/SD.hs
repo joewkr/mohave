@@ -107,8 +107,9 @@ module Data.Format.HDF.LowLevel.SD(
 ) where
 
 import           Control.Arrow (second)
+import           Control.Monad (when)
 import           Data.Int
-import           Data.Maybe (fromMaybe)
+import           Data.Maybe (maybe)
 import           Data.Proxy (Proxy(..))
 import qualified Data.Vector.Storable as VS
 import           Data.Word
@@ -609,9 +610,8 @@ containing the indices and the types of all the variables of that same name.
 sd_nametoindex :: SDId -> String -> IO (Int32, Int32)
 sd_nametoindex (SDId sd_id) sds_name = withCString sds_name $ \cSDSName -> do
     sds_index <- c_sdnametoindex sd_id cSDSName
-    if sds_index == (-1)
-      then he_push DFE_SDS_NOTFOUND "sd_nametoindex" "Data.Format.HDF.LowLevel.SD" currentLine
-      else return ()
+    when (sds_index == (-1)) $
+      he_push DFE_SDS_NOTFOUND "sd_nametoindex" "Data.Format.HDF.LowLevel.SD" currentLine
     return $! (sds_index, sds_index)
 
 {- | Retrieves indices of all variables with the same name.
@@ -769,9 +769,8 @@ sd_findattr :: SDObjectId id => id -> String -> IO (Int32, Int32)
 sd_findattr objId attribute_name =
     withCString attribute_name $ \c_attribute_name -> do
         attribute_index <- c_sdfindattr (getRawObjectId objId) c_attribute_name
-        if attribute_index == (-1)
-          then he_push DFE_CANTGETATTR "sd_findattr" "Data.Format.HDF.LowLevel.SD" currentLine
-          else return ()
+        when (attribute_index == (-1)) $
+          he_push DFE_CANTGETATTR "sd_findattr" "Data.Format.HDF.LowLevel.SD" currentLine
         return (attribute_index, attribute_index)
 
 {- | General information about an attribute -}
@@ -901,10 +900,10 @@ the HDF User's Guide for more information on predefined attributes.
 -}
 sd_getdatastrs :: SDataSetId n t -> IO (Int32, SDsetDescStringsRaw)
 sd_getdatastrs (SDataSetId sds_id) =
-    allocaArray (maxBufferLength) $ \labelPtr ->
-    allocaArray (maxBufferLength) $ \unitPtr ->
-    allocaArray (maxBufferLength) $ \formatPtr ->
-    allocaArray (maxBufferLength) $ \coordinateSystemPtr -> do
+    allocaArray maxBufferLength $ \labelPtr ->
+    allocaArray maxBufferLength $ \unitPtr ->
+    allocaArray maxBufferLength $ \formatPtr ->
+    allocaArray maxBufferLength $ \coordinateSystemPtr -> do
         h_result <- c_sdgetdatastrs
                         sds_id
                         labelPtr
@@ -953,9 +952,9 @@ are stored in the parameters @label@, @unit@, and @format@, respectively. Refer 
 -}
 sd_getdimstrs :: SDimensionId -> IO (Int32, SDimDescStringsRaw)
 sd_getdimstrs (SDimensionId dimension_id) =
-    allocaArray (maxBufferLength) $ \labelPtr ->
-    allocaArray (maxBufferLength) $ \unitPtr ->
-    allocaArray (maxBufferLength) $ \formatPtr -> do
+    allocaArray maxBufferLength $ \labelPtr ->
+    allocaArray maxBufferLength $ \unitPtr ->
+    allocaArray maxBufferLength $ \formatPtr -> do
         h_result <- c_sdgetdimstrs
                         dimension_id
                         labelPtr
@@ -1381,7 +1380,7 @@ sd_getoldattdatainfo (SDataSetId sds_id) dimId attrName =
     alloca $ \offsetPtr ->
     alloca $ \lengthPtr -> do
         h_result <- c_sdgetoldattdatainfo
-                        (fromMaybe 0 $ getRawObjectId <$> dimId)
+                        (maybe 0 getRawObjectId dimId)
                         sds_id
                         c_attrName
                         offsetPtr

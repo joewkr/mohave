@@ -51,7 +51,7 @@ module Data.Format.NetCDF.LowLevel.Variable.Internal (
 ) where
 
 import           Data.Int
-import           Data.Maybe (fromMaybe)
+import           Data.Maybe (maybe)
 import           Data.Proxy (Proxy(..))
 import qualified Data.Vector.Storable as VS
 import           Data.Word
@@ -503,7 +503,7 @@ nc_inq_var_fill ncid (NCVariableId varid) =
         noFill <- peek noFillPtr
         fillValue <- if noFill == 1
             then return Nothing
-            else peek fillValuePtr >>= (return . Just)
+            else Just <$> peek fillValuePtr
         return $! (fromIntegral res, fillValue)
 
 nc_inq_var_endian :: forall id a (t :: NCDataType a) (n :: Nat).
@@ -597,7 +597,7 @@ nc_get_var_fptr ncid v@(NCVariableId varid) = do
     if res1 /= 0
         then return $! (res1, (fNullPtr, 0))
         else do
-            let varDimids = fromMaybe [] $ fromStaticVector <$> maybeDimids
+            let varDimids = maybe [] fromStaticVector maybeDimids
             (ress,dimLens) <- unzip <$> mapM (nc_inq_dimlen ncid) varDimids
             if any (/= 0) ress
                 then return $! (fromIntegral . head $ filter (/= 0) ress, (fNullPtr, 0))
@@ -680,7 +680,7 @@ nc_put_var ncid v@(NCVariableId varid) ncData = do
     if res1 /= 0
         then return $! (res1, ())
         else do
-            let varDimids = fromMaybe [] $ fromStaticVector <$> maybeDimids
+            let varDimids = maybe [] fromStaticVector maybeDimids
             (ress,dimLens) <- unzip <$> mapM (nc_inq_dimlen ncid) varDimids
             if any (/= 0) ress
                 then return $! (fromIntegral . head $ filter (/= 0) ress, ())

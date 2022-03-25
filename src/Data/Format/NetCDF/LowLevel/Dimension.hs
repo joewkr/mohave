@@ -12,7 +12,7 @@ module Data.Format.NetCDF.LowLevel.Dimension(
 ) where
 
 import           Data.Int
-import           Data.Maybe (fromMaybe)
+import           Data.Maybe (maybe)
 import           Data.Word
 import           Foreign.Ptr
 import           Foreign.C.String
@@ -42,7 +42,7 @@ nc_def_dim ncid dimName dimSize =
         return $! (fromIntegral res, NCDimensionId dimid)
   where
     dimSize' :: CSize
-    dimSize' =  fromMaybe ncUnlimitedDimension $ fromIntegral <$> dimSize
+    dimSize' =  maybe ncUnlimitedDimension fromIntegral dimSize
 
 nc_inq_dim :: NC id -> NCDimensionId -> IO (Int32, (String, Word32))
 nc_inq_dim ncid (NCDimensionId dimid) =
