@@ -24,6 +24,7 @@ library
                      , Data.Format.HDF.SD
                      , Data.Format.NetCDF.LowLevel
                      , Data.Format.NetCDF.LowLevel.Attribute
+                     , Data.Format.NetCDF.LowLevel.ChunkCache
                      , Data.Format.NetCDF.LowLevel.Dimension
                      , Data.Format.NetCDF.LowLevel.Error
                      , Data.Format.NetCDF.LowLevel.File
@@ -80,6 +81,7 @@ test-suite test-main
                      , Data.Format.HDF.LowLevel.HESpec
                      , Data.Format.HDF.SDSpec
                      , Data.Format.NetCDF.LowLevel.AttributeSpec
+                     , Data.Format.NetCDF.LowLevel.ChunkCacheSpec
                      , Data.Format.NetCDF.LowLevel.DimensionSpec
                      , Data.Format.NetCDF.LowLevel.ErrorSpec
                      , Data.Format.NetCDF.LowLevel.FileSpec
