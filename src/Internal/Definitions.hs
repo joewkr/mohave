@@ -87,11 +87,11 @@ data W a where
     W :: forall a (n :: Nat). StaticVector n a -> W a
 
 fromStaticVector :: forall a (n :: Nat). StaticVector n a -> [a]
-fromStaticVector = reverse . go
+fromStaticVector = go []
   where
-    go :: forall b (m :: Nat). StaticVector m b -> [b]
-    go (D     v) = [v]
-    go (vs :| v) = v:(go vs)
+    go :: forall b (m :: Nat). [b] -> StaticVector m b -> [b]
+    go r (D     v) =     v:r
+    go r (vs :| v) = go (v:r) vs
 
 toStaticVector :: forall a (n :: Nat). KnownNat n =>
     Proxy n -> [a] -> Maybe (StaticVector n a)
