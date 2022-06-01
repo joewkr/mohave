@@ -66,6 +66,13 @@ instance Functor (StaticVector n) where
     fmap f (D a)       = D $! f a
     fmap f (rest :| a) = (fmap f rest) :| (f a)
 
+instance Foldable (StaticVector n) where
+    foldMap f = foldMap f . fromStaticVector
+
+instance Traversable (StaticVector n) where
+    traverse f (D a)       = D <$> (f a)
+    traverse f (rest :| a) = (:|) <$> (traverse f rest) <*> (f a)
+
 withStaticVector :: forall a (n :: Nat) b. (KnownNat n, Storable a) =>
     StaticVector n a -> (Ptr a -> IO b) -> IO b
 withStaticVector index f = allocaArray indexRank $ \indexPtr -> do
