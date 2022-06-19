@@ -227,9 +227,9 @@ spec = do
                 (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "vector_var"
                 case t of
                     SNCInt -> do
-                        fillValue <- checkNC =<< nc_inq_var_fill nc_id var
+                        fillSpec  <- checkNC =<< nc_inq_var_fill nc_id var
                         _         <- checkNC =<< nc_close nc_id
-                        fillValue `shouldBe` Just 1
+                        fillSpec `shouldBe` (NCFill, 1)
                     _ -> do
                         _         <- checkNC =<< nc_close nc_id
                         expectationFailure "Unexpected NC data type"

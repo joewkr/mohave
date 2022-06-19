@@ -62,7 +62,7 @@ data NCFormatX =
   | NCFormatXUndefined
   deriving (Eq, Show)
 
-data NCFillMode = NCFill | NCNoFill
+data NCFillMode = NCFill | NCNoFill deriving (Eq, Show)
 
 data NCStorageType = NCContiguous | NCChunked
 

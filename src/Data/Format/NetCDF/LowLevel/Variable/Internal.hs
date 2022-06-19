@@ -495,15 +495,17 @@ nc_inq_var_chunking ncid (NCVariableId varid) =
 nc_inq_var_fill :: forall id a (t :: NCDataType a) (n :: Nat). Storable a =>
        NC id
     -> NCVariableId n t
-    -> IO (Int32, Maybe a)
+    -> IO (Int32, (NCFillMode, a))
 nc_inq_var_fill ncid (NCVariableId varid) =
     alloca $ \noFillPtr ->
     alloca $ \fillValuePtr -> do
         res <- c_nc_inq_var_fill (ncRawId ncid) varid noFillPtr (castPtr fillValuePtr)
         noFill <- peek noFillPtr
-        fillValue <- if noFill == 1
-            then return Nothing
-            else Just <$> peek fillValuePtr
+        let
+          fillValueB = if noFill == 1
+            then (,) NCNoFill
+            else (,) NCFill
+        fillValue <- fillValueB <$> peek fillValuePtr
         return $! (fromIntegral res, fillValue)
 
 nc_inq_var_endian :: forall id a (t :: NCDataType a) (n :: Nat).
