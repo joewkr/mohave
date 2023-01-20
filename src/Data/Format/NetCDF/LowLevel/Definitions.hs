@@ -179,7 +179,7 @@ instance TestEquality NCDataType where
 newtype NCVariableId (n :: Nat) (t :: NCDataType a) = NCVariableId{ncRawVarId :: CInt} deriving Eq
 
 data SomeNCVariable where
-    SomeNCVariable :: forall a (n :: Nat) (t :: NCDataType a). KnownNat n =>
+    SomeNCVariable :: forall a (n :: Nat) (t :: NCDataType a). (KnownNat n, Storable a) =>
         NCDataTypeS t -> NCVariableId n t -> SomeNCVariable
 
 type NCType   = TType   NCDataType
