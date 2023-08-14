@@ -59,7 +59,7 @@ library
                      , ViewPatterns
   ghc-options:        -Wall
   cc-options:         -Wall -Wextra -pedantic
-  build-depends:       base >=4.11 && <4.18
+  build-depends:       base >=4.11 && <4.19
                      , bytestring
                      , exceptions >= 0.10 && < 0.11
                      , mtl >= 2.2 && < 2.3
