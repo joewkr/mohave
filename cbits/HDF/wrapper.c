@@ -29,14 +29,24 @@ const char ** wrp_HEpush(hdf_err_code_t error_code, const char *function_name, c
 
     HEpush(error_code, function_name, file_name, line);
 
-    if(num_file_names > (size_t)error_top) {
+    /* Compute the size of the current HDF error stack by looping through
+       all the errors currently placed on the stack since the HDF library
+       does not expose other mean for assessing this information. */
+    int32 stack_level = 0;
+    int16 stack_error_code = DFE_NONE;
+    do {
+        stack_error_code = HEvalue(++stack_level);
+    } while(stack_error_code != DFE_NONE);
+    --stack_level; /* Drop an extra level to get the correct stack size */
+
+    if(num_file_names > (size_t)stack_level) {
     /* Error stack could contain at most the number of custom errors
        which is equal to the current error stack size. If we store
        more custom errors than could be held by the current error stack
        it means the error stack was cleared and we could safely deallocate
        the memory taken by the old messages. */
 
-        *num_unused_names = num_file_names - (size_t)error_top;
+        *num_unused_names = num_file_names - (size_t)stack_level;
         for(size_t i = 0; i < *num_unused_names; ++i) {
             file_names_to_clear[i] = error_stack_file_names[i];
         }
