@@ -61,9 +61,6 @@ jobs:
 
     - name: Build
       run: |
-        # This term is spelled differently in vanilla HDF library and in the version provided with Ubuntu. So,
-        # for CI just replace the word in question while keeping the original spelling in the repository.
-        sed --in-place 's/syncronize/synchronize/g' ${GITHUB_WORKSPACE}/test/Data/Format/HDF/LowLevel/HESpec.hs
         cabal configure --enable-tests --enable-benchmarks --test-show-details=direct
         cabal build all
 
