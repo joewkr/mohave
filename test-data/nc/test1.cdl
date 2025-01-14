@@ -18,5 +18,13 @@ variables:
   int var_2d(dim1, dim2);
     var_2d:_ChunkSizes = 2, 3;
     var_2d:_Shuffle = "true";
+  int var_2d_compressed4(dim1, dim2);
+    var_2d_compressed4:_ChunkSizes = 2, 3;
+    var_2d_compressed4:_Shuffle = "true";
+    var_2d_compressed4:_DeflateLevel = 4;
+  int var_2d_compressed0(dim1, dim2);
+    var_2d_compressed0:_ChunkSizes = 2, 3;
+    var_2d_compressed0:_Shuffle = "true";
+    var_2d_compressed0:_DeflateLevel = 0;
   int var_unlim(dim4);
 }

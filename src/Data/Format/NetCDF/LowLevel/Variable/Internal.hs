@@ -463,7 +463,7 @@ nc_inq_var_deflate ncid (NCVariableId varid) =
         deflateLevel <- fromIntegral <$> peek deflateLevelPtr
         return $! (
             fromIntegral res
-          , NCDeflateParams doShuffle $ if deflate then Just deflateLevel else Nothing)
+          , NCDeflateParams doShuffle $ if deflate && deflateLevel /= 0 then Just deflateLevel else Nothing)
 
 nc_inq_var_fletcher32 :: forall id a (t :: NCDataType a) (n :: Nat).
        NC id

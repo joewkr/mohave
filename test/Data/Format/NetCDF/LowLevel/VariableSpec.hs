@@ -196,7 +196,19 @@ spec = do
                 (SomeNCVariable _ var) <- checkNC =<< nc_inq_varid nc_id "var_2d"
                 deflateParams          <- checkNC =<< nc_inq_var_deflate nc_id var
                 _                      <- checkNC =<< nc_close nc_id
-                deflateParams `shouldBe` (NCDeflateParams True $ Just 0)
+                deflateParams `shouldBe` (NCDeflateParams True Nothing)
+            it "correctly returns deflate parameters - 4" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test1.nc" NCNoWrite
+                (SomeNCVariable _ var) <- checkNC =<< nc_inq_varid nc_id "var_2d_compressed4"
+                deflateParams          <- checkNC =<< nc_inq_var_deflate nc_id var
+                _                      <- checkNC =<< nc_close nc_id
+                deflateParams `shouldBe` (NCDeflateParams True $ Just 4)
+            it "correctly returns deflate parameters - 5" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test1.nc" NCNoWrite
+                (SomeNCVariable _ var) <- checkNC =<< nc_inq_varid nc_id "var_2d_compressed0"
+                deflateParams          <- checkNC =<< nc_inq_var_deflate nc_id var
+                _                      <- checkNC =<< nc_close nc_id
+                deflateParams `shouldBe` (NCDeflateParams True Nothing)
         context "nc_inq_var_fletcher32" $ do
             it "correctly reports whether checksum is used - 1" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test1.nc" NCNoWrite
