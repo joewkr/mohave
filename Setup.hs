@@ -5,6 +5,7 @@ import           Data.Version (Version)
 import           Distribution.PackageDescription
 import           Distribution.Simple
 import           Distribution.Simple.Program
+import           Distribution.Types.CondTree (mapTreeData)
 import           Distribution.Verbosity (normal)
 
 main :: IO ()
@@ -39,7 +40,16 @@ addPkgConfigVersionDefs :: [String] -> UserHooks -> UserHooks
 addPkgConfigVersionDefs cppOpts oldUserHooks = oldUserHooks{
     preBuild   = pkgConfigHook cppOpts $ preBuild   oldUserHooks
   , preHaddock = pkgConfigHook cppOpts $ preHaddock oldUserHooks
-  , preRepl    = pkgConfigHook cppOpts $ preRepl    oldUserHooks}
+  , preRepl    = pkgConfigHook cppOpts $ preRepl    oldUserHooks
+  , confHook   = newConfHook   cppOpts $ confHook   oldUserHooks}
+
+newConfHook :: [String] -> ((GenericPackageDescription, HookedBuildInfo) -> configFlags -> IO localBuildInfo) -> (GenericPackageDescription, HookedBuildInfo) -> configFlags -> IO localBuildInfo
+newConfHook cppOpts oldHookFunc = \(genericPackageDescription, hookedBuildInfo) configFlags -> do
+  let
+    testSuiteDescription' = map (\(compName,condTree) -> (compName, mapTreeData addCppFlags condTree)) $ condTestSuites genericPackageDescription
+    updateBuildInfo oldBuildInfo = oldBuildInfo{cppOptions = cppOptions oldBuildInfo <> cppOpts}
+    addCppFlags = (\testSuite -> testSuite{testBuildInfo = updateBuildInfo $ testBuildInfo testSuite})
+  oldHookFunc (genericPackageDescription{condTestSuites=testSuiteDescription'}, hookedBuildInfo) configFlags
 
 pkgConfigHook :: [String] -> (args -> flags -> IO HookedBuildInfo) -> args -> flags -> IO HookedBuildInfo
 pkgConfigHook cppOpts oldFunc args flags = do

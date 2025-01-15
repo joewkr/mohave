@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 module Data.Format.NetCDF.LowLevel.FileSpec(spec) where
 
 import qualified Data.Vector.Storable as VS
@@ -71,3 +72,9 @@ spec = do
             v                      <- checkNC =<< nc_get_var nc_id var_id
             _                      <- checkNC =<< nc_close nc_id
             v `shouldBe` VS.fromList [100, 100]
+#if PKG_CONFIG_NETCDF_VERSION >= PKG_VERSION(4,9,0)
+        it "sets the NC_NOATTCREORD and NC_NODIMSCALE_ATTACH modes" $ do
+            nc_id                  <- checkNC =<< nc_create (testOutputPath </> "file2.nc") NCNetCDF4 (NCClobber .|. NCNoAttReord .|. NCNoDimScaleAttach)
+            _                      <- checkNC =<< nc_close nc_id
+            return ()
+#endif

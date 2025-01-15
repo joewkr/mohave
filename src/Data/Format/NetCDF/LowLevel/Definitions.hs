@@ -32,6 +32,10 @@ data NCOpenMode =
 #if PKG_CONFIG_NETCDF_VERSION >= PKG_VERSION(4,6,2)
   | NCPersist
 #endif
+#if PKG_CONFIG_NETCDF_VERSION >= PKG_VERSION(4,9,0)
+  | NCNoAttReord
+  | NCNoDimScaleAttach
+#endif
   | NCClobber
   | NCNoClobber
   | NCCompoundMode CInt

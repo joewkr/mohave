@@ -17,6 +17,10 @@ toNCOpenModeTag NCDiskless            = #{const NC_DISKLESS }
 #if PKG_CONFIG_NETCDF_VERSION >= PKG_VERSION(4,6,2)
 toNCOpenModeTag NCPersist             = #{const NC_PERSIST  }
 #endif
+#if PKG_CONFIG_NETCDF_VERSION >= PKG_VERSION(4,9,0)
+toNCOpenModeTag NCNoAttReord          = #{const NC_NOATTCREORD}
+toNCOpenModeTag NCNoDimScaleAttach    = #{const NC_NODIMSCALE_ATTACH}
+#endif
 toNCOpenModeTag NCClobber             = #{const NC_CLOBBER  }
 toNCOpenModeTag NCNoClobber           = #{const NC_NOCLOBBER}
 toNCOpenModeTag (NCCompoundMode mode) = mode
@@ -36,6 +40,10 @@ fromNCOpenModeTag tag = case tag of
     #{const NC_DISKLESS } -> NCDiskless
 #if PKG_CONFIG_NETCDF_VERSION >= PKG_VERSION(4,6,2)
     #{const NC_PERSIST  } -> NCPersist
+#endif
+#if PKG_CONFIG_NETCDF_VERSION >= PKG_VERSION(4,9,0)
+    #{const NC_NOATTCREORD      } -> NCNoAttReord
+    #{const NC_NODIMSCALE_ATTACH} -> NCNoDimScaleAttach
 #endif
     #{const NC_NOCLOBBER} -> NCNoClobber
     mode                  -> NCCompoundMode mode

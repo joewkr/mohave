@@ -90,7 +90,8 @@ test-suite test-main
                      , Data.Format.NetCDF.LowLevel.VariableSpec
                      , Testing.Common
                      , Spec
-  other-extensions:    DataKinds
+  other-extensions:    CPP
+                     , DataKinds
                      , GADTs
                      , OverloadedStrings
                      , ScopedTypeVariables
