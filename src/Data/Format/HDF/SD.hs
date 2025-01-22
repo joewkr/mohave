@@ -82,6 +82,7 @@ module Data.Format.HDF.SD(
 
 import           Control.Monad.Catch
 import           Control.Monad.Except
+import           Control.Monad.IO.Class (MonadIO, liftIO)
 import           Data.Int
 import           Data.Kind
 import           Data.Proxy
