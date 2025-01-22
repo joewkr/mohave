@@ -51,8 +51,9 @@ jobs:
         echo 'Libs: -L${libdir} -lmfhdfalt -ldfalt -Wl,-rpath,${libdir} -lz -ldl -lm' >> ${GITHUB_WORKSPACE}/hdf.pc
         echo 'Cflags: -I${includedir}'                                                >> ${GITHUB_WORKSPACE}/hdf.pc
 
-    - name: Freeze
+    - name: Configure & Freeze
       run: |
+        cabal configure --enable-tests --enable-benchmarks --test-show-details=direct
         cabal freeze
 
     - uses: actions/cache@v4
@@ -63,7 +64,6 @@ jobs:
 
     - name: Build
       run: |
-        cabal configure --enable-tests --enable-benchmarks --test-show-details=direct
         cabal build all
 
     - name: Test
