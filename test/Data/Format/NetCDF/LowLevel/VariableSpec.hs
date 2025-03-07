@@ -4,7 +4,6 @@
 module Data.Format.NetCDF.LowLevel.VariableSpec(spec) where
 
 import           Data.Int (Int64)
-import           Data.Proxy
 import qualified Data.Vector.Storable as VS
 import           GHC.TypeNats
 import           System.FilePath ((</>))
@@ -14,6 +13,7 @@ import           Data.Format.NetCDF.LowLevel
 import           Data.Format.NetCDF.LowLevel.File
 import           Data.Format.NetCDF.LowLevel.Dimension
 import           Data.Format.NetCDF.LowLevel.Variable
+import           Data.Format.NetCDF.LowLevel.Util (ncVarNDimsProxy)
 import           Testing.Common
 
 spec :: Spec
@@ -115,22 +115,22 @@ spec = do
         context "nc_inq_varndims" $ do
             it "correctly returns variable rank - array" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test1.nc" NCNoWrite
-                (SomeNCVariable _ (var :: NCVariableId n a)) <-
+                (SomeNCVariable _ var) <-
                                           checkNC =<< nc_inq_varid nc_id "vector_var"
                 numDims                <- checkNC =<< nc_inq_varndims nc_id var
                 _                      <- checkNC =<< nc_close nc_id
-                numDims `shouldBe` (fromIntegral $ natVal (Proxy :: Proxy n))
+                numDims `shouldBe` (fromIntegral . natVal $ ncVarNDimsProxy var)
             it "correctly returns variable rank - scalar" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test1.nc" NCNoWrite
-                (SomeNCVariable _ (var :: NCVariableId n a)) <-
+                (SomeNCVariable _ var) <-
                                           checkNC =<< nc_inq_varid nc_id "scalar_var"
                 numDims                <- checkNC =<< nc_inq_varndims nc_id var
                 _                      <- checkNC =<< nc_close nc_id
-                numDims `shouldBe` (fromIntegral $ natVal (Proxy :: Proxy n))
+                numDims `shouldBe` (fromIntegral . natVal $ ncVarNDimsProxy var)
         context "nc_inq_vartype" $ do
             it "correctly returns variable type" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test1.nc" NCNoWrite
-                (SomeNCVariable t  (var :: NCVariableId n a)) <-
+                (SomeNCVariable t  var) <-
                                           checkNC =<< nc_inq_varid nc_id "vector_var"
                 tv                     <- checkNC =<< nc_inq_vartype nc_id var
                 _                      <- checkNC =<< nc_close nc_id
@@ -140,7 +140,7 @@ spec = do
         context "nc_inq_varname" $ do
             it "correctly returns variable name" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test1.nc" NCNoWrite
-                (SomeNCVariable _ (var :: NCVariableId n a)) <-
+                (SomeNCVariable _ var) <-
                                           checkNC =<< nc_inq_varid nc_id "scalar_var"
                 varName                <- checkNC =<< nc_inq_varname nc_id var
                 _                      <- checkNC =<< nc_close nc_id
@@ -148,16 +148,16 @@ spec = do
         context "nc_inq_vardimid" $ do
             it "correctly returns variable dimensions" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test1.nc" NCNoWrite
-                (SomeNCVariable _ (var :: NCVariableId n a)) <-
+                (SomeNCVariable _ var) <-
                                           checkNC =<< nc_inq_varid nc_id "var_2d"
                 dim1_id                <- checkNC =<< nc_inq_dimid nc_id "dim1"
                 dim2_id                <- checkNC =<< nc_inq_dimid nc_id "dim2"
                 varDims                <- checkNC =<< nc_inq_vardimid nc_id var
                 _                      <- checkNC =<< nc_close nc_id
                 ((fromStaticVector <$> varDims) == Just [dim1_id, dim2_id]) `shouldBe` True
-                case (Proxy :: Proxy n) of
+                case ncVarNDimsProxy var of
                     Var2D -> (varDims == Just (D dim1_id :| dim2_id)) `shouldBe` True
-                    _     -> expectationFailure $ "Unexpected rank: " ++ (show $ natVal (Proxy :: Proxy n))
+                    _     -> expectationFailure $ "Unexpected rank: " ++ (show . natVal $ ncVarNDimsProxy var)
             it "correctly handles scalar variables" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test1.nc" NCNoWrite
                 (SomeNCVariable _ (var :: NCVariableId n a)) <-
@@ -225,14 +225,14 @@ spec = do
         context "nc_inq_var_chunking" $ do
             it "correctly reports chunking parameters" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test1.nc" NCNoWrite
-                (SomeNCVariable _ (var :: NCVariableId n a)) <-
+                (SomeNCVariable _ var) <-
                                           checkNC =<< nc_inq_varid nc_id "var_2d"
                 chunks                 <- checkNC =<< nc_inq_var_chunking nc_id var
                 _                      <- checkNC =<< nc_close nc_id
                 (fromStaticVector <$> chunks) `shouldBe` (Just [2, 3])
-                case (Proxy :: Proxy n) of
+                case ncVarNDimsProxy var of
                     Var2D -> chunks `shouldBe` Just (D 2 :| 3)
-                    _     -> expectationFailure $ "Unexpected rank: " ++ (show $ natVal (Proxy :: Proxy n))
+                    _     -> expectationFailure $ "Unexpected rank: " ++ (show . natVal $ ncVarNDimsProxy var)
         context "nc_inq_var_fill" $ do
             it "correctly reports filling value" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test1.nc" NCNoWrite
@@ -275,10 +275,10 @@ spec = do
         context "nc_get_vara" $ do
             it "correctly reads a vector variable" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
-                (SomeNCVariable t (var :: NCVariableId n a)) <-
+                (SomeNCVariable t var) <-
                                           checkNC =<< nc_inq_varid nc_id "vector_int"
                 case t of
-                    SNCInt -> case (Proxy :: Proxy n) of
+                    SNCInt -> case ncVarNDimsProxy var of
                         Var1D -> do
                             nc_data <- checkNC =<< nc_get_vara nc_id var (D 0) (D 3)
                             _       <- checkNC =<< nc_close nc_id
@@ -287,10 +287,10 @@ spec = do
                     _ -> expectationFailure "Unexpected data type"
             it "correctly reads a subset of a vector variable" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
-                (SomeNCVariable t (var :: NCVariableId n a)) <-
+                (SomeNCVariable t var) <-
                                           checkNC =<< nc_inq_varid nc_id "vector_int"
                 case t of
-                    SNCInt -> case (Proxy :: Proxy n) of
+                    SNCInt -> case ncVarNDimsProxy var of
                         Var1D -> do
                             nc_data <- checkNC =<< nc_get_vara nc_id var (D 1) (D 1)
                             _       <- checkNC =<< nc_close nc_id
@@ -300,10 +300,10 @@ spec = do
         context "nc_get_var1" $ do
             it "correctly reads a single value from vector" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
-                (SomeNCVariable t (var :: NCVariableId n a)) <-
+                (SomeNCVariable t var) <-
                                           checkNC =<< nc_inq_varid nc_id "vector_int"
                 case t of
-                    SNCInt -> case (Proxy :: Proxy n) of
+                    SNCInt -> case ncVarNDimsProxy var of
                         Var1D -> do
                             nc_data <- checkNC =<< nc_get_var1 nc_id var (D 1)
                             _       <- checkNC =<< nc_close nc_id
@@ -333,10 +333,10 @@ spec = do
         context "nc_get_vars" $ do
             it "correctly reads a vector variable" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
-                (SomeNCVariable t (var :: NCVariableId n a)) <-
+                (SomeNCVariable t var) <-
                                           checkNC =<< nc_inq_varid nc_id "vector_int"
                 case t of
-                    SNCInt -> case (Proxy :: Proxy n) of
+                    SNCInt -> case ncVarNDimsProxy var of
                         Var1D -> do
                             nc_data <- checkNC =<< nc_get_vars nc_id var (D 0) (D 2) (D 2)
                             _       <- checkNC =<< nc_close nc_id
@@ -387,10 +387,10 @@ spec = do
         context "nc_get_scalar" $ do
             it "correctly reads a scalar variable" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
-                (SomeNCVariable t (var :: NCVariableId n a)) <-
+                (SomeNCVariable t var) <-
                                           checkNC =<< nc_inq_varid nc_id "scalar_int"
                 case t of
-                    SNCInt -> case (Proxy :: Proxy n) of
+                    SNCInt -> case ncVarNDimsProxy var of
                         Var0D -> do
                             nc_data <- checkNC =<< nc_get_scalar nc_id var
                             _       <- checkNC =<< nc_close nc_id

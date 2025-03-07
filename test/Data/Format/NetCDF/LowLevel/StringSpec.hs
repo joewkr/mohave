@@ -6,7 +6,6 @@
 module Data.Format.NetCDF.LowLevel.StringSpec(spec) where
 
 import           Control.Monad (forM_)
-import           Data.Proxy
 import qualified Data.Vector.Storable as VS
 import           System.FilePath ((</>))
 import           Test.Hspec
@@ -17,6 +16,7 @@ import           Data.Format.NetCDF.LowLevel.Error
 import           Data.Format.NetCDF.LowLevel.File
 import           Data.Format.NetCDF.LowLevel.String
 import           Data.Format.NetCDF.LowLevel.Variable
+import           Data.Format.NetCDF.LowLevel.Util (ncVarNDimsProxy)
 import           Testing.Common
 
 spec :: Spec
@@ -25,10 +25,10 @@ spec = do
         context "variables" $ do
             it "correctly reads a string from vector" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
-                (SomeNCVariable t (var :: NCVariableId n a)) <-
+                (SomeNCVariable t var) <-
                                           checkNC =<< nc_inq_varid nc_id "string_vector"
                 case t of
-                    SNCString -> case (Proxy :: Proxy n) of
+                    SNCString -> case ncVarNDimsProxy var of
                         Var1D -> do
                             nc_data <- checkNC =<< nc_get_var1 nc_id var (D 1)
                             _       <- checkNC =<< nc_close nc_id
@@ -39,10 +39,10 @@ spec = do
                     _ -> expectationFailure "Unexpected data type"
             it "nc_get_vara_string" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
-                (SomeNCVariable t (var :: NCVariableId n a)) <-
+                (SomeNCVariable t var) <-
                                           checkNC =<< nc_inq_varid nc_id "string_vector"
                 case t of
-                    SNCString -> case (Proxy :: Proxy n) of
+                    SNCString -> case ncVarNDimsProxy var of
                         Var1D -> do
                             nc_data <- checkNC =<< nc_get_vara_string nc_id var (D 0) (D 2)
                             _       <- checkNC =<< nc_close nc_id
@@ -53,10 +53,10 @@ spec = do
                     _ -> expectationFailure "Unexpected data type"
             it "nc_get_var1_string" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
-                (SomeNCVariable t (var :: NCVariableId n a)) <-
+                (SomeNCVariable t var) <-
                                           checkNC =<< nc_inq_varid nc_id "string_matrix"
                 case t of
-                    SNCString -> case (Proxy :: Proxy n) of
+                    SNCString -> case ncVarNDimsProxy var of
                         Var2D -> do
                             nc_str  <- checkNC =<< nc_get_var1_string nc_id var (D 1 :| 1)
                             _       <- checkNC =<< nc_close nc_id
@@ -65,10 +65,10 @@ spec = do
                     _ -> expectationFailure "Unexpected data type"
             it "nc_get_var_string" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
-                (SomeNCVariable t (var :: NCVariableId n a)) <-
+                (SomeNCVariable t var) <-
                                           checkNC =<< nc_inq_varid nc_id "string_vector"
                 case t of
-                    SNCString -> case (Proxy :: Proxy n) of
+                    SNCString -> case ncVarNDimsProxy var of
                         Var1D -> do
                             nc_data <- checkNC =<< nc_get_var_string nc_id var
                             _       <- checkNC =<< nc_close nc_id
@@ -79,10 +79,10 @@ spec = do
                     _ -> expectationFailure "Unexpected data type"
             it "nc_get_vars_string" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
-                (SomeNCVariable t (var :: NCVariableId n a)) <-
+                (SomeNCVariable t var) <-
                                           checkNC =<< nc_inq_varid nc_id "string_vector"
                 case t of
-                    SNCString -> case (Proxy :: Proxy n) of
+                    SNCString -> case ncVarNDimsProxy var of
                         Var1D -> do
                             nc_data <- checkNC =<< nc_get_vars_string nc_id var (D 0) (D 2) (D 2)
                             _       <- checkNC =<< nc_close nc_id
@@ -93,10 +93,10 @@ spec = do
                     _ -> expectationFailure "Unexpected data type"
             it "nc_get_string" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
-                (SomeNCVariable t (var :: NCVariableId n a)) <-
+                (SomeNCVariable t var) <-
                                           checkNC =<< nc_inq_varid nc_id "just_string"
                 case t of
-                    SNCString -> case (Proxy :: Proxy n) of
+                    SNCString -> case ncVarNDimsProxy var of
                         Var0D -> do
                             nc_str  <- checkNC =<< nc_get_string nc_id var
                             _       <- checkNC =<< nc_close nc_id
