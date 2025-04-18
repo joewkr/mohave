@@ -1,5 +1,9 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TypeOperators #-}
 module Data.Format.NetCDF.LowLevel.C.Definitions where
 
 import qualified Data.Bits as B
@@ -172,18 +176,41 @@ fromNCStandardTypeTag tag = case tag of
   #{const NC_STRING} -> Just . SomeNCType $ NCType tag SNCString
   _                  -> Nothing
 
-pattern NCByte   = NCType  #{const NC_BYTE  } SNCByte
-pattern NCUByte  = NCType  #{const NC_UBYTE } SNCUByte
-pattern NCChar   = NCType  #{const NC_CHAR  } SNCChar
-pattern NCShort  = NCType  #{const NC_SHORT } SNCShort
-pattern NCUShort = NCType  #{const NC_USHORT} SNCUShort
-pattern NCInt    = NCType  #{const NC_INT   } SNCInt
-pattern NCUInt   = NCType  #{const NC_UINT  } SNCUInt
-pattern NCInt64  = NCType  #{const NC_INT64 } SNCInt64
-pattern NCUInt64 = NCType  #{const NC_UINT64} SNCUInt64
-pattern NCFloat  = NCType  #{const NC_FLOAT } SNCFloat
-pattern NCDouble = NCType  #{const NC_DOUBLE} SNCDouble
-pattern NCString = NCType  #{const NC_STRING} SNCString
+pattern NCByte   :: forall {t :: NCDataTypeTag}. () => (t ~ TNCByte  ) => NCType t
+pattern NCByte    = NCType  #{const NC_BYTE  } SNCByte
+
+pattern NCUByte  :: forall {t :: NCDataTypeTag}. () => (t ~ TNCUByte ) => NCType t
+pattern NCUByte   = NCType  #{const NC_UBYTE } SNCUByte
+
+pattern NCChar   :: forall {t :: NCDataTypeTag}. () => (t ~ TNCChar  ) => NCType t
+pattern NCChar    = NCType  #{const NC_CHAR  } SNCChar
+
+pattern NCShort  :: forall {t :: NCDataTypeTag}. () => (t ~ TNCShort ) => NCType t
+pattern NCShort   = NCType  #{const NC_SHORT } SNCShort
+
+pattern NCUShort :: forall {t :: NCDataTypeTag}. () => (t ~ TNCUShort) => NCType t
+pattern NCUShort  = NCType  #{const NC_USHORT} SNCUShort
+
+pattern NCInt    :: forall {t :: NCDataTypeTag}. () => (t ~ TNCInt   ) => NCType t
+pattern NCInt     = NCType  #{const NC_INT   } SNCInt
+
+pattern NCUInt   :: forall {t :: NCDataTypeTag}. () => (t ~ TNCUInt  ) => NCType t
+pattern NCUInt    = NCType  #{const NC_UINT  } SNCUInt
+
+pattern NCInt64  :: forall {t :: NCDataTypeTag}. () => (t ~ TNCInt64 ) => NCType t
+pattern NCInt64   = NCType  #{const NC_INT64 } SNCInt64
+
+pattern NCUInt64 :: forall {t :: NCDataTypeTag}. () => (t ~ TNCUInt64) => NCType t
+pattern NCUInt64  = NCType  #{const NC_UINT64} SNCUInt64
+
+pattern NCFloat  :: forall {t :: NCDataTypeTag}. () => (t ~ TNCFloat ) => NCType t
+pattern NCFloat   = NCType  #{const NC_FLOAT } SNCFloat
+
+pattern NCDouble :: forall {t :: NCDataTypeTag}. () => (t ~ TNCDouble) => NCType t
+pattern NCDouble  = NCType  #{const NC_DOUBLE} SNCDouble
+
+pattern NCString :: forall {t :: NCDataTypeTag}. () => (t ~ TNCString) => NCType t
+pattern NCString  = NCType  #{const NC_STRING} SNCString
 
 fromNCUserTypeClassTag :: CInt -> Maybe NCUserTypeClass
 fromNCUserTypeClassTag tag = case tag of
