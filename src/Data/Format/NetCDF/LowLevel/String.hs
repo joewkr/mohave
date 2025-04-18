@@ -2,7 +2,6 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE TypeInType #-} -- Required with ghc 8.4.3
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE GADTs #-}
 module Data.Format.NetCDF.LowLevel.String(

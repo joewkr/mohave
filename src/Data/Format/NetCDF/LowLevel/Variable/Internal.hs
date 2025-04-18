@@ -4,7 +4,6 @@
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeInType #-} -- Required with ghc 8.4.3
 {-# LANGUAGE TypeOperators #-}
 module Data.Format.NetCDF.LowLevel.Variable.Internal (
     NCDeflateParams(..)
