@@ -3,8 +3,10 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Data.Format.NetCDF.LowLevel.VariableSpec(spec) where
 
+import           Control.Monad (void)
 import           Data.Int (Int64)
 import qualified Data.Vector.Storable as VS
+import           Foreign.Storable (sizeOf)
 import           GHC.TypeNats
 import           System.FilePath ((</>))
 import           Test.Hspec
@@ -13,7 +15,10 @@ import           Data.Format.NetCDF.LowLevel
 import           Data.Format.NetCDF.LowLevel.File
 import           Data.Format.NetCDF.LowLevel.Dimension
 import           Data.Format.NetCDF.LowLevel.Variable
+import           Data.Format.NetCDF.LowLevel.User.Type
 import           Data.Format.NetCDF.LowLevel.Util (ncVarNDimsProxy)
+
+import           Data.Format.NetCDF.User.Types
 import           Testing.Common
 
 spec :: Spec
@@ -132,11 +137,11 @@ spec = do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test1.nc" NCNoWrite
                 (SomeNCVariable t  var) <-
                                           checkNC =<< nc_inq_varid nc_id "vector_var"
-                tv                     <- checkNC =<< nc_inq_vartype nc_id var
+                (SomeNCType NCType{ncTypeTag=t2}) <- checkNC =<< nc_inq_vartype nc_id var
                 _                      <- checkNC =<< nc_close nc_id
-                case t of
-                    SNCInt -> tv `shouldBe` (TypedValue NCInt ())
-                    _ -> expectationFailure $ "Unexpected variable data type: " ++ show t
+                case (t,t2) of
+                    (SNCInt,SNCInt) -> return ()
+                    _ -> expectationFailure $ "Unexpected variable data type: " ++ show (t,t2)
         context "nc_inq_varname" $ do
             it "correctly returns variable name" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test1.nc" NCNoWrite
@@ -297,6 +302,17 @@ spec = do
                             nc_data `shouldBe` VS.fromList [4]
                         _ -> expectationFailure "Unexpected NC variable rank"
                     _ -> expectationFailure "Unexpected data type"
+            it "correctly reads a compound vector variable" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "vector_compound"
+                case t of
+                    SCompound -> case ncVarNDimsProxy var of
+                        Var1D -> do
+                            nc_data <- checkNC =<< nc_get_vara nc_id var (D 0) (D 2)
+                            _       <- checkNC =<< nc_close nc_id
+                            nc_data `shouldBe` (VS.fromList [Compound 17 0.1 23.45, Compound (-1) 22.44 1.0E+20])
+                        _ -> expectationFailure "Unexpected NC variable rank"
+                    _ -> expectationFailure "Unexpected data type"
         context "nc_get_var1" $ do
             it "correctly reads a single value from vector" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
@@ -310,8 +326,28 @@ spec = do
                             nc_data `shouldBe` 4
                         _ -> expectationFailure "Unexpected NC variable rank"
                     _ -> expectationFailure "Unexpected data type"
+            it "correctly reads a single value from compound vector variable" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "vector_compound"
+                case t of
+                    SCompound -> case ncVarNDimsProxy var of
+                        Var1D -> do
+                            nc_data <- checkNC =<< nc_get_var1 nc_id var (D 2)
+                            _       <- checkNC =<< nc_close nc_id
+                            nc_data `shouldBe` (Compound 22 1.0 5.7)
+                        _ -> expectationFailure "Unexpected NC variable rank"
+                    _ -> expectationFailure "Unexpected data type"
         context "nc_get_var" $ do
             it "correctly reads a scalar variable" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "scalar_int"
+                case t of
+                    SNCInt -> do
+                        nc_data <- checkNC =<< nc_get_var nc_id var
+                        _       <- checkNC =<< nc_close nc_id
+                        nc_data `shouldBe` VS.fromList [7]
+                    _ -> expectationFailure "Unexpected data type"
+            it "correctly reads a vector variable" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
                 (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "vector_int"
                 case t of
@@ -320,27 +356,45 @@ spec = do
                         _       <- checkNC =<< nc_close nc_id
                         nc_data `shouldBe` VS.fromList [3,4,5]
                     _ -> expectationFailure "Unexpected data type"
-            it "correctly reads a vector variable" $ do
+            it "correctly reads a scalar compound variable" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
-                (SomeNCVariable t (var :: NCVariableId n a)) <-
-                                          checkNC =<< nc_inq_varid nc_id "scalar_int"
+                (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "scalar_compound"
                 case t of
-                    SNCInt -> do
+                    SCompound -> do
                         nc_data <- checkNC =<< nc_get_var nc_id var
                         _       <- checkNC =<< nc_close nc_id
-                        nc_data `shouldBe` VS.fromList [7]
+                        nc_data `shouldBe` VS.fromList [Compound 18 0.2 34.56]
+                    _ -> expectationFailure "Unexpected data type"
+            it "correctly reads a vector compound variable" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "vector_compound"
+                case t of
+                    SCompound -> do
+                        nc_data <- checkNC =<< nc_get_var nc_id var
+                        _       <- checkNC =<< nc_close nc_id
+                        nc_data `shouldBe` VS.fromList [Compound 17 0.1 23.45, Compound (-1) 22.44 1.0E+20, Compound 22 1 5.7]
                     _ -> expectationFailure "Unexpected data type"
         context "nc_get_vars" $ do
             it "correctly reads a vector variable" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
-                (SomeNCVariable t var) <-
-                                          checkNC =<< nc_inq_varid nc_id "vector_int"
+                (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "vector_int"
                 case t of
                     SNCInt -> case ncVarNDimsProxy var of
                         Var1D -> do
                             nc_data <- checkNC =<< nc_get_vars nc_id var (D 0) (D 2) (D 2)
                             _       <- checkNC =<< nc_close nc_id
                             nc_data `shouldBe` VS.fromList [3,5]
+                        _ -> expectationFailure "Unexpected NC variable rank"
+                    _ -> expectationFailure "Unexpected data type"
+            it "correctly reads a vector compound variable" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "vector_compound"
+                case t of
+                    SCompound -> case ncVarNDimsProxy var of
+                        Var1D -> do
+                            nc_data <- checkNC =<< nc_get_vars nc_id var (D 0) (D 2) (D 2)
+                            _       <- checkNC =<< nc_close nc_id
+                            nc_data `shouldBe` VS.fromList [Compound 17 0.1 23.45, Compound 22 1 5.7]
                         _ -> expectationFailure "Unexpected NC variable rank"
                     _ -> expectationFailure "Unexpected data type"
         context "nc_put_vara" $ do
@@ -353,6 +407,43 @@ spec = do
                 v                      <- checkNC =<< nc_get_var nc_id var_id
                 _                      <- checkNC =<< nc_close nc_id
                 v `shouldBe` nc_data
+            it "correctly writes a vector compound variable" $ do
+                let nc_data = VS.fromList [Compound 1 2 3, Compound 22 77.88 31.95]
+                nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var1_write_c.nc") NCNetCDF4 NCClobber
+                type_id0               <- checkNC =<< nc_def_compound nc_id (fromIntegral . sizeOf $ nc_data VS.! 0) "compound_type"
+                type_id1               <- checkNC =<< nc_insert_compound nc_id type_id0 "integer_field" (ST0 STBot) NCInt
+                type_id2               <- checkNC =<< nc_insert_compound nc_id type_id1 "xx" (ST1 (ST1 STBot)) NCFloat
+                type_id3               <- checkNC =<< nc_insert_compound nc_id type_id2 "yy" (ST2 (ST2 STBot)) NCFloat
+
+                dim_id                 <- checkNC =<< nc_def_dim nc_id "nc_dimension" (Just 2)
+                var_id                 <- checkNC =<< nc_def_var nc_id "variable" type_id3 (D dim_id)
+                _                      <- checkNC =<< nc_put_vara nc_id var_id (D 0) (D 2) nc_data
+                v                      <- checkNC =<< nc_get_var nc_id var_id
+                _                      <- checkNC =<< nc_close nc_id
+                v `shouldBe` nc_data
+            it "correctly writes a vector compound variable - sparse" $ do
+                let
+                    fileName = testOutputPath </> "var1_write_cs.nc"
+                    nc_data  = VS.fromList [Compound 1 2 3, Compound 22 77.88 31.95]
+                    nc_dataS = VS.fromList [CompoundSparseA 3 1, CompoundSparseA 31.95 22]
+                nc_id                  <- checkNC =<< nc_create fileName NCNetCDF4 NCClobber
+                type_id0               <- checkNC =<< nc_def_compound nc_id (fromIntegral . sizeOf $ nc_data VS.! 0) "compound_type"
+                type_id1               <- checkNC =<< nc_insert_compound nc_id type_id0 "yy rev" (ST2 (ST2 STBot)) NCFloat
+                type_id2               <- checkNC =<< nc_insert_compound nc_id type_id1 "ii rev" (     ST0 STBot ) NCInt
+
+                dim_id                 <- checkNC =<< nc_def_dim nc_id "nc_dimension" (Just 2)
+                var_id                 <- checkNC =<< nc_def_var nc_id "variable" type_id2 (D dim_id)
+                _                      <- checkNC =<< nc_put_vara nc_id var_id (D 0) (D 2) nc_data
+                _                      <- checkNC =<< nc_close nc_id
+
+                nc_id                  <- checkNC =<< nc_open fileName NCNoWrite
+                (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "variable"
+                case t of
+                    SCompoundSparseA -> do
+                        v  <- checkNC =<< nc_get_var nc_id var
+                        v `shouldBe` nc_dataS
+                    _ -> expectationFailure "Unexpected data type"
+                void $                    checkNC =<< nc_close nc_id
         context "nc_put_var1" $ do
             it "correctly writes a single value" $ do
                 nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var2_write.nc") NCNetCDF4 NCClobber
@@ -363,12 +454,41 @@ spec = do
                 v                      <- checkNC =<< nc_get_var nc_id var_id
                 _                      <- checkNC =<< nc_close nc_id
                 v `shouldBe` VS.fromList [100, 7]
+            it "correctly writes a single compound value" $ do
+                let nc_data = VS.fromList [Compound 1 2 3, Compound 22 77.88 31.95]
+                nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var2_write_c.nc") NCNetCDF4 NCClobber
+                type_id0               <- checkNC =<< nc_def_compound nc_id (fromIntegral . sizeOf $ nc_data VS.! 0) "compound_type"
+                type_id1               <- checkNC =<< nc_insert_compound nc_id type_id0 "integer_field" (ST0 STBot) NCInt
+                type_id2               <- checkNC =<< nc_insert_compound nc_id type_id1 "xx" (ST1 (ST1 STBot)) NCFloat
+                type_id3               <- checkNC =<< nc_insert_compound nc_id type_id2 "yy" (ST2 (ST2 STBot)) NCFloat
+
+                dim_id                 <- checkNC =<< nc_def_dim nc_id "nc_dimension" (Just 2)
+                var_id                 <- checkNC =<< nc_def_var nc_id "variable" type_id3 (D dim_id)
+                _                      <- checkNC =<< nc_def_var_fill nc_id var_id (Just $ Compound 999 777 888)
+                _                      <- checkNC =<< nc_put_var1 nc_id var_id (D 1) (Compound 1 2 3)
+                v                      <- checkNC =<< nc_get_var nc_id var_id
+                _                      <- checkNC =<< nc_close nc_id
+                v `shouldBe` VS.fromList [Compound 999 777 888, Compound 1 2 3]
         context "nc_put_var" $ do
             it "correctly writes a vector variable" $ do
                 let nc_data = VS.fromList ([4,5,6,7] :: [Int64] )
                 nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var3_write.nc") NCNetCDF4 NCClobber
                 dim_id                 <- checkNC =<< nc_def_dim nc_id "nc_dimension" (Just 4)
                 var_id                 <- checkNC =<< nc_def_var nc_id "variable" NCInt64 (D dim_id)
+                _                      <- checkNC =<< nc_put_var nc_id var_id nc_data
+                v                      <- checkNC =<< nc_get_var nc_id var_id
+                _                      <- checkNC =<< nc_close nc_id
+                v `shouldBe` nc_data
+            it "correctly writes a vector compound variable" $ do
+                let nc_data = VS.fromList [Compound (-1) (-2) (-3), Compound (-177) 0 (-13.101)]
+                nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var3_write_c.nc") NCNetCDF4 NCClobber
+                type_id0               <- checkNC =<< nc_def_compound nc_id (fromIntegral . sizeOf $ nc_data VS.! 0) "compound_type"
+                type_id1               <- checkNC =<< nc_insert_compound nc_id type_id0 "integer_field" (ST0 STBot) NCInt
+                type_id2               <- checkNC =<< nc_insert_compound nc_id type_id1 "xx" (ST1 (ST1 STBot)) NCFloat
+                type_id3               <- checkNC =<< nc_insert_compound nc_id type_id2 "ff" (ST2 (ST2 STBot)) NCFloat
+
+                dim_id                 <- checkNC =<< nc_def_dim nc_id "nc_dimension" (Just 2)
+                var_id                 <- checkNC =<< nc_def_var nc_id "variable" type_id3 (D dim_id)
                 _                      <- checkNC =<< nc_put_var nc_id var_id nc_data
                 v                      <- checkNC =<< nc_get_var nc_id var_id
                 _                      <- checkNC =<< nc_close nc_id
@@ -384,6 +504,21 @@ spec = do
                 v                      <- checkNC =<< nc_get_var nc_id var_id
                 _                      <- checkNC =<< nc_close nc_id
                 v `shouldBe` VS.fromList [2,100,3,100]
+            it "correctly writes a vector compound variable" $ do
+                let nc_data = VS.fromList [Compound 1 2 3, Compound 34 5.6 7.8]
+                nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var4_write_c.nc") NCNetCDF4 NCClobber
+                type_id0               <- checkNC =<< nc_def_compound nc_id (fromIntegral . sizeOf $ nc_data VS.! 0) "compound_type"
+                type_id1               <- checkNC =<< nc_insert_compound nc_id type_id0 "integer_field" (ST0 STBot) NCInt
+                type_id2               <- checkNC =<< nc_insert_compound nc_id type_id1 "xx" (ST1 (ST1 STBot)) NCFloat
+                type_id3               <- checkNC =<< nc_insert_compound nc_id type_id2 "ff" (ST2 (ST2 STBot)) NCFloat
+
+                dim_id                 <- checkNC =<< nc_def_dim nc_id "nc_dimension" (Just 4)
+                var_id                 <- checkNC =<< nc_def_var nc_id "variable" type_id3 (D dim_id)
+                _                      <- checkNC =<< nc_def_var_fill nc_id var_id (Just $ Compound 123 456 789)
+                _                      <- checkNC =<< nc_put_vars nc_id var_id (D 0) (D 2) (D 2) nc_data
+                v                      <- checkNC =<< nc_get_var nc_id var_id
+                _                      <- checkNC =<< nc_close nc_id
+                v `shouldBe` VS.fromList [Compound 1 2 3, Compound 123 456 789, Compound 34 5.6 7.8, Compound 123 456 789]
         context "nc_get_scalar" $ do
             it "correctly reads a scalar variable" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
@@ -395,6 +530,17 @@ spec = do
                             nc_data <- checkNC =<< nc_get_scalar nc_id var
                             _       <- checkNC =<< nc_close nc_id
                             nc_data `shouldBe` 7
+                        _ -> expectationFailure "Unexpected NC variable rank"
+                    _ -> expectationFailure "Unexpected data type"
+            it "correctly reads a scalar compound variable" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "scalar_compound"
+                case t of
+                    SCompound -> case ncVarNDimsProxy var of
+                        Var0D -> do
+                            nc_data <- checkNC =<< nc_get_scalar nc_id var
+                            _       <- checkNC =<< nc_close nc_id
+                            nc_data `shouldBe` Compound 18 0.2 34.56
                         _ -> expectationFailure "Unexpected NC variable rank"
                     _ -> expectationFailure "Unexpected data type"
         context "nc_put_scalar" $ do
@@ -413,3 +559,14 @@ spec = do
                 v                      <- checkNC =<< nc_get_scalar nc_id var_id
                 _                      <- checkNC =<< nc_close nc_id
                 v `shouldBe` 11.5
+            it "correctly writes a scalar compound variable" $ do
+                nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var6_write_c.nc") NCNetCDF4 NCClobber
+                type_id0               <- checkNC =<< nc_def_compound nc_id (fromIntegral $ sizeOf (undefined :: Compound)) "compound_type"
+                type_id1               <- checkNC =<< nc_insert_compound nc_id type_id0 "integer_field" (ST0 STBot) NCInt
+                type_id2               <- checkNC =<< nc_insert_compound nc_id type_id1 "xx" (ST1 (ST1 STBot)) NCFloat
+                type_id3               <- checkNC =<< nc_insert_compound nc_id type_id2 "ff" (ST2 (ST2 STBot)) NCFloat
+                var_id                 <- checkNC =<< nc_def_scalar_var nc_id "variable" type_id3
+                _                      <- checkNC =<< nc_put_scalar nc_id var_id (Compound 41 22.06 7.62)
+                v                      <- checkNC =<< nc_get_scalar nc_id var_id
+                _                      <- checkNC =<< nc_close nc_id
+                v `shouldBe` (Compound 41 22.06 7.62)

@@ -1,4 +1,5 @@
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE PatternSynonyms #-}
 module Data.Format.NetCDF.LowLevel.C.Definitions where
 
 import qualified Data.Bits as B
@@ -155,36 +156,42 @@ ncUnlimitedDimension = #{const NC_UNLIMITED}
 ncMaxNameLen :: CSize
 ncMaxNameLen = #{const NC_MAX_NAME}
 
-fromNCDataType :: NCDataType a -> CInt
-fromNCDataType NCNone    = 0
-fromNCDataType NCByte    = #{const NC_BYTE  }
-fromNCDataType NCUByte   = #{const NC_UBYTE }
-fromNCDataType NCChar    = #{const NC_CHAR  }
-fromNCDataType NCShort   = #{const NC_SHORT }
-fromNCDataType NCUShort  = #{const NC_USHORT}
-fromNCDataType NCInt     = #{const NC_INT   }
-fromNCDataType NCUInt    = #{const NC_UINT  }
-fromNCDataType NCInt64   = #{const NC_INT64 }
-fromNCDataType NCUInt64  = #{const NC_UINT64}
-fromNCDataType NCFloat   = #{const NC_FLOAT }
-fromNCDataType NCDouble  = #{const NC_DOUBLE}
-fromNCDataType NCString  = #{const NC_STRING}
+fromNCStandardTypeTag :: CInt -> Maybe SomeNCType
+fromNCStandardTypeTag tag = case tag of
+  #{const NC_BYTE  } -> Just . SomeNCType $ NCType tag SNCByte
+  #{const NC_UBYTE } -> Just . SomeNCType $ NCType tag SNCUByte
+  #{const NC_CHAR  } -> Just . SomeNCType $ NCType tag SNCChar
+  #{const NC_SHORT } -> Just . SomeNCType $ NCType tag SNCShort
+  #{const NC_USHORT} -> Just . SomeNCType $ NCType tag SNCUShort
+  #{const NC_INT   } -> Just . SomeNCType $ NCType tag SNCInt
+  #{const NC_UINT  } -> Just . SomeNCType $ NCType tag SNCUInt
+  #{const NC_INT64 } -> Just . SomeNCType $ NCType tag SNCInt64
+  #{const NC_UINT64} -> Just . SomeNCType $ NCType tag SNCUInt64
+  #{const NC_FLOAT } -> Just . SomeNCType $ NCType tag SNCFloat
+  #{const NC_DOUBLE} -> Just . SomeNCType $ NCType tag SNCDouble
+  #{const NC_STRING} -> Just . SomeNCType $ NCType tag SNCString
+  _                  -> Nothing
 
-fromNCTypeTag :: CInt -> NCType
-fromNCTypeTag tag = case tag of
-    #{const NC_BYTE  } -> TypedValue NCByte   ()
-    #{const NC_UBYTE } -> TypedValue NCUByte  ()
-    #{const NC_CHAR  } -> TypedValue NCChar   ()
-    #{const NC_SHORT } -> TypedValue NCShort  ()
-    #{const NC_USHORT} -> TypedValue NCUShort ()
-    #{const NC_INT   } -> TypedValue NCInt    ()
-    #{const NC_UINT  } -> TypedValue NCUInt   ()
-    #{const NC_INT64 } -> TypedValue NCInt64  ()
-    #{const NC_UINT64} -> TypedValue NCUInt64 ()
-    #{const NC_FLOAT } -> TypedValue NCFloat  ()
-    #{const NC_DOUBLE} -> TypedValue NCDouble ()
-    #{const NC_STRING} -> TypedValue NCString ()
-    _                  -> TypedValue NCNone   ()
+pattern NCByte   = NCType  #{const NC_BYTE  } SNCByte
+pattern NCUByte  = NCType  #{const NC_UBYTE } SNCUByte
+pattern NCChar   = NCType  #{const NC_CHAR  } SNCChar
+pattern NCShort  = NCType  #{const NC_SHORT } SNCShort
+pattern NCUShort = NCType  #{const NC_USHORT} SNCUShort
+pattern NCInt    = NCType  #{const NC_INT   } SNCInt
+pattern NCUInt   = NCType  #{const NC_UINT  } SNCUInt
+pattern NCInt64  = NCType  #{const NC_INT64 } SNCInt64
+pattern NCUInt64 = NCType  #{const NC_UINT64} SNCUInt64
+pattern NCFloat  = NCType  #{const NC_FLOAT } SNCFloat
+pattern NCDouble = NCType  #{const NC_DOUBLE} SNCDouble
+pattern NCString = NCType  #{const NC_STRING} SNCString
+
+fromNCUserTypeClassTag :: CInt -> Maybe NCUserTypeClass
+fromNCUserTypeClassTag tag = case tag of
+  #{const NC_VLEN}     -> Just NCVlen
+  #{const NC_OPAQUE}   -> Just NCOpaque
+  #{const NC_ENUM}     -> Just NCEnum
+  #{const NC_COMPOUND} -> Just NCCompound
+  _ -> Nothing
 
 ncGlobalAttribute :: CInt
 ncGlobalAttribute = #{const NC_GLOBAL}

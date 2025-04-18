@@ -1,11 +1,33 @@
 netcdf test3 {
+types:
+  compound c1 {
+    uint a;
+    ubyte b;
+  }
+
+  compound compound_t {
+    int n;
+    float x\ field\ name;
+    float y;
+  }
+
+  compound compound_with_strings {
+    int n;
+    string comment;
+  }
+
 dimensions:
   dim1 = 3;
   dim2 = 2;
+  dim3 = 1;
 variables:
   int scalar_int;
     int64 scalar_int:many_ints = 3, 7, 21;
+  compound_t scalar_compound;
+  compound_t vector_compound(dim1);
+  compound_with_strings vector_compound_ws(dim1);
   int vector_int(dim1);
+  float vector_float(dim1);
   string just_string;
   string string_vector(dim1);
     string string_vector:long_name = "a vector of strings";
@@ -17,7 +39,11 @@ variables:
   int :version = 2021;
 data:
   scalar_int = 7;
+  scalar_compound = { 18, 0.2f, 34.56f};
+  vector_compound = { 17, 0.1f, 23.45f}, {-1, 22.44f, 1.0e+20}, {22, 1.0f, 5.7f};
+  vector_compound_ws = {1, "hello"}, {-1, "world"}, {177, "long comment"};
   vector_int = 3, 4, 5;
+  vector_float = 13.4f, 14.5f, 15.6f;
   just_string = "some text";
   string_vector = "one", "two", "three";
   string_matrix = "aa", "bb", "cc", "dd", "ee", "ff";

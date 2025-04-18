@@ -37,7 +37,7 @@ nc_set_chunk_cache NCChunkCacheParams{cacheSize=s, cacheNElems=n, cachePreemptio
     res <- c_nc_set_chunk_cache (fromIntegral s) (fromIntegral n) (realToFrac p)
     return (fromIntegral res, ())
 
-nc_set_var_chunk_cache :: forall id a (t :: NCDataType a) (n :: Nat).
+nc_set_var_chunk_cache :: forall id (t :: NCDataTypeTag) (n :: Nat).
        NC id
     -> NCVariableId n t
     -> NCChunkCacheParams
@@ -61,7 +61,7 @@ nc_get_chunk_cache =
           , cachePreemption=realToFrac p}
         return (fromIntegral res, cacheParams)
 
-nc_get_var_chunk_cache :: forall id a (t :: NCDataType a) (n :: Nat).
+nc_get_var_chunk_cache :: forall id (t :: NCDataTypeTag) (n :: Nat).
        NC id
     -> NCVariableId n t
     -> IO (Int32, NCChunkCacheParams)

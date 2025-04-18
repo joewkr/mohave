@@ -15,5 +15,5 @@ checkNC ::  HasCallStack => (Int32, a) -> IO a
 checkNC (0,v) = return v
 checkNC (e,_) = nc_strerror (fromNCErrorCode $ fromIntegral e) >>= error
 
-ncVarNDimsProxy :: forall a (t :: NCDataType a) (n :: Nat). KnownNat n => NCVariableId n t -> Proxy n
+ncVarNDimsProxy :: forall (t :: NCDataTypeTag) (n :: Nat). KnownNat n => NCVariableId n t -> Proxy n
 ncVarNDimsProxy _ = Proxy

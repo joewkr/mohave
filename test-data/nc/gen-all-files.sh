@@ -12,3 +12,5 @@ for file in `ls *.cdl3`; do
   ncgen -k 'nc3' -o $nc_name $file
 done
 
+cc compound.c `nc-config --cflags --libs` -o gen-compound && ./gen-compound
+

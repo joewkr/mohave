@@ -17,6 +17,8 @@ import           Data.Format.NetCDF.LowLevel.File
 import           Data.Format.NetCDF.LowLevel.String
 import           Data.Format.NetCDF.LowLevel.Variable
 import           Data.Format.NetCDF.LowLevel.Util (ncVarNDimsProxy)
+
+import           Data.Format.NetCDF.User.Types
 import           Testing.Common
 
 spec :: Spec
@@ -25,8 +27,7 @@ spec = do
         context "variables" $ do
             it "correctly reads a string from vector" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
-                (SomeNCVariable t var) <-
-                                          checkNC =<< nc_inq_varid nc_id "string_vector"
+                (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "string_vector"
                 case t of
                     SNCString -> case ncVarNDimsProxy var of
                         Var1D -> do
@@ -37,10 +38,22 @@ spec = do
                             nc_str `shouldBe` "two"
                         _ -> expectationFailure "Unexpected NC variable rank"
                     _ -> expectationFailure "Unexpected data type"
+            it "correctly reads a string-containing compound variable from vector" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "vector_compound_ws"
+                case t of
+                    SCompoundWithComment -> case ncVarNDimsProxy var of
+                        Var1D -> do
+                            nc_data <- checkNC =<< nc_get_var1 nc_id var (D 1)
+                            _       <- checkNC =<< nc_close nc_id
+                            nc_str  <-             fromNCString $ comment nc_data
+                            _       <- checkNC =<< nc_free_string (comment nc_data)
+                            nc_str `shouldBe` "world"
+                        _ -> expectationFailure "Unexpected NC variable rank"
+                    _ -> expectationFailure $ "Unexpected data type:\t" ++ show t
             it "nc_get_vara_string" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
-                (SomeNCVariable t var) <-
-                                          checkNC =<< nc_inq_varid nc_id "string_vector"
+                (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "string_vector"
                 case t of
                     SNCString -> case ncVarNDimsProxy var of
                         Var1D -> do

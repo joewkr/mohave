@@ -1,9 +1,28 @@
 netcdf test5 {
+types:
+  compound c1 {
+    uint a;
+    ubyte b;
+  }
+
+  compound c2 {
+    uint a;
+    ubyte b;
+  }
+
+  compound c3 {
+    int aa;
+    byte bb;
+    float arr(4,8,15);
+    c2 scalar_c2;
+  }
+
 dimensions:
   dim1 = 3;
   dim2 = 2;
 variables:
   int scalar_int;
+      c2 scalar_int:compound_attribute = {1440, 3};
 data:
   scalar_int = 7;
 group: vectors {
@@ -11,6 +30,7 @@ group: vectors {
     dim3 = 4;
   variables:
     int vector_int1(dim1);
+      c2 vector_int1:compound_attribute = {1573, 7};
     int vector_int2(dim3);
   data:
     vector_int1 = 1, 2, 3;

@@ -1,6 +1,6 @@
 cabal-version:       2.0
 name:                mohave
-version:             0.0.0.0
+version:             1.0.0.0
 -- synopsis:
 -- description:
 license:             BSD-3-Clause
@@ -32,12 +32,14 @@ library
                      , Data.Format.NetCDF.LowLevel.String
                      , Data.Format.NetCDF.LowLevel.Variable
                      , Data.Format.NetCDF.LowLevel.Util
+                     , Data.Format.NetCDF.LowLevel.User.Type
   other-modules:       Data.Format.HDF.LowLevel.C.Definitions
                      , Data.Format.HDF.LowLevel.Definitions.Internal
                      , Data.Format.NetCDF.LowLevel.Definitions
                      , Data.Format.NetCDF.LowLevel.C.Definitions
                      , Data.Format.NetCDF.LowLevel.Variable.Internal
                      , Internal.Definitions
+                     , Internal.Numerals.Ternary
                      , Foreign.C.Lib.FFI
   C-Sources:           cbits/HDF/wrapper.c
   other-extensions:    BangPatterns
@@ -64,6 +66,7 @@ library
                      , bytestring
                      , exceptions >= 0.10 && < 0.11
                      , mtl >= 2.2 && < 2.4
+                     , template-haskell
                      , vector >= 0.12 && < 0.14
   build-tool-depends:  hsc2hs:hsc2hs
   pkgconfig-depends:   hdf >= 4.2.12 && < 4.3
@@ -89,6 +92,8 @@ test-suite test-main
                      , Data.Format.NetCDF.LowLevel.GroupSpec
                      , Data.Format.NetCDF.LowLevel.StringSpec
                      , Data.Format.NetCDF.LowLevel.VariableSpec
+                     , Data.Format.NetCDF.LowLevel.UserTypeSpec
+                     , Data.Format.NetCDF.User.Types
                      , Testing.Common
                      , Spec
   other-extensions:    CPP
@@ -96,7 +101,7 @@ test-suite test-main
                      , GADTs
                      , OverloadedStrings
                      , ScopedTypeVariables
-  ghc-options:        -Wall
+  ghc-options:        -Wall -ddump-splices
   build-depends:       mohave
                      , base
                      , bytestring
