@@ -318,7 +318,10 @@ fromNCTypeTag ncid tag = case fromNCStandardTypeTag tag of
       then return (SomeNCType $ NCType undefined SNCNone)
       else case ncUserTypeClass typeInfo of
         NCCompound -> do
-          (CompoundWrapper tagS) <- foldrM (\fieldIdx typeid -> updateType typeid . snd <$> nc_inq_compound_field ncid dummyTypeid fieldIdx) (CompoundWrapper SNCCompoundE) [0..(ncUserTypeNumFields typeInfo) - 1]
+          (CompoundWrapper tagS) <- foldrM
+            (\fieldIdx typeid -> updateType typeid . snd <$> nc_inq_compound_field ncid dummyTypeid fieldIdx)
+            (CompoundWrapper SNCCompoundE)
+            [0..(ncUserTypeNumFields typeInfo) - 1]
           return . SomeNCType $ NCType{ncRawTypeId=tag, ncTypeTag=tagS}
   where
     dummyTypeid :: NCType t
