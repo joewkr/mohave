@@ -62,6 +62,8 @@ reverseT = go TBot
    go x (T2 rest) = go (T2 x) rest
    go x (T0 rest) = go (T0 x) rest
 
+-- TernarySNat should be constructed in reversed order to correctly
+-- track the represented number in its type-level parameter.
 data TernarySNat (n :: Nat) where
   STBot :: TernarySNat 0
   ST0 :: TernarySNat n -> TernarySNat (FTernary ('T0 (TReverse (TTernary 'TBot n))) 0 1)
@@ -76,15 +78,17 @@ data SomeTernarySNat where
 deriving instance Show (SomeTernarySNat)
 
 toTernarySNat :: Natural -> SomeTernarySNat
-toTernarySNat = go (SomeTernarySNat STBot)
+toTernarySNat = t2st . toTernary
+
+t2st :: Ternary -> SomeTernarySNat
+t2st = go (SomeTernarySNat STBot)
   where
-    go :: SomeTernarySNat -> Natural -> SomeTernarySNat
-    go (SomeTernarySNat STBot) 0 = (SomeTernarySNat $! ST0 STBot)
-    go res  0 = res
-    go (SomeTernarySNat res) num
-      | num `mod` 3 ==  2 = go (SomeTernarySNat $! ST2 res) $! num `div` 3
-      | num `mod` 3 ==  1 = go (SomeTernarySNat $! ST1 res) $! num `div` 3
-      | otherwise         = go (SomeTernarySNat $! ST0 res) $! num `div` 3
+    go :: SomeTernarySNat -> Ternary -> SomeTernarySNat
+    go r@(SomeTernarySNat res) s = case s of
+      TBot    -> r
+      T0 rest -> go (SomeTernarySNat $! ST0 res) rest
+      T1 rest -> go (SomeTernarySNat $! ST1 res) rest
+      T2 rest -> go (SomeTernarySNat $! ST2 res) rest
 
 fromTernarySNat :: TernarySNat n -> Natural
 fromTernarySNat n = go 0 1 n
@@ -120,12 +124,24 @@ fromTernary n = go 0 1 n
 snat3 :: QuasiQuoter
 snat3 = QuasiQuoter {
     quoteDec  = error errorMessage
-  , quoteExp  = error errorMessage
+  , quoteExp  = convertToTernaryE
   , quotePat  = convertToTernaryP
   , quoteType = error errorMessage}
   where
     errorMessage :: String
-    errorMessage = "ternary QuasiQuoter can be used only in pattern context"
+    errorMessage = "ternary QuasiQuoter can be used only within pattern or expression context"
+
+convertToTernaryE :: String -> Q Exp
+convertToTernaryE str = do
+  let converted = buildTernaryTHE (ConE (mkName "STBot")) . toTernary . read $ str
+  return converted
+
+buildTernaryTHE :: Exp -> Ternary -> Exp
+buildTernaryTHE res TBot = res
+buildTernaryTHE res (T2 rest) = buildTernaryTHE (AppE (ConE (mkName "ST2")) res) rest
+buildTernaryTHE res (T1 rest) = buildTernaryTHE (AppE (ConE (mkName "ST1")) res) rest
+buildTernaryTHE res (T0 rest) = buildTernaryTHE (AppE (ConE (mkName "ST0")) res) rest
+
 
 convertToTernaryP :: String -> Q Pat
 convertToTernaryP str = do

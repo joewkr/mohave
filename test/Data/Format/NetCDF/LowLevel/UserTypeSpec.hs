@@ -1,11 +1,14 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE QuasiQuotes #-}
 module Data.Format.NetCDF.LowLevel.UserTypeSpec(spec) where
 
 import           Control.Monad (void, forM_)
 import           Data.Int (Int32)
+import           Data.Word (Word32)
 import           System.FilePath ((</>))
 import           Test.Hspec
+import           Test.Hspec.QuickCheck (modifyMaxSuccess, prop)
 
 import           Data.Format.NetCDF.LowLevel
 import           Data.Format.NetCDF.LowLevel.File
@@ -18,6 +21,22 @@ data Compound = Compound Int32 Float Float deriving (Eq, Show)
 
 spec :: Spec
 spec = do
+  describe "Ternary numerals" $ do
+    modifyMaxSuccess (const 1000) $ prop "properly creates ternary numerals" $ \x ->
+      case toTernarySNat $ fromIntegral x of
+        SomeTernarySNat n -> (fromIntegral $ fromTernarySNat n) `shouldBe` (x :: Word32)
+    it "creates correct ternary SNat with QuasiQuoter - 1" $
+      case toTernarySNat 0 of
+        SomeTernarySNat [snat3|0|] -> return ()
+        _ -> expectationFailure "Mismatch between runtime and QQ TernarySNat"
+    it "creates correct ternary SNat with QuasiQuoter - 2" $
+      case toTernarySNat 111 of
+        SomeTernarySNat [snat3|111|] -> return ()
+        _ -> expectationFailure "Mismatch between runtime and QQ TernarySNat"
+    it "creates correct ternary SNat with QuasiQuoter - 3" $
+      case toTernarySNat 27 of
+        SomeTernarySNat [snat3|27|] -> return ()
+        _ -> expectationFailure "Mismatch between runtime and QQ TernarySNat"
   describe "Compound types" $ do
     context "nc_def_compound" $ do
       it "correctly defines a compound type" $ do
