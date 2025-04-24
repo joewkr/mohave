@@ -455,9 +455,8 @@ spec = do
                 _                      <- checkNC =<< nc_close nc_id
                 v `shouldBe` VS.fromList [100, 7]
             it "correctly writes a single compound value" $ do
-                let nc_data = VS.fromList [Compound 1 2 3, Compound 22 77.88 31.95]
                 nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var2_write_c.nc") NCNetCDF4 NCClobber
-                type_id0               <- checkNC =<< nc_def_compound nc_id (fromIntegral . sizeOf $ nc_data VS.! 0) "compound_type"
+                type_id0               <- checkNC =<< nc_def_compound nc_id (fromIntegral $ sizeOf (undefined :: Compound)) "compound_type"
                 type_id1               <- checkNC =<< nc_insert_compound nc_id type_id0 "integer_field" (ST0 STBot) NCInt
                 type_id2               <- checkNC =<< nc_insert_compound nc_id type_id1 "xx" (ST1 (ST1 STBot)) NCFloat
                 type_id3               <- checkNC =<< nc_insert_compound nc_id type_id2 "yy" (ST2 (ST2 STBot)) NCFloat
