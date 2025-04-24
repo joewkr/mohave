@@ -37,6 +37,13 @@ spec = do
       case toTernarySNat 27 of
         SomeTernarySNat [snat3|27|] -> return ()
         _ -> expectationFailure "Mismatch between runtime and QQ TernarySNat"
+    it "creates correct ternary SNat with QuasiQuoter - 4" $ do
+      let
+        x :: TernarySNat 876 -> Int
+        x _ = 1
+      case toTernarySNat 876 of
+        SomeTernarySNat n@([snat3|876|]) -> void . return $ x n
+        _ -> expectationFailure "Mismatch between runtime and QQ TernarySNat"
   describe "Compound types" $ do
     context "nc_def_compound" $ do
       it "correctly defines a compound type" $ do
