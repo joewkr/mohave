@@ -18,8 +18,6 @@ module Internal.Numerals.Ternary(
   , snat3
 ) where
 
-import Data.Type.Bool
-import Data.Type.Ord
 import GHC.TypeNats (Nat, Natural, Mod, Div, type(+), type(*))
 
 import Language.Haskell.TH.Quote
@@ -33,11 +31,12 @@ data Ternary where
 
 type family TTernary (t :: Ternary) (n :: Nat) :: Ternary where
   TTernary t 0 = t
-  TTernary t n = If (OrdCond (Compare (n `Mod` 3) 2) 'False 'True 'False)
-    (TTernary ('T2 t) (n `Div` 3))
-    (If (OrdCond (Compare (n `Mod` 3) 1) 'False 'True 'False)
-       (TTernary ('T1 t) (n `Div` 3))
-       (TTernary ('T0 t) (n `Div` 3)))
+  TTernary t n = TTernaryI (n `Mod` 3) t (n `Div` 3)
+
+type family TTernaryI (i :: Nat) (t :: Ternary) (n :: Nat) :: Ternary where
+  TTernaryI 0 t n = TTernary ('T0 t) n
+  TTernaryI 1 t n = TTernary ('T1 t) n
+  TTernaryI _ t n = TTernary ('T2 t) n
 
 type family FTernary (t :: Ternary) (n :: Nat) (b :: Nat) :: Nat where
   FTernary TBot r _ = r
