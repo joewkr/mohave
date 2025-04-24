@@ -16,6 +16,9 @@ types:
     string comment;
   }
 
+  opaque(65) binary_blob;
+  opaque(1) binary_mb;
+
 dimensions:
   dim1 = 3;
   dim2 = 2;
@@ -26,6 +29,9 @@ variables:
   compound_t scalar_compound;
   compound_t vector_compound(dim1);
   compound_with_strings vector_compound_ws(dim1);
+  binary_blob scalar_opaque;
+    binary_mb scalar_opaque:attr = 0X00, 0X02;
+    binary_mb scalar_opaque:scalar\ attr = 0X01;
   int vector_int(dim1);
   float vector_float(dim1);
   string just_string;
@@ -42,6 +48,7 @@ data:
   scalar_compound = { 18, 0.2f, 34.56f};
   vector_compound = { 17, 0.1f, 23.45f}, {-1, 22.44f, 1.0e+20}, {22, 1.0f, 5.7f};
   vector_compound_ws = {1, "hello"}, {-1, "world"}, {177, "long comment"};
+  scalar_opaque = 0X0123456789ABCDEF0123456789ABCDEF11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111110010;
   vector_int = 3, 4, 5;
   vector_float = 13.4f, 14.5f, 15.6f;
   just_string = "some text";

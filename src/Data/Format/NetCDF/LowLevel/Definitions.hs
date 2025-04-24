@@ -128,6 +128,7 @@ data NCDataTypeTag where
     TNCString   :: NCDataTypeTag
     TNCEnum     :: NCDataTypeTag -> NCDataTypeTag
     TNCVLen     :: NCDataTypeTag -> NCDataTypeTag
+    TNCOpaque   :: Nat -> NCDataTypeTag
     TNCCompound :: [(NCDataTypeTag, Nat)] -> NCDataTypeTag
     deriving (Show, Eq)
 
@@ -153,6 +154,7 @@ data NCDataTypeTagS (t :: NCDataTypeTag) where
     SNCFloat     :: NCDataTypeTagS 'TNCFloat
     SNCDouble    :: NCDataTypeTagS 'TNCDouble
     SNCString    :: NCDataTypeTagS 'TNCString
+    SNCOpaque    :: TernarySNat n -> NCDataTypeTagS ('TNCOpaque n)
     SNCCompoundE :: NCDataTypeTagS ('TNCCompound '[])
     SNCCompound  :: NCDataTypeTagS t -> TernarySNat n -> NCDataTypeTagS ('TNCCompound ts) -> NCDataTypeTagS ('TNCCompound (Insert '(t, n) ts))
 

@@ -1,5 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 module Data.Format.NetCDF.LowLevel.VariableSpec(spec) where
 
@@ -444,6 +446,29 @@ spec = do
                         v `shouldBe` nc_dataS
                     _ -> expectationFailure "Unexpected data type"
                 void $                    checkNC =<< nc_close nc_id
+            it "correctly writes a vector opaque variable" $ do
+                let
+                    fileName = testOutputPath </> "var1_write_o.nc"
+                    nc_data  = VS.fromList [OpaqueMB (Just False), OpaqueMB (Just True), OpaqueMB Nothing]
+                nc_id                  <- checkNC =<< nc_create fileName NCNetCDF4 NCClobber
+                case toTernarySNat (fromIntegral . sizeOf $ nc_data VS.! 0) of
+                    SomeTernarySNat n@(ST1 STBot) -> do
+                        type_id                <- checkNC =<< nc_def_opaque nc_id n "opaque_type"
+
+                        dim_id                 <- checkNC =<< nc_def_dim nc_id "nc_dimension" (Just 3)
+                        var_id                 <- checkNC =<< nc_def_var nc_id "variable" type_id (D dim_id)
+                        _                      <- checkNC =<< nc_put_vara nc_id var_id (D 0) (D 3) nc_data
+                        void $                    checkNC =<< nc_close nc_id
+                    _ -> expectationFailure "Unexpected opaque data size"
+
+                nc_id                  <- checkNC =<< nc_open fileName NCNoWrite
+                (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "variable"
+                case t of
+                    SOpaqueMB -> do
+                        v  <- checkNC =<< nc_get_var nc_id var
+                        v `shouldBe` nc_data
+                    _ -> expectationFailure "Unexpected data type"
+                void $                    checkNC =<< nc_close nc_id
         context "nc_put_var1" $ do
             it "correctly writes a single value" $ do
                 nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var2_write.nc") NCNetCDF4 NCClobber
@@ -468,6 +493,17 @@ spec = do
                 v                      <- checkNC =<< nc_get_var nc_id var_id
                 _                      <- checkNC =<< nc_close nc_id
                 v `shouldBe` VS.fromList [Compound 999 777 888, Compound 1 2 3]
+            it "correctly writes a single opaque value" $ do
+                nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var2_write_o.nc") NCNetCDF4 NCClobber
+                type_id                <- checkNC =<< nc_def_opaque nc_id [snat3|1|] "opaque_type"
+
+                dim_id                 <- checkNC =<< nc_def_dim nc_id "nc_dimension" (Just 2)
+                var_id                 <- checkNC =<< nc_def_var nc_id "variable" type_id (D dim_id)
+                _                      <- checkNC =<< nc_def_var_fill nc_id var_id (Just $ (OpaqueMB Nothing))
+                _                      <- checkNC =<< nc_put_var1 nc_id var_id (D 1) (OpaqueMB (Just False))
+                v                      <- checkNC =<< nc_get_var nc_id var_id
+                _                      <- checkNC =<< nc_close nc_id
+                v `shouldBe` VS.fromList [OpaqueMB Nothing, OpaqueMB (Just False)]
         context "nc_put_var" $ do
             it "correctly writes a vector variable" $ do
                 let nc_data = VS.fromList ([4,5,6,7] :: [Int64] )
@@ -488,6 +524,17 @@ spec = do
 
                 dim_id                 <- checkNC =<< nc_def_dim nc_id "nc_dimension" (Just 2)
                 var_id                 <- checkNC =<< nc_def_var nc_id "variable" type_id3 (D dim_id)
+                _                      <- checkNC =<< nc_put_var nc_id var_id nc_data
+                v                      <- checkNC =<< nc_get_var nc_id var_id
+                _                      <- checkNC =<< nc_close nc_id
+                v `shouldBe` nc_data
+            it "correctly writes a vector opaque value" $ do
+                let nc_data = VS.fromList [BinaryBlob64 "IDDQD:IDKFA:impulse 101", BinaryBlob64 "BADC0FFEE0DDF00D"]
+                nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var3_write_o.nc") NCNetCDF4 NCClobber
+                type_id                <- checkNC =<< nc_def_opaque nc_id [snat3|65|] "opaque_type"
+
+                dim_id                 <- checkNC =<< nc_def_dim nc_id "nc_dimension" (Just 2)
+                var_id                 <- checkNC =<< nc_def_var nc_id "variable" type_id (D dim_id)
                 _                      <- checkNC =<< nc_put_var nc_id var_id nc_data
                 v                      <- checkNC =<< nc_get_var nc_id var_id
                 _                      <- checkNC =<< nc_close nc_id
@@ -518,6 +565,18 @@ spec = do
                 v                      <- checkNC =<< nc_get_var nc_id var_id
                 _                      <- checkNC =<< nc_close nc_id
                 v `shouldBe` VS.fromList [Compound 1 2 3, Compound 123 456 789, Compound 34 5.6 7.8, Compound 123 456 789]
+            it "correctly writes a vector opaque value" $ do
+                let nc_data = VS.fromList [OpaqueMB $ Just True, OpaqueMB $ Just False]
+                nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var4_write_o.nc") NCNetCDF4 NCClobber
+                type_id                <- checkNC =<< nc_def_opaque nc_id [snat3|1|] "opaque_type"
+
+                dim_id                 <- checkNC =<< nc_def_dim nc_id "nc_dimension" (Just 4)
+                var_id                 <- checkNC =<< nc_def_var nc_id "variable" type_id (D dim_id)
+                _                      <- checkNC =<< nc_def_var_fill nc_id var_id (Just $ (OpaqueMB Nothing))
+                _                      <- checkNC =<< nc_put_vars nc_id var_id (D 0) (D 2) (D 2) nc_data
+                v                      <- checkNC =<< nc_get_var nc_id var_id
+                _                      <- checkNC =<< nc_close nc_id
+                v `shouldBe` VS.fromList [OpaqueMB $ Just True, OpaqueMB Nothing, OpaqueMB $ Just False, OpaqueMB Nothing]
         context "nc_get_scalar" $ do
             it "correctly reads a scalar variable" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
@@ -540,6 +599,17 @@ spec = do
                             nc_data <- checkNC =<< nc_get_scalar nc_id var
                             _       <- checkNC =<< nc_close nc_id
                             nc_data `shouldBe` Compound 18 0.2 34.56
+                        _ -> expectationFailure "Unexpected NC variable rank"
+                    _ -> expectationFailure "Unexpected data type"
+            it "correctly reads a scalar opaque variable" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "scalar_opaque"
+                case t of
+                    SOpaqueBinaryBlob64 -> case ncVarNDimsProxy var of
+                        Var0D -> do
+                            nc_data <- checkNC =<< nc_get_scalar nc_id var
+                            _       <- checkNC =<< nc_close nc_id
+                            nc_data `shouldBe` (BinaryBlob64 "\x01\x23\x45\x67\x89\xAB\xCD\xEF\x01\x23\x45\x67\x89\xAB\xCD\xEF")
                         _ -> expectationFailure "Unexpected NC variable rank"
                     _ -> expectationFailure "Unexpected data type"
         context "nc_put_scalar" $ do
@@ -569,3 +639,12 @@ spec = do
                 v                      <- checkNC =<< nc_get_scalar nc_id var_id
                 _                      <- checkNC =<< nc_close nc_id
                 v `shouldBe` (Compound 41 22.06 7.62)
+            it "correctly writes a scalar opaque variable" $ do
+                let nc_data = VS.fromList [OpaqueMB $ Just True, OpaqueMB $ Just False]
+                nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var6_write_o.nc") NCNetCDF4 NCClobber
+                type_id                <- checkNC =<< nc_def_opaque nc_id [snat3|1|] "opaque_type"
+                var_id                 <- checkNC =<< nc_def_scalar_var nc_id "variable" type_id
+                _                      <- checkNC =<< nc_put_scalar nc_id var_id (OpaqueMB $ Just False)
+                v                      <- checkNC =<< nc_get_scalar nc_id var_id
+                _                      <- checkNC =<< nc_close nc_id
+                v `shouldBe` (OpaqueMB $ Just False)

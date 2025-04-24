@@ -17,6 +17,8 @@ types:
     c2 scalar_c2;
   }
 
+  opaque(128) binary_blob;
+
 dimensions:
   dim1 = 3;
   dim2 = 2;

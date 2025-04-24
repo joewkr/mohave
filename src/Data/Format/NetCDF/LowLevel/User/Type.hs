@@ -64,7 +64,9 @@ foreign import ccall unsafe "nc_inq_compound_fieldindex" c_nc_inq_compound_field
 -- int     nc_def_vlen (int ncid, const char *name, nc_type base_typeid, nc_type *xtypep)
 -- int     nc_inq_vlen (int ncid, nc_type xtype, char *name, size_t *datum_sizep, nc_type *base_nc_typep)
 
+foreign import ccall unsafe "nc_def_opaque" c_nc_def_opaque :: CInt -> CSize -> CString -> Ptr CInt -> IO CInt
 -- int     nc_def_opaque (int ncid, size_t size, const char *name, nc_type *xtypep)
+foreign import ccall unsafe "nc_inq_opaque" c_nc_inq_opaque :: CInt -> CInt -> CString -> Ptr CSize -> IO CInt
 -- int     nc_inq_opaque (int ncid, nc_type xtype, char *name, size_t *sizep)
 
 nc_inq_type_equal :: forall id1 id2 (t1 :: NCDataTypeTag) (t2 :: NCDataTypeTag).
@@ -306,6 +308,35 @@ nc_inq_compound_fieldindex ncid typeid fieldName =
     fieldIdx <- peek fieldIdxPtr
     return (fromIntegral res, fromIntegral fieldIdx)
 
+nc_def_opaque :: forall id (n :: Nat).
+     NC id
+  -> TernarySNat n
+  -> String
+  -> IO (Int32, NCType ('TNCOpaque n))
+nc_def_opaque ncid typeSize typeName  =
+  withCString typeName $ \c_typeName ->
+  alloca $ \typeIdPtr -> do
+    res <- c_nc_def_opaque (ncRawId ncid) (fromIntegral $ fromTernarySNat typeSize) c_typeName typeIdPtr
+    typeid <- peek typeIdPtr
+    return (fromIntegral res, NCType typeid $ SNCOpaque typeSize)
+
+data NCOpaqueTypeInfo = NCOpaqueTypeInfo {
+    ncOpaqueTypeName :: String
+  , ncOpaqueTypeSize :: Word64
+} deriving (Eq, Show)
+
+nc_inq_opaque :: forall id (n :: Nat).
+     NC id
+  -> NCType ('TNCOpaque n)
+  -> IO (Int32, NCOpaqueTypeInfo)
+nc_inq_opaque ncid typeid =
+  allocaArray0 (fromIntegral ncMaxNameLen) $ \c_typeName ->
+  alloca $ \ncTypeSizePtr -> do
+    res <- c_nc_inq_opaque (ncRawId ncid) (ncRawTypeId typeid) c_typeName ncTypeSizePtr
+    typeName <- peekCString c_typeName
+    typeSize <- fromIntegral <$> peek ncTypeSizePtr
+    return (fromIntegral res, NCOpaqueTypeInfo typeName typeSize)
+
 data CompoundWrapper where
   CompoundWrapper :: forall a. (NCDataTypeTagS ('TNCCompound a)) -> CompoundWrapper
 
@@ -323,6 +354,10 @@ fromNCTypeTag ncid tag = case fromNCStandardTypeTag tag of
             (CompoundWrapper SNCCompoundE)
             [0..(ncUserTypeNumFields typeInfo) - 1]
           return . SomeNCType $ NCType{ncRawTypeId=tag, ncTypeTag=tagS}
+        NCOpaque -> do
+          opaqueInfo <- snd <$> nc_inq_opaque ncid dummyTypeid
+          case toTernarySNat (fromIntegral $ ncOpaqueTypeSize opaqueInfo) of
+            SomeTernarySNat p -> return . SomeNCType $ NCType{ncRawTypeId=tag, ncTypeTag=SNCOpaque p}
   where
     dummyTypeid :: NCType t
     dummyTypeid = NCType tag undefined

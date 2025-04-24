@@ -74,6 +74,17 @@ spec = do
         _                      <- checkNC =<< nc_def_var nc_id "compound_variable" type_id2 (D dim_id :| dim_id)
         _                      <- checkNC =<< nc_enddef nc_id
         void $                    checkNC =<< nc_close nc_id
+      it "correctly inserts opaque field" $ do
+        nc_id                  <- checkNC =<< nc_create (testOutputPath </> "compound_type4.nc") NCNetCDF4 NCClobber
+        inner_type_id          <- checkNC =<< nc_def_opaque nc_id [snat3|17|] "inner_opaque"
+
+        type_id0               <- checkNC =<< nc_def_compound nc_id 21 "test compound"
+        type_id1               <- checkNC =<< nc_insert_compound nc_id type_id0 "field1" (ST0 STBot) NCInt
+        type_id2               <- checkNC =<< nc_insert_compound nc_id type_id1 "field2" (ST1 (ST1 STBot)) inner_type_id
+        dim_id                 <- checkNC =<< nc_def_dim nc_id "nc_dimension" (Just 3)
+        _                      <- checkNC =<< nc_def_var nc_id "compound_variable" type_id2 (D dim_id :| dim_id)
+        _                      <- checkNC =<< nc_enddef nc_id
+        void $                    checkNC =<< nc_close nc_id
     context "nc_inq_compound" $ do
       it "correctly retrieves compound type info" $ do
         nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
@@ -390,3 +401,31 @@ spec = do
         equal                  <- checkNC =<< nc_inq_type_equal nc_id t1 nc_id t2
         void $                    checkNC =<< nc_close nc_id
         equal `shouldBe` False
+  describe "Opaque types" $ do
+    context "nc_def_opaque" $ do
+      it "correctly defines a compound type - 1" $ do
+        nc_id                  <- checkNC =<< nc_create (testOutputPath </> "opaque_type1.nc") NCNetCDF4 NCClobber
+        type_id                <- checkNC =<< nc_def_opaque nc_id [snat3|28|] "test_opaque"
+        dim_id                 <- checkNC =<< nc_def_dim nc_id "nc_dimension" (Just 2)
+        _                      <- checkNC =<< nc_def_var nc_id "opaque_variable" type_id (D dim_id :| dim_id)
+        _                      <- checkNC =<< nc_enddef nc_id
+        void $                    checkNC =<< nc_close nc_id
+      it "correctly defines a compound type - 2" $ do
+        nc_id                  <- checkNC =<< nc_create (testOutputPath </> "opaque_type2.nc") NCNetCDF4 NCClobber
+        case toTernarySNat 27 of
+          SomeTernarySNat p -> do
+            type_id                <- checkNC =<< nc_def_opaque nc_id p "test_opaque"
+            dim_id                 <- checkNC =<< nc_def_dim nc_id "nc_dimension" (Just 2)
+            _                      <- checkNC =<< nc_def_var nc_id "opaque_variable" type_id (D dim_id :| dim_id)
+            _                      <- checkNC =<< nc_enddef nc_id
+            void $                    checkNC =<< nc_close nc_id
+    context "nc_inq_opaque" $ do
+      it "correctly retrieves opaque type info" $ do
+        nc_id                  <- checkNC =<< nc_open "test-data/nc/test5.nc" NCNoWrite
+        (SomeNCType t)         <- checkNC =<< nc_inq_typeid nc_id "binary_blob"
+        case t of
+          NCType{ncTypeTag=SNCOpaque{}} -> do
+            typeInfo <- checkNC =<< nc_inq_opaque nc_id t
+            typeInfo `shouldBe` (NCOpaqueTypeInfo "binary_blob" 128)
+          _ -> expectationFailure $ "Unexpected data type" ++ show (ncTypeTag t)
+        void $                    checkNC =<< nc_close nc_id
