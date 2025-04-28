@@ -312,7 +312,8 @@ spec = do
                         Var1D -> do
                             nc_data <- checkNC =<< nc_get_vara nc_id var (D 0) (D 2)
                             _       <- checkNC =<< nc_close nc_id
-                            nc_data `shouldBe` (VS.fromList [Compound 17 0.1 23.45, Compound (-1) 22.44 1.0E+20])
+                            nc_data `shouldBe` VS.fromList [Compound 17 0.1 23.45, Compound (-1) 22.44 1.0E+20]
+                        _ -> expectationFailure "Unexpected NC variable rank"
                     _ -> expectationFailure "Unexpected data type"
             it "correctly reads an enum vector variable" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
