@@ -3,6 +3,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TypeOperators #-}
 module Data.Format.NetCDF.LowLevel.User.Type where
 
 import           Data.Int
@@ -12,6 +13,7 @@ import           Foreign.C.String
 import           Foreign.C.Types
 import           Foreign.Marshal.Alloc
 import           Foreign.Marshal.Array
+import           Foreign.Marshal.Utils (with)
 import           Foreign.Ptr
 import           Foreign.Storable
 import           GHC.TypeNats (Nat)
@@ -53,10 +55,15 @@ foreign import ccall unsafe "nc_inq_compound_fielddim_sizes" c_nc_inq_compound_f
 foreign import ccall unsafe "nc_inq_compound_fieldindex" c_nc_inq_compound_fieldindex :: CInt -> CInt -> CString -> Ptr CInt -> IO CInt
 -- int     nc_inq_compound_fieldindex (int ncid, nc_type xtype, const char *name, int *fieldidp)
 
+foreign import ccall unsafe "nc_def_enum" c_nc_def_enum :: CInt -> CInt -> CString -> Ptr CInt -> IO CInt
 -- int     nc_def_enum (int ncid, nc_type base_typeid, const char *name, nc_type *typeidp)
+foreign import ccall unsafe "nc_insert_enum" c_nc_insert_enum :: CInt -> CInt -> CString -> Ptr NCData -> IO CInt
 -- int     nc_insert_enum (int ncid, nc_type xtype, const char *name, const void *value)
+foreign import ccall unsafe "nc_inq_enum" c_nc_inq_enum :: CInt -> CInt -> CString -> Ptr CInt -> Ptr CSize -> Ptr CSize -> IO CInt
 -- int     nc_inq_enum (int ncid, nc_type xtype, char *name, nc_type *base_nc_typep, size_t *base_sizep, size_t *num_membersp)
+foreign import ccall unsafe "nc_inq_enum_member" c_nc_inq_enum_member :: CInt -> CInt -> CInt -> CString -> Ptr NCData -> IO CInt
 -- int     nc_inq_enum_member (int ncid, nc_type xtype, int idx, char *name, void *value)
+foreign import ccall unsafe "nc_inq_enum_ident" c_nc_inq_enum_ident :: CInt -> CInt -> CLLong -> CString -> IO CInt
 -- int     nc_inq_enum_ident (int ncid, nc_type xtype, long long value, char *identifier)
 
 -- int     nc_free_vlens (size_t nelems, nc_vlen_t vlens[])
@@ -308,6 +315,80 @@ nc_inq_compound_fieldindex ncid typeid fieldName =
     fieldIdx <- peek fieldIdxPtr
     return (fromIntegral res, fromIntegral fieldIdx)
 
+nc_def_enum :: forall id (t :: NCDataTypeTag).
+  (t `OneOf` '[ 'TNCByte, 'TNCUByte, 'TNCShort, 'TNCUShort, 'TNCInt, 'TNCUInt, 'TNCInt64, 'TNCUInt64 ]) =>
+     NC id
+  -> NCType t
+  -> String
+  -> IO (Int32, NCType ('TNCEnum t))
+nc_def_enum ncid (NCType cBaseType baseTypeTag) typeName =
+  withCString typeName $ \c_typeName ->
+  alloca $ \typeIdPtr -> do
+    res <- c_nc_def_enum (ncRawId ncid) cBaseType c_typeName typeIdPtr
+    typeid <- peek typeIdPtr
+    return (fromIntegral res, NCType typeid $ SNCEnum baseTypeTag)
+
+nc_insert_enum :: forall id a (t :: NCDataTypeTag).
+  (a ~ EquivalentHaskellType t, Storable a) =>
+     NC id
+  -> NCType ('TNCEnum t)
+  -> String
+  -> a
+  -> IO (Int32, ())
+nc_insert_enum ncid (NCType ncType _) memberName memberValue =
+  withCString memberName $ \c_memberName ->
+  with memberValue $ \memberValuePtr -> do
+    res <- c_nc_insert_enum (ncRawId ncid) ncType c_memberName (castPtr memberValuePtr)
+    return (fromIntegral res, ())
+
+data NCEnumTypeInfo = NCEnumTypeInfo {
+    ncEnumTypeName     :: String
+  , ncEnumBaseType     :: SomeNCType
+  , ncEnumBaseTypeSize :: Word64
+  , ncEnumNumMembers   :: Word32
+} -- deriving (Eq, Show)
+
+nc_inq_enum :: forall id (t :: NCDataTypeTag).
+     NC id
+  -> NCType ('TNCEnum t)
+  -> IO (Int32, NCEnumTypeInfo)
+nc_inq_enum ncid (NCType ncType _) =
+  allocaArray0 (fromIntegral ncMaxNameLen) $ \c_typeName ->
+  alloca $ \ncBaseTypePtr ->
+  alloca $ \ncBaseTypeSizePtr ->
+  alloca $ \ncNumMembersPtr -> do
+    res <- c_nc_inq_enum (ncRawId ncid) ncType c_typeName ncBaseTypePtr ncBaseTypeSizePtr ncNumMembersPtr
+    typeName <- peekCString c_typeName
+    baseType <- peek ncBaseTypePtr >>= fromNCTypeTag ncid
+    baseTypeSize <- fromIntegral <$> peek ncBaseTypeSizePtr
+    numMembers <- fromIntegral <$> peek ncNumMembersPtr
+    return (fromIntegral res, NCEnumTypeInfo typeName baseType baseTypeSize numMembers)
+
+nc_inq_enum_member :: forall id a (t :: NCDataTypeTag).
+  (a ~ EquivalentHaskellType t, Storable a) =>
+     NC id
+  -> NCType ('TNCEnum t)
+  -> Word32
+  -> IO (Int32, (String, a))
+nc_inq_enum_member ncid (NCType ncType _) idx =
+  allocaArray0 (fromIntegral ncMaxNameLen) $ \c_memberName ->
+  alloca $ \memberValuePtr -> do
+    res <- c_nc_inq_enum_member (ncRawId ncid) ncType (fromIntegral idx) c_memberName (castPtr memberValuePtr)
+    memberName <- peekCString c_memberName
+    memberValue <- peek memberValuePtr
+    return (fromIntegral res, (memberName, memberValue))
+
+nc_inq_enum_ident :: forall id (t :: NCDataTypeTag).
+     NC id
+  -> NCType ('TNCEnum t)
+  -> Int64
+  -> IO (Int32, String)
+nc_inq_enum_ident ncid (NCType ncType _) value =
+  allocaArray0 (fromIntegral ncMaxNameLen) $ \c_memberName -> do
+    res <- c_nc_inq_enum_ident (ncRawId ncid) ncType (fromIntegral value) c_memberName
+    memberName <- peekCString c_memberName
+    return (fromIntegral res, memberName)
+
 nc_def_opaque :: forall id (n :: Nat).
      NC id
   -> TernarySNat n
@@ -354,6 +435,11 @@ fromNCTypeTag ncid tag = case fromNCStandardTypeTag tag of
             (CompoundWrapper SNCCompoundE)
             [0..(ncUserTypeNumFields typeInfo) - 1]
           return . SomeNCType $ NCType{ncRawTypeId=tag, ncTypeTag=tagS}
+        NCEnum -> do
+          enumInfo <- snd <$> nc_inq_enum ncid dummyTypeid
+          case ncEnumBaseType enumInfo of
+            SomeNCType{ncType=NCType{ncTypeTag=t}} ->
+              return . SomeNCType $ NCType{ncRawTypeId=tag, ncTypeTag=SNCEnum t}
         NCOpaque -> do
           opaqueInfo <- snd <$> nc_inq_opaque ncid dummyTypeid
           case toTernarySNat (fromIntegral $ ncOpaqueTypeSize opaqueInfo) of

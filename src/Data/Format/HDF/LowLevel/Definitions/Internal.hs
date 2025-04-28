@@ -18,6 +18,7 @@ import           GHC.TypeLits (TypeError, ErrorMessage(..))
 
 
 import           Data.Format.HDF.LowLevel.Definitions
+import           Internal.Definitions (OneOf)
 
 class SDObjectId id where
     getRawObjectId :: id -> Int32
@@ -42,11 +43,3 @@ instance CanBeAttribute BS.ByteString where
 instance Storable a =>  CanBeAttribute (VS.Vector a) where
     withAttributePtr val f = VS.unsafeWith val (\ptr -> f $! castPtr ptr)
     attributeLen = VS.length
-
-type family OneOf (a :: k) (xs :: [k]) :: Constraint where
-  OneOf a xs = (OneOfInternal 'False a xs xs) ~ 'True
-
-type family OneOfInternal (found :: Bool) (a :: k) (xs :: [k]) (all :: [k]) :: Bool where
-  OneOfInternal 'True  _  _        _   = 'True
-  OneOfInternal 'False a '[]       all = TypeError ('ShowType a ':<>: 'Text " is not found in " ':<>: 'ShowType all)
-  OneOfInternal  res   a (b ': xs) all = OneOfInternal (a == b) a xs all

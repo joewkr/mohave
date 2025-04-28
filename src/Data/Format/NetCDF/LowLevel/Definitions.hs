@@ -154,6 +154,7 @@ data NCDataTypeTagS (t :: NCDataTypeTag) where
     SNCFloat     :: NCDataTypeTagS 'TNCFloat
     SNCDouble    :: NCDataTypeTagS 'TNCDouble
     SNCString    :: NCDataTypeTagS 'TNCString
+    SNCEnum      :: NCDataTypeTagS t -> NCDataTypeTagS ('TNCEnum t)
     SNCOpaque    :: TernarySNat n -> NCDataTypeTagS ('TNCOpaque n)
     SNCCompoundE :: NCDataTypeTagS ('TNCCompound '[])
     SNCCompound  :: NCDataTypeTagS t -> TernarySNat n -> NCDataTypeTagS ('TNCCompound ts) -> NCDataTypeTagS ('TNCCompound (Insert '(t, n) ts))
@@ -175,6 +176,8 @@ type instance EquivalentHaskellType TNCUInt64 = Word64
 type instance EquivalentHaskellType TNCFloat  = Float
 type instance EquivalentHaskellType TNCDouble = Double
 type instance EquivalentHaskellType TNCString = (NCStringPtr 'U)  -- When reading from a NetCDF file memory is allocated on the C-side
+
+type instance EquivalentHaskellType (TNCEnum a) = EquivalentHaskellType a
 
 data NCUserTypeClass =
     NCVlen

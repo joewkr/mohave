@@ -18,13 +18,14 @@ import           Data.Int
 import           Data.Function (on)
 import           Data.Kind
 import           Data.Proxy (Proxy(..))
-import           Data.Type.Equality (TestEquality, testEquality, (:~:)(Refl))
+import           Data.Type.Equality (TestEquality, testEquality, (:~:)(Refl), type(==))
 import qualified Data.Vector.Storable as VS
 import           Data.Word
 import           Foreign.C.Types (CChar)
 import           Foreign.Ptr (Ptr)
 import           Foreign.Storable (Storable(..))
 import           Foreign.Marshal.Array (allocaArray, advancePtr)
+import           GHC.TypeLits (TypeError, ErrorMessage(..))
 import           GHC.TypeNats
 import           Unsafe.Coerce
 
@@ -157,3 +158,10 @@ type family SelectKind (a :: ValueKind) (t :: Type) :: Type where
     SelectKind 'Nullary t = t
     SelectKind ('Unary v) t = v t
 
+type family OneOf (a :: k) (xs :: [k]) :: Constraint where
+  OneOf a xs = (OneOfInternal 'False a xs xs) ~ 'True
+
+type family OneOfInternal (found :: Bool) (a :: k) (xs :: [k]) (all :: [k]) :: Bool where
+  OneOfInternal 'True  _  _        _   = 'True
+  OneOfInternal 'False a '[]       all = TypeError ('ShowType a ':<>: 'Text " is not found in " ':<>: 'ShowType all)
+  OneOfInternal  res   a (b ': xs) all = OneOfInternal (a == b) a xs all

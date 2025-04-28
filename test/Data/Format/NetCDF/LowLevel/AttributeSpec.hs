@@ -135,6 +135,16 @@ spec = do
                         v `shouldBe` VS.fromList [OpaqueMB $ Just False, OpaqueMB Nothing]
                     _ -> expectationFailure $ "Unexpected data type:\t" ++ show t
                 void $                    checkNC =<< nc_close nc_id
+            it "correctly reads enum attribute" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable _ var) <- checkNC =<< nc_inq_varid nc_id "scalar_enum"
+                (SomeNCAttribute t at) <- checkNC =<< nc_inq_att nc_id (Just var) "attr"
+                case t of
+                    (SNCEnum SNCShort) -> do
+                        v  <- checkNC =<< nc_get_att nc_id at
+                        v `shouldBe` VS.fromList [999,0,1]
+                    _ -> expectationFailure $ "Unexpected data type:\t" ++ show t
+                void $                    checkNC =<< nc_close nc_id
             it "correctly reads a global attribute" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
                 (SomeNCAttribute t at) <- checkNC =<< nc_inq_att nc_id Nothing "version"
@@ -181,6 +191,17 @@ spec = do
                 nc_id                  <- checkNC =<< nc_create (testOutputPath </> "attr5_put.nc") NCNetCDF4 NCClobber
                 type_id                <- checkNC =<< nc_def_opaque nc_id [snat3|65|] "blob64"
 
+                at                     <- checkNC =<< nc_put_att nc_id Nothing "attribute" type_id nc_data
+                v                      <- checkNC =<< nc_get_att nc_id at
+                _                      <- checkNC =<< nc_close nc_id
+                v `shouldBe` VS.fromList nc_data
+            it "correctly sets enum attribute - 1" $ do
+                let nc_data = [1,2,0]
+                nc_id                  <- checkNC =<< nc_create (testOutputPath </> "attr6_put.nc") NCNetCDF4 NCClobber
+                type_id                <- checkNC =<< nc_def_enum nc_id NCShort "precip_type"
+                _                      <- checkNC =<< nc_insert_enum nc_id type_id "None" 0
+                _                      <- checkNC =<< nc_insert_enum nc_id type_id "Rain" 1
+                _                      <- checkNC =<< nc_insert_enum nc_id type_id "Snow" 2
                 at                     <- checkNC =<< nc_put_att nc_id Nothing "attribute" type_id nc_data
                 v                      <- checkNC =<< nc_get_att nc_id at
                 _                      <- checkNC =<< nc_close nc_id
@@ -271,6 +292,16 @@ spec = do
                         v `shouldBe` (OpaqueMB $ Just True)
                     _ -> expectationFailure $ "Unexpected data type:\t" ++ show t
                 void $                    checkNC =<< nc_close nc_id
+            it "correctly reads a scalar enum attribute" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable _ var) <- checkNC =<< nc_inq_varid nc_id "scalar_enum"
+                (SomeNCAttribute t at) <- checkNC =<< nc_inq_att nc_id (Just var) "scalar attr"
+                case t of
+                    (SNCEnum SNCShort) -> do
+                        v  <- checkNC =<< nc_get_scalar_att nc_id at
+                        v `shouldBe` 1
+                    _ -> expectationFailure $ "Unexpected data type:\t" ++ show t
+                void $                    checkNC =<< nc_close nc_id
         context "nc_put_scalar_att" $ do
             it "correctly sets scalar attribute - 1" $ do
                 nc_id                  <- checkNC =<< nc_create (testOutputPath </> "attr3_put.nc") NCNetCDF4 NCClobber
@@ -303,3 +334,13 @@ spec = do
                 v                      <- checkNC =<< nc_get_scalar_att nc_id at
                 _                      <- checkNC =<< nc_close nc_id
                 v `shouldBe` BinaryBlob64 "ZZXXYY"
+            it "correctly sets scalar enum attribute" $ do
+                nc_id                  <- checkNC =<< nc_create (testOutputPath </> "attr1_put_se.nc") NCNetCDF4 NCClobber
+                type_id                <- checkNC =<< nc_def_enum nc_id NCShort "precip_type"
+                _                      <- checkNC =<< nc_insert_enum nc_id type_id "None" 0
+                _                      <- checkNC =<< nc_insert_enum nc_id type_id "Rain" 1
+                _                      <- checkNC =<< nc_insert_enum nc_id type_id "Snow" 2
+                at                     <- checkNC =<< nc_put_scalar_att nc_id Nothing "attribute" type_id 1
+                v                      <- checkNC =<< nc_get_scalar_att nc_id at
+                _                      <- checkNC =<< nc_close nc_id
+                v `shouldBe` 1

@@ -16,6 +16,9 @@ types:
     string comment;
   }
 
+  byte enum qa_flags {Best\ quality = 0, Good\ quality = 1, Poor\ quality = 2, No\ decision= 127};
+  short enum precip_type {None = 999, Rain = 0, Snow = 1};
+
   opaque(65) binary_blob;
   opaque(1) binary_mb;
 
@@ -32,6 +35,10 @@ variables:
   binary_blob scalar_opaque;
     binary_mb scalar_opaque:attr = 0X00, 0X02;
     binary_mb scalar_opaque:scalar\ attr = 0X01;
+  qa_flags scalar_enum;
+    precip_type scalar_enum:attr = None, Rain, Snow;
+    precip_type scalar_enum:scalar\ attr = Snow;
+  qa_flags vector_enum(dim1);
   int vector_int(dim1);
   float vector_float(dim1);
   string just_string;
@@ -49,6 +56,8 @@ data:
   vector_compound = { 17, 0.1f, 23.45f}, {-1, 22.44f, 1.0e+20}, {22, 1.0f, 5.7f};
   vector_compound_ws = {1, "hello"}, {-1, "world"}, {177, "long comment"};
   scalar_opaque = 0X0123456789ABCDEF0123456789ABCDEF11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111110010;
+  scalar_enum = Poor\ quality;
+  vector_enum = No\ decision, Best\ quality, Good\ quality;
   vector_int = 3, 4, 5;
   vector_float = 13.4f, 14.5f, 15.6f;
   just_string = "some text";

@@ -313,6 +313,16 @@ spec = do
                             nc_data <- checkNC =<< nc_get_vara nc_id var (D 0) (D 2)
                             _       <- checkNC =<< nc_close nc_id
                             nc_data `shouldBe` (VS.fromList [Compound 17 0.1 23.45, Compound (-1) 22.44 1.0E+20])
+                    _ -> expectationFailure "Unexpected data type"
+            it "correctly reads an enum vector variable" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "vector_enum"
+                case t of
+                    (SNCEnum SNCByte) -> case ncVarNDimsProxy var of
+                        Var1D -> do
+                            nc_data <- checkNC =<< nc_get_vara nc_id var (D 0) (D 2)
+                            _       <- checkNC =<< nc_close nc_id
+                            nc_data `shouldBe` VS.fromList [127, 0]
                         _ -> expectationFailure "Unexpected NC variable rank"
                     _ -> expectationFailure "Unexpected data type"
         context "nc_get_var1" $ do
@@ -337,6 +347,17 @@ spec = do
                             nc_data <- checkNC =<< nc_get_var1 nc_id var (D 2)
                             _       <- checkNC =<< nc_close nc_id
                             nc_data `shouldBe` (Compound 22 1.0 5.7)
+                        _ -> expectationFailure "Unexpected NC variable rank"
+                    _ -> expectationFailure "Unexpected data type"
+            it "correctly reads a single value from an enum vector variable" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "vector_enum"
+                case t of
+                    (SNCEnum SNCByte) -> case ncVarNDimsProxy var of
+                        Var1D -> do
+                            nc_data <- checkNC =<< nc_get_var1 nc_id var (D 2)
+                            _       <- checkNC =<< nc_close nc_id
+                            nc_data `shouldBe` 1
                         _ -> expectationFailure "Unexpected NC variable rank"
                     _ -> expectationFailure "Unexpected data type"
         context "nc_get_var" $ do
@@ -376,6 +397,24 @@ spec = do
                         _       <- checkNC =<< nc_close nc_id
                         nc_data `shouldBe` VS.fromList [Compound 17 0.1 23.45, Compound (-1) 22.44 1.0E+20, Compound 22 1 5.7]
                     _ -> expectationFailure "Unexpected data type"
+            it "correctly reads a scalar enum variable" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "scalar_enum"
+                case t of
+                    (SNCEnum SNCByte) -> do
+                        nc_data <- checkNC =<< nc_get_var nc_id var
+                        _       <- checkNC =<< nc_close nc_id
+                        nc_data `shouldBe` VS.fromList [2]
+                    _ -> expectationFailure "Unexpected data type"
+            it "correctly reads a vector enum variable" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "vector_enum"
+                case t of
+                    (SNCEnum SNCByte) -> do
+                        nc_data <- checkNC =<< nc_get_var nc_id var
+                        _       <- checkNC =<< nc_close nc_id
+                        nc_data `shouldBe` VS.fromList [127, 0, 1]
+                    _ -> expectationFailure "Unexpected data type"
         context "nc_get_vars" $ do
             it "correctly reads a vector variable" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
@@ -397,6 +436,17 @@ spec = do
                             nc_data <- checkNC =<< nc_get_vars nc_id var (D 0) (D 2) (D 2)
                             _       <- checkNC =<< nc_close nc_id
                             nc_data `shouldBe` VS.fromList [Compound 17 0.1 23.45, Compound 22 1 5.7]
+                        _ -> expectationFailure "Unexpected NC variable rank"
+                    _ -> expectationFailure "Unexpected data type"
+            it "correctly reads a vector enum variable" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "vector_enum"
+                case t of
+                    (SNCEnum SNCByte) -> case ncVarNDimsProxy var of
+                        Var1D -> do
+                            nc_data <- checkNC =<< nc_get_vars nc_id var (D 0) (D 2) (D 2)
+                            _       <- checkNC =<< nc_close nc_id
+                            nc_data `shouldBe` VS.fromList [127, 1]
                         _ -> expectationFailure "Unexpected NC variable rank"
                     _ -> expectationFailure "Unexpected data type"
         context "nc_put_vara" $ do
@@ -469,6 +519,29 @@ spec = do
                         v `shouldBe` nc_data
                     _ -> expectationFailure "Unexpected data type"
                 void $                    checkNC =<< nc_close nc_id
+            it "correctly writes a vector enum variable" $ do
+                let
+                    fileName = testOutputPath </> "var1_write_e.nc"
+                    nc_data  = VS.fromList [8,800,555,35,35]
+                nc_id                  <- checkNC =<< nc_create fileName NCNetCDF4 NCClobber
+                type_id                <- checkNC =<< nc_def_enum nc_id NCInt64 "test_enum_type"
+                _                      <- checkNC =<< nc_insert_enum nc_id type_id "A" 8
+                _                      <- checkNC =<< nc_insert_enum nc_id type_id "B" 555
+                _                      <- checkNC =<< nc_insert_enum nc_id type_id "C" 800
+                _                      <- checkNC =<< nc_insert_enum nc_id type_id "D" 35
+                dim_id                 <- checkNC =<< nc_def_dim nc_id "nc_dimension" (Just 5)
+                var_id                 <- checkNC =<< nc_def_var nc_id "variable" type_id (D dim_id)
+                _                      <- checkNC =<< nc_put_vara nc_id var_id (D 0) (D 5) nc_data
+                void $                    checkNC =<< nc_close nc_id
+
+                nc_id                  <- checkNC =<< nc_open fileName NCNoWrite
+                (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "variable"
+                case t of
+                    (SNCEnum SNCInt64) -> do
+                        v  <- checkNC =<< nc_get_var nc_id var
+                        v `shouldBe` nc_data
+                    _ -> expectationFailure "Unexpected data type"
+                void $                    checkNC =<< nc_close nc_id
         context "nc_put_var1" $ do
             it "correctly writes a single value" $ do
                 nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var2_write.nc") NCNetCDF4 NCClobber
@@ -504,6 +577,19 @@ spec = do
                 v                      <- checkNC =<< nc_get_var nc_id var_id
                 _                      <- checkNC =<< nc_close nc_id
                 v `shouldBe` VS.fromList [OpaqueMB Nothing, OpaqueMB (Just False)]
+            it "correctly writes a single enum variable" $ do
+                nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var2_write_e.nc") NCNetCDF4 NCClobber
+                type_id                <- checkNC =<< nc_def_enum nc_id NCByte "precip_type"
+                _                      <- checkNC =<< nc_insert_enum nc_id type_id "None" 0
+                _                      <- checkNC =<< nc_insert_enum nc_id type_id "Rain" 1
+                _                      <- checkNC =<< nc_insert_enum nc_id type_id "Snow" 2
+                dim_id                 <- checkNC =<< nc_def_dim nc_id "nc_dimension" (Just 2)
+                var_id                 <- checkNC =<< nc_def_var nc_id "variable" type_id (D dim_id)
+                _                      <- checkNC =<< nc_def_var_fill nc_id var_id (Just 0)
+                _                      <- checkNC =<< nc_put_var1 nc_id var_id (D 1) 2
+                v                      <- checkNC =<< nc_get_var nc_id var_id
+                _                      <- checkNC =<< nc_close nc_id
+                v `shouldBe` VS.fromList [0, 2]
         context "nc_put_var" $ do
             it "correctly writes a vector variable" $ do
                 let nc_data = VS.fromList ([4,5,6,7] :: [Int64] )
@@ -533,6 +619,19 @@ spec = do
                 nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var3_write_o.nc") NCNetCDF4 NCClobber
                 type_id                <- checkNC =<< nc_def_opaque nc_id [snat3|65|] "opaque_type"
 
+                dim_id                 <- checkNC =<< nc_def_dim nc_id "nc_dimension" (Just 2)
+                var_id                 <- checkNC =<< nc_def_var nc_id "variable" type_id (D dim_id)
+                _                      <- checkNC =<< nc_put_var nc_id var_id nc_data
+                v                      <- checkNC =<< nc_get_var nc_id var_id
+                _                      <- checkNC =<< nc_close nc_id
+                v `shouldBe` nc_data
+            it "correctly writes a vector enum variable" $ do
+                let nc_data = VS.fromList [1,2]
+                nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var3_write_e.nc") NCNetCDF4 NCClobber
+                type_id                <- checkNC =<< nc_def_enum nc_id NCByte "precip_type"
+                _                      <- checkNC =<< nc_insert_enum nc_id type_id "None" 0
+                _                      <- checkNC =<< nc_insert_enum nc_id type_id "Rain" 1
+                _                      <- checkNC =<< nc_insert_enum nc_id type_id "Snow" 2
                 dim_id                 <- checkNC =<< nc_def_dim nc_id "nc_dimension" (Just 2)
                 var_id                 <- checkNC =<< nc_def_var nc_id "variable" type_id (D dim_id)
                 _                      <- checkNC =<< nc_put_var nc_id var_id nc_data
@@ -577,6 +676,20 @@ spec = do
                 v                      <- checkNC =<< nc_get_var nc_id var_id
                 _                      <- checkNC =<< nc_close nc_id
                 v `shouldBe` VS.fromList [OpaqueMB $ Just True, OpaqueMB Nothing, OpaqueMB $ Just False, OpaqueMB Nothing]
+            it "correctly writes a vector enum variable" $ do
+                let nc_data = VS.fromList [1,2]
+                nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var4_write_e.nc") NCNetCDF4 NCClobber
+                type_id                <- checkNC =<< nc_def_enum nc_id NCByte "precip_type"
+                _                      <- checkNC =<< nc_insert_enum nc_id type_id "None" 0
+                _                      <- checkNC =<< nc_insert_enum nc_id type_id "Rain" 1
+                _                      <- checkNC =<< nc_insert_enum nc_id type_id "Snow" 2
+                dim_id                 <- checkNC =<< nc_def_dim nc_id "nc_dimension" (Just 4)
+                var_id                 <- checkNC =<< nc_def_var nc_id "variable" type_id (D dim_id)
+                _                      <- checkNC =<< nc_def_var_fill nc_id var_id (Just 0)
+                _                      <- checkNC =<< nc_put_vars nc_id var_id (D 0) (D 2) (D 2) nc_data
+                v                      <- checkNC =<< nc_get_var nc_id var_id
+                _                      <- checkNC =<< nc_close nc_id
+                v `shouldBe` VS.fromList [1,0,2,0]
         context "nc_get_scalar" $ do
             it "correctly reads a scalar variable" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
@@ -610,6 +723,17 @@ spec = do
                             nc_data <- checkNC =<< nc_get_scalar nc_id var
                             _       <- checkNC =<< nc_close nc_id
                             nc_data `shouldBe` (BinaryBlob64 "\x01\x23\x45\x67\x89\xAB\xCD\xEF\x01\x23\x45\x67\x89\xAB\xCD\xEF")
+                        _ -> expectationFailure "Unexpected NC variable rank"
+                    _ -> expectationFailure "Unexpected data type"
+            it "correctly reads a scalar enum variable" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "scalar_enum"
+                case t of
+                    (SNCEnum SNCByte) -> case ncVarNDimsProxy var of
+                        Var0D -> do
+                            nc_data <- checkNC =<< nc_get_scalar nc_id var
+                            _       <- checkNC =<< nc_close nc_id
+                            nc_data `shouldBe` 2
                         _ -> expectationFailure "Unexpected NC variable rank"
                     _ -> expectationFailure "Unexpected data type"
         context "nc_put_scalar" $ do
@@ -648,3 +772,14 @@ spec = do
                 v                      <- checkNC =<< nc_get_scalar nc_id var_id
                 _                      <- checkNC =<< nc_close nc_id
                 v `shouldBe` (OpaqueMB $ Just False)
+            it "correctly writes a scalar enum variable" $ do
+                nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var6_write_e.nc") NCNetCDF4 NCClobber
+                type_id                <- checkNC =<< nc_def_enum nc_id NCByte "precip_type"
+                _                      <- checkNC =<< nc_insert_enum nc_id type_id "None" 0
+                _                      <- checkNC =<< nc_insert_enum nc_id type_id "Rain" 1
+                _                      <- checkNC =<< nc_insert_enum nc_id type_id "Snow" 2
+                var_id                 <- checkNC =<< nc_def_scalar_var nc_id "variable" type_id
+                _                      <- checkNC =<< nc_put_scalar nc_id var_id 2
+                v                      <- checkNC =<< nc_get_scalar nc_id var_id
+                _                      <- checkNC =<< nc_close nc_id
+                v `shouldBe` 2
