@@ -9,12 +9,10 @@ import qualified Data.ByteString as BS
 import           Data.ByteString.Unsafe (unsafeUseAsCString)
 import           Data.Int
 import           Data.Kind
-import           Data.Type.Equality (type(==))
 import qualified Data.Vector.Storable as VS
 import           Foreign.Marshal.Array
 import           Foreign.Ptr
 import           Foreign.Storable (Storable)
-import           GHC.TypeLits (TypeError, ErrorMessage(..))
 
 
 import           Data.Format.HDF.LowLevel.Definitions
