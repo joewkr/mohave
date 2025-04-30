@@ -108,10 +108,6 @@ instance Storable (NCStringPtr mode) where
     peek ptr                        = NCStringPtr <$> peek (castPtr ptr)
     poke ptr  (NCStringPtr strPtr) = poke (castPtr ptr) strPtr
 
-type family AllowedEnumTypes (a :: NCDataTypeTag) :: NCDataTypeTag where
-  AllowedEnumTypes TNCUByte = TNCUByte
-  AllowedEnumTypes TNCChar  = TNCChar
-
 data NCDataTypeTag where
     TNCNone     :: NCDataTypeTag
     TNCByte     :: NCDataTypeTag
