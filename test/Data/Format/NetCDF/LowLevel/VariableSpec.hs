@@ -5,9 +5,10 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Data.Format.NetCDF.LowLevel.VariableSpec(spec) where
 
-import           Control.Monad (void)
+import           Control.Monad (void, forM_)
 import           Data.Int (Int64)
 import qualified Data.Vector.Storable as VS
+import           Foreign.Marshal.Utils (with)
 import           Foreign.Storable (sizeOf)
 import           GHC.TypeNats
 import           System.FilePath ((</>))
@@ -326,6 +327,19 @@ spec = do
                             nc_data `shouldBe` VS.fromList [127, 0]
                         _ -> expectationFailure "Unexpected NC variable rank"
                     _ -> expectationFailure "Unexpected data type"
+            it "correctly reads a vlen vector variable" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "vector_vlen"
+                case t of
+                    (SNCVLen SNCDouble) -> case ncVarNDimsProxy var of
+                        Var1D -> do
+                            (nc_vlen_data :: VS.Vector (NCVLenContainer U Double)) <- checkNC =<< nc_get_vara nc_id var (D 0) (D 2)
+                            let expected = zip [0,1..] [VS.fromList [1, 2], VS.fromList [9, 100, (-777)]]
+                            forM_ expected $ \(idx,vec) -> do
+                                inspectVLenArray nc_vlen_data idx (flip shouldBe $ vec)
+                                void $ with (nc_vlen_data VS.! idx) nc_free_vlen
+                        _ -> expectationFailure "Unexpected NC variable rank"
+                    _ -> expectationFailure "Unexpected data type"
         context "nc_get_var1" $ do
             it "correctly reads a single value from vector" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
@@ -359,6 +373,19 @@ spec = do
                             nc_data <- checkNC =<< nc_get_var1 nc_id var (D 2)
                             _       <- checkNC =<< nc_close nc_id
                             nc_data `shouldBe` 1
+                        _ -> expectationFailure "Unexpected NC variable rank"
+                    _ -> expectationFailure "Unexpected data type"
+            it "correctly reads a single value from a vlen vector variable" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "vector_vlen"
+                case t of
+                    (SNCVLen SNCDouble) -> case ncVarNDimsProxy var of
+                        Var1D -> do
+                            nc_vlen_data <- checkNC =<< nc_get_var1 nc_id var (D 2)
+                            nc_data <- peekVLenArray nc_vlen_data
+                            _       <- checkNC =<< nc_close nc_id
+                            void $ with nc_vlen_data nc_free_vlen
+                            nc_data `shouldBe` VS.fromList [22.33, 77.98, 123.789, 0.554]
                         _ -> expectationFailure "Unexpected NC variable rank"
                     _ -> expectationFailure "Unexpected data type"
         context "nc_get_var" $ do
@@ -416,6 +443,33 @@ spec = do
                         _       <- checkNC =<< nc_close nc_id
                         nc_data `shouldBe` VS.fromList [127, 0, 1]
                     _ -> expectationFailure "Unexpected data type"
+            it "correctly reads a scalar vlen variable" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "scalar_vlen"
+                case t of
+                    (SNCVLen SNCDouble) -> do
+                        nc_vlen_data <- checkNC =<< nc_get_var nc_id var
+                        nc_data <- peekVLenArray (VS.head nc_vlen_data)
+                        _       <- checkNC =<< nc_close nc_id
+                        void $ freeVLenArray nc_vlen_data
+                        nc_data `shouldBe` VS.fromList [1, 2, 3, 4, 6]
+                    _ -> expectationFailure "Unexpected data type"
+            it "correctly reads a vector vlen variable" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "vector_vlen_compound"
+                case t of
+                    (SNCVLen SCompound) -> do
+                        nc_vlen_data <- checkNC =<< nc_get_var nc_id var
+                        let
+                            expected_data = [
+                                VS.fromList [Compound 7 57.98 12.34, Compound 1 2 11.75]
+                              , VS.fromList [Compound 19 0.2 34.56]
+                              , VS.fromList [Compound 1 (-12.22) (-13.54), Compound 2 65.56 123.321, Compound 0 0.1 0.2]]
+                            expected = zip [0,1..] expected_data
+                        forM_ expected $ \(idx,vec) -> do
+                            inspectVLenArray nc_vlen_data idx (flip shouldBe $ vec)
+                            void $ with (nc_vlen_data VS.! idx) nc_free_vlen
+                    _ -> expectationFailure "Unexpected data type"
         context "nc_get_vars" $ do
             it "correctly reads a vector variable" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
@@ -448,6 +502,23 @@ spec = do
                             nc_data <- checkNC =<< nc_get_vars nc_id var (D 0) (D 2) (D 2)
                             _       <- checkNC =<< nc_close nc_id
                             nc_data `shouldBe` VS.fromList [127, 1]
+                        _ -> expectationFailure "Unexpected NC variable rank"
+                    _ -> expectationFailure "Unexpected data type"
+            it "correctly reads a vector vlen variable" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "vector_vlen_compound"
+                case t of
+                    (SNCVLen SCompound) -> case ncVarNDimsProxy var of
+                        Var1D -> do
+                            nc_vlen_data <- checkNC =<< nc_get_vars nc_id var (D 0) (D 2) (D 2)
+                            let
+                                expected_data = [
+                                    VS.fromList [Compound 7 57.98 12.34, Compound 1 2 11.75]
+                                  , VS.fromList [Compound 1 (-12.22) (-13.54), Compound 2 65.56 123.321, Compound 0 0.1 0.2]]
+                                expected = zip [0,1..] expected_data
+                            forM_ expected $ \(idx,vec) -> do
+                                inspectVLenArray nc_vlen_data idx (flip shouldBe $ vec)
+                                void $ with (nc_vlen_data VS.! idx) nc_free_vlen
                         _ -> expectationFailure "Unexpected NC variable rank"
                     _ -> expectationFailure "Unexpected data type"
         context "nc_put_vara" $ do
@@ -543,6 +614,25 @@ spec = do
                         v `shouldBe` nc_data
                     _ -> expectationFailure "Unexpected data type"
                 void $                    checkNC =<< nc_close nc_id
+            it "correctly writes a vector vlen variable" $ do
+                let nc_data0 = VS.fromList [Compound 1 2  3, Compound 22 77.88 31.95]
+                    nc_data1 = VS.fromList [Compound 7 9 11]
+                nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var1_write_v.nc") NCNetCDF4 NCClobber
+                type_id0               <- checkNC =<< nc_def_compound nc_id (fromIntegral . sizeOf $ nc_data0 VS.! 0) "compound_type"
+                type_id1               <- checkNC =<< nc_insert_compound nc_id type_id0 "integer_field" (ST0 STBot) NCInt
+                type_id2               <- checkNC =<< nc_insert_compound nc_id type_id1 "xx" (ST1 (ST1 STBot)) NCFloat
+                type_id3               <- checkNC =<< nc_insert_compound nc_id type_id2 "yy" (ST2 (ST2 STBot)) NCFloat
+                type_id                <- checkNC =<< nc_def_vlen nc_id type_id3 "test_vlen"
+
+                dim_id                 <- checkNC =<< nc_def_dim nc_id "nc_dimension" (Just 2)
+                var_id                 <- checkNC =<< nc_def_var nc_id "variable" type_id (D dim_id)
+                withVLenList [nc_data0, nc_data1] $ \vlens -> do
+                    _                      <- checkNC =<< nc_put_vara nc_id var_id (D 0) (D 2) (VS.fromList vlens)
+                    nc_vlen_data           <- checkNC =<< nc_get_var nc_id var_id
+                    _                      <- checkNC =<< nc_close nc_id
+                    forM_ (zip [0,1] [nc_data0, nc_data1]) $ \(idx,vec) -> do
+                        inspectVLenArray nc_vlen_data idx (flip shouldBe $ vec)
+                        void $ with (nc_vlen_data VS.! idx) nc_free_vlen
         context "nc_put_var1" $ do
             it "correctly writes a single value" $ do
                 nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var2_write.nc") NCNetCDF4 NCClobber
@@ -591,6 +681,21 @@ spec = do
                 v                      <- checkNC =<< nc_get_var nc_id var_id
                 _                      <- checkNC =<< nc_close nc_id
                 v `shouldBe` VS.fromList [0, 2]
+            it "correctly writes a single vlen variable" $ do
+                let nc_data = VS.fromList [1,2,3,4,5]
+                nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var2_write_v.nc") NCNetCDF4 NCClobber
+                type_id                <- checkNC =<< nc_def_vlen nc_id NCByte "vlen_type"
+                dim_id                 <- checkNC =<< nc_def_dim nc_id "nc_dimension" (Just 2)
+                var_id                 <- checkNC =<< nc_def_var nc_id "variable" type_id (D dim_id)
+                withVLen VS.empty $ \vlen -> do
+                    void $ checkNC =<< nc_def_var_fill nc_id var_id (Just vlen)
+                withVLen nc_data $ \vlen -> do
+                    _                      <- checkNC =<< nc_put_var1 nc_id var_id (D 1) vlen
+                    nc_vlen_data           <- checkNC =<< nc_get_var nc_id var_id
+                    _                      <- checkNC =<< nc_close nc_id
+                    forM_ (zip [0,1] [VS.empty, nc_data]) $ \(idx,vec) -> do
+                        inspectVLenArray nc_vlen_data idx (flip shouldBe $ vec)
+                        void $ with (nc_vlen_data VS.! idx) nc_free_vlen
         context "nc_put_var" $ do
             it "correctly writes a vector variable" $ do
                 let nc_data = VS.fromList ([4,5,6,7] :: [Int64] )
@@ -639,6 +744,25 @@ spec = do
                 v                      <- checkNC =<< nc_get_var nc_id var_id
                 _                      <- checkNC =<< nc_close nc_id
                 v `shouldBe` nc_data
+            it "correctly writes a vector vlen variable" $ do
+                let
+                    nc_data0 = VS.fromList [1,2,0]
+                    nc_data1 = VS.fromList [1,1,1,1,2]
+                nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var3_write_v.nc") NCNetCDF4 NCClobber
+                type_id0               <- checkNC =<< nc_def_enum nc_id NCByte "precip_type"
+                _                      <- checkNC =<< nc_insert_enum nc_id type_id0 "None" 0
+                _                      <- checkNC =<< nc_insert_enum nc_id type_id0 "Rain" 1
+                _                      <- checkNC =<< nc_insert_enum nc_id type_id0 "Snow" 2
+                type_id                <- checkNC =<< nc_def_vlen nc_id type_id0 "test_vlen"
+                dim_id                 <- checkNC =<< nc_def_dim nc_id "nc_dimension" (Just 2)
+                var_id                 <- checkNC =<< nc_def_var nc_id "variable" type_id (D dim_id)
+                withVLenList [nc_data0, nc_data1] $ \vlens -> do
+                    _                      <- checkNC =<< nc_put_var nc_id var_id (VS.fromList vlens)
+                    nc_vlen_data           <- checkNC =<< nc_get_var nc_id var_id
+                    _                      <- checkNC =<< nc_close nc_id
+                    forM_ (zip [0,1] [nc_data0, nc_data1]) $ \(idx,vec) -> do
+                        inspectVLenArray nc_vlen_data idx (flip shouldBe $ vec)
+                        void $ with (nc_vlen_data VS.! idx) nc_free_vlen
         context "nc_put_vars" $ do
             it "correctly writes a vector variable" $ do
                 let nc_data = VS.fromList ([2,3] :: [Int64] )
@@ -691,6 +815,23 @@ spec = do
                 v                      <- checkNC =<< nc_get_var nc_id var_id
                 _                      <- checkNC =<< nc_close nc_id
                 v `shouldBe` VS.fromList [1,0,2,0]
+            it "correctly writes a vector vlen variable" $ do
+                let
+                    nc_data0 = VS.fromList [1,2,3,4,5]
+                    nc_data1 = VS.fromList [8,7,9,6  ]
+                nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var4_write_v.nc") NCNetCDF4 NCClobber
+                type_id                <- checkNC =<< nc_def_vlen nc_id NCByte "vlen_type"
+                dim_id                 <- checkNC =<< nc_def_dim nc_id "nc_dimension" (Just 4)
+                var_id                 <- checkNC =<< nc_def_var nc_id "variable" type_id (D dim_id)
+                withVLen VS.empty $ \vlen -> do
+                    void $ checkNC =<< nc_def_var_fill nc_id var_id (Just vlen)
+                withVLenList [nc_data0, nc_data1] $ \vlens -> do
+                    _                      <- checkNC =<< nc_put_vars nc_id var_id (D 0) (D 2) (D 2) (VS.fromList vlens)
+                    nc_vlen_data           <- checkNC =<< nc_get_var nc_id var_id
+                    _                      <- checkNC =<< nc_close nc_id
+                    forM_ (zip [0,1..] [nc_data0, VS.empty, nc_data1, VS.empty]) $ \(idx,vec) -> do
+                        inspectVLenArray nc_vlen_data idx (flip shouldBe $ vec)
+                        void $ with (nc_vlen_data VS.! idx) nc_free_vlen
         context "nc_get_scalar" $ do
             it "correctly reads a scalar variable" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
@@ -737,6 +878,19 @@ spec = do
                             nc_data `shouldBe` 2
                         _ -> expectationFailure "Unexpected NC variable rank"
                     _ -> expectationFailure "Unexpected data type"
+            it "correctly reads a scalar vlen variable" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "scalar_vlen"
+                case t of
+                    (SNCVLen SNCDouble) -> case ncVarNDimsProxy var of
+                        Var0D -> do
+                            nc_vlen_data <- checkNC =<< nc_get_scalar nc_id var
+                            nc_data <- peekVLenArray nc_vlen_data
+                            _       <- checkNC =<< nc_close nc_id
+                            void $ with nc_vlen_data nc_free_vlen
+                            nc_data `shouldBe` VS.fromList [1, 2, 3, 4, 6]
+                        _ -> expectationFailure "Unexpected NC variable rank"
+                    _ -> expectationFailure $ "Unexpected data type:\t" ++ show t
         context "nc_put_scalar" $ do
             it "correctly writes a scalar variable - 1" $ do
                 nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var5_write.nc") NCNetCDF4 NCClobber
@@ -784,3 +938,15 @@ spec = do
                 v                      <- checkNC =<< nc_get_scalar nc_id var_id
                 _                      <- checkNC =<< nc_close nc_id
                 v `shouldBe` 2
+            it "correctly writes a scalar vlen variable" $ do
+                let nc_data = VS.fromList [1,2,3,4,5]
+                nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var6_write_v.nc") NCNetCDF4 NCClobber
+                type_id                <- checkNC =<< nc_def_vlen nc_id NCByte "vlen_type"
+                var_id                 <- checkNC =<< nc_def_scalar_var nc_id "variable" type_id
+                withVLen nc_data $ \vlen -> do
+                    _                      <- checkNC =<< nc_put_scalar nc_id var_id vlen
+                    nc_vlen_data           <- checkNC =<< nc_get_scalar nc_id var_id
+                    _                      <- checkNC =<< nc_close nc_id
+                    v <- peekVLenArray nc_vlen_data
+                    void $ with nc_vlen_data nc_free_vlen
+                    v `shouldBe` nc_data

@@ -513,6 +513,41 @@ spec = do
             res `shouldNotBe` 0
           _ -> expectationFailure $ "Unexpected data type" ++ show (ncTypeTag t)
         void $                    checkNC =<< nc_close nc_id
+  describe "VLen types" $ do
+    context "nc_def_vlen" $ do
+      it "correctly defines an vlen type - 1" $ do
+        nc_id                  <- checkNC =<< nc_create (testOutputPath </> "vlen_type1.nc") NCNetCDF4 NCClobber
+        type_id                <- checkNC =<< nc_def_vlen nc_id NCFloat "test_vlen"
+        dim_id                 <- checkNC =<< nc_def_dim nc_id "nc_dimension" Nothing
+        _                      <- checkNC =<< nc_def_var nc_id "vlen_variable" type_id (D dim_id)
+        _                      <- checkNC =<< nc_enddef nc_id
+        void $                    checkNC =<< nc_close nc_id
+      it "correctly defines an vlen type - 2" $ do
+        nc_id                  <- checkNC =<< nc_create (testOutputPath </> "vlen_type2.nc") NCNetCDF4 NCClobber
+        inner_type_id0         <- checkNC =<< nc_def_compound nc_id 8 "inner_compound"
+        inner_type_id1         <- checkNC =<< nc_insert_compound nc_id inner_type_id0 "inner1" [snat3|0|] NCByte
+        inner_type_id2         <- checkNC =<< nc_insert_compound nc_id inner_type_id1 "inner2" [snat3|1|] NCByte
+        inner_type_id3         <- checkNC =<< nc_insert_compound nc_id inner_type_id2 "inner3" [snat3|2|] NCUShort
+        inner_type_id4         <- checkNC =<< nc_insert_compound nc_id inner_type_id3 "inner4" [snat3|4|] NCFloat
+        type_id                <- checkNC =<< nc_def_vlen nc_id inner_type_id4 "test_vlen"
+        dim_id                 <- checkNC =<< nc_def_dim nc_id "nc_dimension" Nothing
+        _                      <- checkNC =<< nc_def_var nc_id "vlen_variable" type_id (D dim_id)
+        _                      <- checkNC =<< nc_enddef nc_id
+        void $                    checkNC =<< nc_close nc_id
+    context "nc_inq_vlen" $ do
+      it "correctly retrieves vlen type info" $ do
+        nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+        (SomeNCType t)         <- checkNC =<< nc_inq_typeid nc_id "profile"
+        case t of
+          NCType{ncTypeTag=SNCVLen{}} -> do
+            typeInfo     <- checkNC =<< nc_inq_vlen nc_id t
+            (ncVLenTypeName     typeInfo) `shouldBe` "profile"
+            (ncVLenBaseTypeSize typeInfo) `shouldBe` 16
+            case ncVLenBaseType typeInfo of
+              SomeNCType baseT -> do
+                (nc_inq_type_equal nc_id baseT nc_id NCDouble >>= checkNC) `shouldReturn` True
+          _ -> expectationFailure $ "Unexpected data type" ++ show (ncTypeTag t)
+        void $                    checkNC =<< nc_close nc_id
   describe "Opaque types" $ do
     context "nc_def_opaque" $ do
       it "correctly defines a compound type - 1" $ do

@@ -3,18 +3,21 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 module Data.Format.NetCDF.LowLevel.User.Type where
 
 import           Data.Int
 import           Data.Foldable (foldrM)
+import qualified Data.Vector.Storable as VS
 import           Data.Word
 import           Foreign.C.String
 import           Foreign.C.Types
 import           Foreign.Marshal.Alloc
 import           Foreign.Marshal.Array
-import           Foreign.Marshal.Utils (with)
+import           Foreign.Marshal.Utils (with, copyBytes)
 import           Foreign.Ptr
+import           Foreign.ForeignPtr (mallocForeignPtrArray, newForeignPtr_, withForeignPtr)
 import           Foreign.Storable
 import           GHC.TypeNats (Nat)
 
@@ -66,9 +69,13 @@ foreign import ccall unsafe "nc_inq_enum_member" c_nc_inq_enum_member :: CInt ->
 foreign import ccall unsafe "nc_inq_enum_ident" c_nc_inq_enum_ident :: CInt -> CInt -> CLLong -> CString -> IO CInt
 -- int     nc_inq_enum_ident (int ncid, nc_type xtype, long long value, char *identifier)
 
+foreign import ccall unsafe "nc_free_vlens" c_nc_free_vlens :: CSize -> Ptr NCVLenData -> IO CInt
 -- int     nc_free_vlens (size_t nelems, nc_vlen_t vlens[])
+foreign import ccall unsafe "nc_free_vlen" c_nc_free_vlen :: Ptr NCVLenData -> IO CInt
 -- int     nc_free_vlen (nc_vlen_t *vl)
+foreign import ccall unsafe "nc_def_vlen" c_nc_def_vlen :: CInt -> CString -> CInt -> Ptr CInt -> IO CInt
 -- int     nc_def_vlen (int ncid, const char *name, nc_type base_typeid, nc_type *xtypep)
+foreign import ccall unsafe "nc_inq_vlen" c_nc_inq_vlen :: CInt -> CInt -> CString -> Ptr CSize -> Ptr CInt -> IO CInt
 -- int     nc_inq_vlen (int ncid, nc_type xtype, char *name, size_t *datum_sizep, nc_type *base_nc_typep)
 
 foreign import ccall unsafe "nc_def_opaque" c_nc_def_opaque :: CInt -> CSize -> CString -> Ptr CInt -> IO CInt
@@ -109,7 +116,7 @@ data NcUserTypeInfo = NcUserTypeInfo {
 
 shouldHaveBaseType :: NCUserTypeClass -> Bool
 shouldHaveBaseType NCEnum = True
-shouldHaveBaseType NCVlen = True
+shouldHaveBaseType NCVLen = True
 shouldHaveBaseType _      = False
 
 nc_inq_user_type :: forall id (t :: NCDataTypeTag).
@@ -389,6 +396,92 @@ nc_inq_enum_ident ncid (NCType ncType _) value =
     memberName <- peekCString c_memberName
     return (fromIntegral res, memberName)
 
+nc_def_vlen :: forall id (t :: NCDataTypeTag).
+     NC id
+  -> NCType t
+  -> String
+  -> IO (Int32, NCType ('TNCVLen t))
+nc_def_vlen ncid (NCType cBaseType baseTypeTag) typeName =
+  withCString typeName $ \c_typeName ->
+  alloca $ \typeIdPtr -> do
+    res <- c_nc_def_vlen (ncRawId ncid) c_typeName cBaseType typeIdPtr
+    typeid <- peek typeIdPtr
+    return (fromIntegral res, NCType typeid $ SNCVLen baseTypeTag)
+
+data NCVLenTypeInfo = NCVLenTypeInfo {
+    ncVLenTypeName     :: String
+  , ncVLenBaseType     :: SomeNCType
+  , ncVLenBaseTypeSize :: Word64
+} -- deriving (Eq, Show)
+
+nc_inq_vlen :: forall id (t :: NCDataTypeTag).
+     NC id
+  -> NCType ('TNCVLen t)
+  -> IO (Int32, NCVLenTypeInfo)
+nc_inq_vlen ncid (NCType ncType _) =
+  allocaArray0 (fromIntegral ncMaxNameLen) $ \c_typeName ->
+  alloca $ \ncBaseTypePtr ->
+  alloca $ \ncBaseTypeSizePtr -> do
+    res <- c_nc_inq_vlen (ncRawId ncid) ncType c_typeName ncBaseTypeSizePtr ncBaseTypePtr
+    typeName <- peekCString c_typeName
+    baseType <- peek ncBaseTypePtr >>= fromNCTypeTag ncid
+    baseTypeSize <- fromIntegral <$> peek ncBaseTypeSizePtr
+    return (fromIntegral res, NCVLenTypeInfo typeName baseType baseTypeSize)
+
+nc_free_vlens :: Word64 -> Ptr (NCVLenContainer U a) -> IO (Int32, ())
+nc_free_vlens size ptr = do
+  res <- c_nc_free_vlens (fromIntegral size) (castPtr ptr)
+  return (fromIntegral res, ())
+
+nc_free_vlen :: Ptr (NCVLenContainer U a) -> IO (Int32, ())
+nc_free_vlen ptr = do
+  res <- c_nc_free_vlen (castPtr ptr)
+  return (fromIntegral res, ())
+
+freeVLenArray :: VS.Vector (NCVLenContainer U a) -> IO (Int32, ())
+freeVLenArray vlenVector = VS.unsafeWith vlenVector (nc_free_vlens n)
+  where
+    n :: Word64
+    n = fromIntegral $ VS.length vlenVector
+
+peekVLenArray :: forall a (mode :: NCAllocationMode). Storable a => NCVLenContainer mode a -> IO (VS.Vector a)
+peekVLenArray (NCVLenContainer n ptr) = do
+  fptr <- mallocForeignPtrArray n'
+  withForeignPtr fptr $ \destinationPtr -> do
+    copyBytes destinationPtr ptr $ n'*(sizeOf (undefined :: a))
+  return $! VS.unsafeFromForeignPtr0 fptr n'
+  where
+    n' :: Int
+    n' = fromIntegral n
+
+-- Perform an action on a VLen element of a Storable Vector. Unlike peekVLenArray, this
+-- function does not make an extra copy of VLen data, so the temporary Storable Vector
+-- with VLen data would become invalid if the correcponding NCVLenContainer is finalized.
+inspectVLenArray :: forall a b (mode :: NCAllocationMode). Storable a =>
+  VS.Vector (NCVLenContainer mode a) -> Int -> (VS.Vector a -> IO b) -> IO b
+inspectVLenArray vlenVector idx f
+  | idx >= 0 && idx < VS.length vlenVector =
+    withForeignPtr (fst $ VS.unsafeToForeignPtr0 vlenVector) $ \vecPtr -> do
+      (NCVLenContainer n ptr) <- peekElemOff vecPtr idx
+      fptr <- newForeignPtr_ ptr
+      f $! VS.unsafeFromForeignPtr0 fptr (fromIntegral n)
+  | otherwise = error $ "index out of bounds " ++ show (idx, VS.length vlenVector)
+
+-- TODO: fix types, should be `NCVLenContainer M a`
+withVLen :: forall a b. Storable a =>
+  VS.Vector a -> (NCVLenContainer U a -> IO b) -> IO b
+withVLen vector f = VS.unsafeWith vector $ \vectorPtr -> do
+  let vlen = NCVLenContainer (fromIntegral $ VS.length vector) vectorPtr
+  f vlen
+
+withVLenList :: forall a b. Storable a =>
+  [VS.Vector a] -> ([NCVLenContainer U a] -> IO b) -> IO b
+withVLenList = go []
+  where
+    go _ [] f = f []
+    go res (v:[]) f = withVLen v (\lastVLen -> f . reverse $ lastVLen:res)
+    go res (v:vs) f = withVLen v $ \vlen -> go (vlen:res) vs f
+
 nc_def_opaque :: forall id (n :: Nat).
      NC id
   -> TernarySNat n
@@ -440,6 +533,11 @@ fromNCTypeTag ncid tag = case fromNCStandardTypeTag tag of
           case ncEnumBaseType enumInfo of
             SomeNCType{ncType=NCType{ncTypeTag=t}} ->
               return . SomeNCType $ NCType{ncRawTypeId=tag, ncTypeTag=SNCEnum t}
+        NCVLen -> do
+          vlenInfo <- snd <$> nc_inq_vlen ncid dummyTypeid
+          case ncVLenBaseType vlenInfo of
+            SomeNCType{ncType=NCType{ncTypeTag=t}} ->
+              return . SomeNCType $ NCType{ncRawTypeId=tag, ncTypeTag=SNCVLen t}
         NCOpaque -> do
           opaqueInfo <- snd <$> nc_inq_opaque ncid dummyTypeid
           case toTernarySNat (fromIntegral $ ncOpaqueTypeSize opaqueInfo) of

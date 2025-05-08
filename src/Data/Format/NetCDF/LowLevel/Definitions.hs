@@ -23,6 +23,7 @@ import           Internal.Definitions
 import           Internal.Numerals.Ternary
 
 data NCData
+data NCVLenData
 
 data FileId
 data GroupId
@@ -95,12 +96,13 @@ instance Storable NCDimensionId where
     peek ptr                        = NCDimensionId <$> peek (castPtr ptr)
     poke ptr  (NCDimensionId dimId) = poke (castPtr ptr) dimId
 
--- Memory allocation mode for NetCDF strings. M -- allocated space is managed
--- by the runtime and will be allocated automatically. U -- allocation is not
--- managed and should be allocated manually by user.
-data NCStringMode = M | U
+-- Memory allocation mode for NetCDF strings and variable length arrays.
+-- M -- allocated space is managed by the GHC runtime and will be deallocated
+-- automatically. U -- allocation is not managed and should be deallocated
+-- manually by user.
+data NCAllocationMode = M | U
 
-newtype NCStringPtr (mode :: NCStringMode) = NCStringPtr CString deriving (Eq, Show)
+newtype NCStringPtr (mode :: NCAllocationMode) = NCStringPtr CString deriving (Eq, Show)
 
 instance Storable (NCStringPtr mode) where
     sizeOf    (NCStringPtr strPtr) = sizeOf strPtr
@@ -151,6 +153,7 @@ data NCDataTypeTagS (t :: NCDataTypeTag) where
     SNCDouble    :: NCDataTypeTagS 'TNCDouble
     SNCString    :: NCDataTypeTagS 'TNCString
     SNCEnum      :: NCDataTypeTagS t -> NCDataTypeTagS ('TNCEnum t)
+    SNCVLen      :: NCDataTypeTagS t -> NCDataTypeTagS ('TNCVLen t)
     SNCOpaque    :: TernarySNat n -> NCDataTypeTagS ('TNCOpaque n)
     SNCCompoundE :: NCDataTypeTagS ('TNCCompound '[])
     SNCCompound  :: NCDataTypeTagS t -> TernarySNat n -> NCDataTypeTagS ('TNCCompound ts) -> NCDataTypeTagS ('TNCCompound (Insert '(t, n) ts))
@@ -176,7 +179,7 @@ type instance EquivalentHaskellType TNCString = (NCStringPtr 'U)  -- When readin
 type instance EquivalentHaskellType (TNCEnum a) = EquivalentHaskellType a
 
 data NCUserTypeClass =
-    NCVlen
+    NCVLen
   | NCOpaque
   | NCEnum
   | NCCompound deriving (Eq, Show)

@@ -3,11 +3,14 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 module Data.Format.NetCDF.LowLevel.C.Definitions where
 
 import qualified Data.Bits as B
 import           Foreign.C.Types
+import           Foreign.Ptr
+import           Foreign.Storable
 
 import           Data.Format.NetCDF.LowLevel.Definitions
 import           Internal.Definitions
@@ -214,7 +217,7 @@ pattern NCString  = NCType  #{const NC_STRING} SNCString
 
 fromNCUserTypeClassTag :: CInt -> Maybe NCUserTypeClass
 fromNCUserTypeClassTag tag = case tag of
-  #{const NC_VLEN}     -> Just NCVlen
+  #{const NC_VLEN}     -> Just NCVLen
   #{const NC_OPAQUE}   -> Just NCOpaque
   #{const NC_ENUM}     -> Just NCEnum
   #{const NC_COMPOUND} -> Just NCCompound
@@ -222,6 +225,22 @@ fromNCUserTypeClassTag tag = case tag of
 
 ncGlobalAttribute :: CInt
 ncGlobalAttribute = #{const NC_GLOBAL}
+
+data NCVLenContainer (mode :: NCAllocationMode) a = NCVLenContainer CSize (Ptr a)
+
+type instance EquivalentHaskellType (TNCVLen a) = NCVLenContainer U (EquivalentHaskellType a)
+
+instance Storable (NCVLenContainer mode a) where
+  alignment _ = #{alignment nc_vlen_t}
+  sizeOf _ = #{size nc_vlen_t}
+  peek ptr = do
+    vlen_len       <- #{peek nc_vlen_t, len} ptr
+    vlen_data_ptr  <- #{peek nc_vlen_t,   p} ptr
+    return $! NCVLenContainer vlen_len vlen_data_ptr
+  poke ptr (NCVLenContainer vlen_len vlen_data_ptr) = do
+    #{poke nc_vlen_t, len} ptr vlen_len
+    #{poke nc_vlen_t,   p} ptr vlen_data_ptr
+
 
 fromNCErrorCode :: CInt -> NCError
 fromNCErrorCode e = case e of

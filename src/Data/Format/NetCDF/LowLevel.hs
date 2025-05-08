@@ -10,6 +10,7 @@ import           Data.Format.NetCDF.LowLevel.Definitions
 import           Data.Format.NetCDF.LowLevel.C.Definitions (
                       (.|.)
                     , queryOpenMode
+                    , NCVLenContainer(..)
                     , pattern NCByte
                     , pattern NCUByte
                     , pattern NCChar
