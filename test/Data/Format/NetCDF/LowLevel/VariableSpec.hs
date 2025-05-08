@@ -919,7 +919,6 @@ spec = do
                 _                      <- checkNC =<< nc_close nc_id
                 v `shouldBe` (Compound 41 22.06 7.62)
             it "correctly writes a scalar opaque variable" $ do
-                let nc_data = VS.fromList [OpaqueMB $ Just True, OpaqueMB $ Just False]
                 nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var6_write_o.nc") NCNetCDF4 NCClobber
                 type_id                <- checkNC =<< nc_def_opaque nc_id [snat3|1|] "opaque_type"
                 var_id                 <- checkNC =<< nc_def_scalar_var nc_id "variable" type_id

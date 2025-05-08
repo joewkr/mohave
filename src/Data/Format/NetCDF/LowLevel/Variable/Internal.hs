@@ -373,7 +373,7 @@ nc_inq_varid ncid varName =
 mkSomeNCVariable :: NC id -> CInt -> IO SomeNCVariable
 mkSomeNCVariable ncid varid = do
     (_, numDims)             <- nc_inq_varndims ncid (NCVariableId varid)
-    (_, (SomeNCType NCType{ncTypeTag=t})) <- nc_inq_vartype  ncid (NCVariableId varid)
+    (_, (SomeNCType NCType{ncTypeTag=t})) <- nc_inq_vartype ncid (NCVariableId varid)
     case someNatVal (fromIntegral numDims) of
         SomeNat (_ :: Proxy n) ->
             return $ SomeNCVariable t (NCVariableId varid :: NCVariableId n t)
