@@ -172,7 +172,7 @@ nc_get_string_att' ncid varid attrName ncStringConvert ncStringWrap = do
             SNCString -> do
                 (res1,v) <- nc_get_att ncid attr
                 attrValue <- ncStringConvert v
-                return $! (fromIntegral res, attrValue)
+                return $! (fromIntegral res1, attrValue)
             SNCChar -> do
                 (res1,v) <- nc_get_att ncid attr
                 ncString <- VS.unsafeWith v $ \attrDataPtr ->
