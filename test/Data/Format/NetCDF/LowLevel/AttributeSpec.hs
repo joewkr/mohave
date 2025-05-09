@@ -5,6 +5,7 @@ module Data.Format.NetCDF.LowLevel.AttributeSpec(spec) where
 
 import           Control.Monad (forM_, void)
 import qualified Data.Vector.Storable as VS
+import           Foreign.Marshal.Utils (with)
 import           Foreign.Storable (sizeOf)
 import           Test.Hspec
 import           System.FilePath ((</>))
@@ -145,6 +146,18 @@ spec = do
                         v `shouldBe` VS.fromList [999,0,1]
                     _ -> expectationFailure $ "Unexpected data type:\t" ++ show t
                 void $                    checkNC =<< nc_close nc_id
+            it "correctly reads vlen attribute" $ do
+                let nc_data = [VS.fromList [Compound 7 2.54 (-7.99), Compound 1 2.2 3.3], VS.fromList [Compound 5 6.6 7.7]]
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable _ var) <- checkNC =<< nc_inq_varid nc_id "vector_vlen_compound"
+                (SomeNCAttribute t at) <- checkNC =<< nc_inq_att nc_id (Just var) "attr"
+                case t of
+                    (SNCVLen SCompound) -> do
+                        nc_vlen_data  <- checkNC =<< nc_get_att nc_id at
+                        forM_ (zip [0,1..] nc_data) $ \(idx,vec) -> do
+                            inspectVLenArray nc_vlen_data idx (flip shouldBe $ vec)
+                            void $ with (nc_vlen_data VS.! idx) nc_free_vlen
+                    _ -> expectationFailure $ "Unexpected data type:\t" ++ show t
             it "correctly reads a global attribute" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
                 (SomeNCAttribute t at) <- checkNC =<< nc_inq_att nc_id Nothing "version"
@@ -206,6 +219,21 @@ spec = do
                 v                      <- checkNC =<< nc_get_att nc_id at
                 _                      <- checkNC =<< nc_close nc_id
                 v `shouldBe` VS.fromList nc_data
+            it "correctly sets vlen attribute - 1" $ do
+                let nc_data = [VS.fromList [1,2], VS.fromList [2,2,0], VS.fromList [1,2,2,1]]
+                nc_id                  <- checkNC =<< nc_create (testOutputPath </> "attr7_put.nc") NCNetCDF4 NCClobber
+                type_id0               <- checkNC =<< nc_def_enum nc_id NCShort "precip_type"
+                _                      <- checkNC =<< nc_insert_enum nc_id type_id0 "None" 0
+                _                      <- checkNC =<< nc_insert_enum nc_id type_id0 "Rain" 1
+                _                      <- checkNC =<< nc_insert_enum nc_id type_id0 "Snow" 2
+                type_id                <- checkNC =<< nc_def_vlen nc_id type_id0 "vlen_type"
+                at <- withVLenList nc_data $ \vlens -> do
+                    checkNC =<< nc_put_att nc_id Nothing "attribute" type_id vlens
+                nc_vlen_data  <- checkNC =<< nc_get_att nc_id at
+                void $ checkNC =<< nc_close nc_id
+                forM_ (zip [0,1..] nc_data) $ \(idx,vec) -> do
+                    inspectVLenArray nc_vlen_data idx (flip shouldBe $ vec)
+                    void $ with (nc_vlen_data VS.! idx) nc_free_vlen
         context "nc_rename_att" $ do
             it "correctly renames attribute" $ do
                 nc_id                  <- checkNC =<< nc_create (testOutputPath </> "attr1_rename.nc") NCNetCDF4 NCClobber
@@ -302,6 +330,19 @@ spec = do
                         v `shouldBe` 1
                     _ -> expectationFailure $ "Unexpected data type:\t" ++ show t
                 void $                    checkNC =<< nc_close nc_id
+            it "correctly reads a scalar vlen attribute" $ do
+                let nc_data = VS.fromList [Compound 7 2.54 (-7.99), Compound 1 2.2 3.3, Compound 5 6.6 7.7]
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable _ var) <- checkNC =<< nc_inq_varid nc_id "vector_vlen_compound"
+                (SomeNCAttribute t at) <- checkNC =<< nc_inq_att nc_id (Just var) "scalar attr"
+                case t of
+                    (SNCVLen SCompound) -> do
+                        nc_vlen_data <- checkNC =<< nc_get_scalar_att nc_id at
+                        v <- peekVLenArray nc_vlen_data
+                        void $ checkNC =<< nc_close nc_id
+                        void $ with nc_vlen_data nc_free_vlen
+                        v `shouldBe` nc_data
+                    _ -> expectationFailure $ "Unexpected data type:\t" ++ show t
         context "nc_put_scalar_att" $ do
             it "correctly sets scalar attribute - 1" $ do
                 nc_id                  <- checkNC =<< nc_create (testOutputPath </> "attr3_put.nc") NCNetCDF4 NCClobber
@@ -344,3 +385,18 @@ spec = do
                 v                      <- checkNC =<< nc_get_scalar_att nc_id at
                 _                      <- checkNC =<< nc_close nc_id
                 v `shouldBe` 1
+            it "correctly sets scalar vlen attribute" $ do
+                let nc_data = VS.fromList [1,2,2,0,0,1]
+                nc_id                  <- checkNC =<< nc_create (testOutputPath </> "attr1_put_sv.nc") NCNetCDF4 NCClobber
+                type_id0               <- checkNC =<< nc_def_enum nc_id NCShort "precip_type"
+                _                      <- checkNC =<< nc_insert_enum nc_id type_id0 "None" 0
+                _                      <- checkNC =<< nc_insert_enum nc_id type_id0 "Rain" 1
+                _                      <- checkNC =<< nc_insert_enum nc_id type_id0 "Snow" 2
+                type_id                <- checkNC =<< nc_def_vlen nc_id type_id0 "vlen_type"
+                at <- withVLen nc_data $ \vlen -> do
+                    checkNC =<< nc_put_scalar_att nc_id Nothing "attribute" type_id vlen
+                nc_vlen_data <- checkNC =<< nc_get_scalar_att nc_id at
+                v <- peekVLenArray nc_vlen_data
+                void $ checkNC =<< nc_close nc_id
+                void $ with nc_vlen_data nc_free_vlen
+                v `shouldBe` nc_data

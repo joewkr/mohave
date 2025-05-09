@@ -316,6 +316,17 @@ spec = do
                             nc_data `shouldBe` VS.fromList [Compound 17 0.1 23.45, Compound (-1) 22.44 1.0E+20]
                         _ -> expectationFailure "Unexpected NC variable rank"
                     _ -> expectationFailure "Unexpected data type"
+            it "correctly reads an opaque vector variable" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "vector_opaque"
+                case t of
+                    SOpaqueMB -> case ncVarNDimsProxy var of
+                        Var1D -> do
+                            nc_data <- checkNC =<< nc_get_vara nc_id var (D 0) (D 2)
+                            _       <- checkNC =<< nc_close nc_id
+                            nc_data `shouldBe` (VS.fromList $ map OpaqueMB [Nothing, Just False])
+                        _ -> expectationFailure "Unexpected NC variable rank"
+                    _ -> expectationFailure "Unexpected data type"
             it "correctly reads an enum vector variable" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
                 (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "vector_enum"
@@ -362,6 +373,17 @@ spec = do
                             nc_data <- checkNC =<< nc_get_var1 nc_id var (D 2)
                             _       <- checkNC =<< nc_close nc_id
                             nc_data `shouldBe` (Compound 22 1.0 5.7)
+                        _ -> expectationFailure "Unexpected NC variable rank"
+                    _ -> expectationFailure "Unexpected data type"
+            it "correctly reads a single value from opaque vector variable" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "vector_opaque"
+                case t of
+                    SOpaqueMB -> case ncVarNDimsProxy var of
+                        Var1D -> do
+                            nc_data <- checkNC =<< nc_get_var1 nc_id var (D 2)
+                            _       <- checkNC =<< nc_close nc_id
+                            nc_data `shouldBe` OpaqueMB (Just True)
                         _ -> expectationFailure "Unexpected NC variable rank"
                     _ -> expectationFailure "Unexpected data type"
             it "correctly reads a single value from an enum vector variable" $ do
@@ -424,6 +446,24 @@ spec = do
                         nc_data <- checkNC =<< nc_get_var nc_id var
                         _       <- checkNC =<< nc_close nc_id
                         nc_data `shouldBe` VS.fromList [Compound 17 0.1 23.45, Compound (-1) 22.44 1.0E+20, Compound 22 1 5.7]
+                    _ -> expectationFailure "Unexpected data type"
+            it "correctly reads a scalar opaque variable" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "scalar_opaque"
+                case t of
+                    SOpaqueBinaryBlob64 -> do
+                            nc_data <- checkNC =<< nc_get_var nc_id var
+                            _       <- checkNC =<< nc_close nc_id
+                            nc_data `shouldBe` VS.fromList [BinaryBlob64 "\x01\x23\x45\x67\x89\xAB\xCD\xEF\x01\x23\x45\x67\x89\xAB\xCD\xEF"]
+                    _ -> expectationFailure "Unexpected data type"
+            it "correctly reads a vector opaque variable" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "vector_opaque"
+                case t of
+                    SOpaqueMB -> do
+                            nc_data <- checkNC =<< nc_get_var nc_id var
+                            _       <- checkNC =<< nc_close nc_id
+                            nc_data `shouldBe` (VS.fromList $ map OpaqueMB [Nothing, Just False, Just True])
                     _ -> expectationFailure "Unexpected data type"
             it "correctly reads a scalar enum variable" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
@@ -491,6 +531,17 @@ spec = do
                             nc_data <- checkNC =<< nc_get_vars nc_id var (D 0) (D 2) (D 2)
                             _       <- checkNC =<< nc_close nc_id
                             nc_data `shouldBe` VS.fromList [Compound 17 0.1 23.45, Compound 22 1 5.7]
+                        _ -> expectationFailure "Unexpected NC variable rank"
+                    _ -> expectationFailure "Unexpected data type"
+            it "correctly reads a vector opaque variable" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "vector_opaque"
+                case t of
+                    SOpaqueMB -> case ncVarNDimsProxy var of
+                        Var1D -> do
+                            nc_data <- checkNC =<< nc_get_vars nc_id var (D 0) (D 2) (D 2)
+                            _       <- checkNC =<< nc_close nc_id
+                            nc_data `shouldBe` (VS.fromList $ map OpaqueMB [Nothing, Just True])
                         _ -> expectationFailure "Unexpected NC variable rank"
                     _ -> expectationFailure "Unexpected data type"
             it "correctly reads a vector enum variable" $ do
