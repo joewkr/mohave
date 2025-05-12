@@ -203,11 +203,14 @@ nc_get_scalar_string_att ncid varid attrName =
     nc_get_string_att' ncid varid attrName ncStringConvert id
   where
     ncStringConvert :: VS.Vector (NCStringPtr 'U) -> IO BS.ByteString
-    ncStringConvert v = do
-        let attrValue = v VS.! 0
-        ncString <- fromNCString attrValue
-        void $ nc_free_string attrValue
-        return ncString
+    ncStringConvert v = if VS.null v
+        then return BS.empty
+        else do
+            ncString <- fromNCString $ VS.head v
+            -- Clean the full attribute vector in case the attribute was not
+            -- in fact a scalar one.
+            void $ VS.unsafeWith v $ \vp -> nc_free_string' (VS.length v) (castPtr vp)
+            return ncString
 
 doStringOrChar :: forall id.
        NC id

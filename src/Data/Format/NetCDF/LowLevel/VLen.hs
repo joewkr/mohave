@@ -32,8 +32,7 @@ import           Internal.Definitions
 import           Data.Format.NetCDF.LowLevel.Definitions
 import           Data.Format.NetCDF.LowLevel.C.Definitions
 import           Data.Format.NetCDF.LowLevel.Attribute
-                  ( nc_get_scalar_att
-                  , nc_put_scalar_att
+                  ( nc_put_scalar_att
                   , nc_get_att
                   , nc_put_att
                     )
@@ -155,10 +154,15 @@ nc_get_scalar_vlen_att :: forall id a (t :: NCDataTypeTag).
   -> NCAttribute ('TNCVLen t)
   -> IO (Int32, VS.Vector a)
 nc_get_scalar_vlen_att ncid attr = do
-  (res, ncVLenContainer) <- nc_get_scalar_att ncid attr
-  vlen <- if res /= 0
+  -- Instead of checking that attribute is indeed scalar, we simply
+  -- read the whole thing and then return the first element of the
+  -- retrieved Vector. However, in case of VLen attributes, all elements
+  -- of the said Vector should be deallocated since memory allocation
+  -- happens on the C-side for VLens.
+  (res, ncVLenContainer) <- nc_get_att ncid attr
+  vlen <- if res /= 0 || VS.null ncVLenContainer
     then return VS.empty
-    else peekVLenArray ncVLenContainer <* with ncVLenContainer nc_free_vlen
+    else peekVLenArray (VS.head ncVLenContainer) <* freeVLenArray ncVLenContainer
   return (res, vlen)
 
 nc_put_vlen_att :: forall id a (vt :: NCDataTypeTag) (at :: NCDataTypeTag) (n :: Nat).
