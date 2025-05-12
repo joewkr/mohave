@@ -154,6 +154,7 @@ spec = do
                 case t of
                     (SNCVLen SCompound) -> do
                         nc_vlen_data  <- checkNC =<< nc_get_att nc_id at
+                        _       <- checkNC =<< nc_close nc_id
                         forM_ (zip [0,1..] nc_data) $ \(idx,vec) -> do
                             inspectVLenArray nc_vlen_data idx (flip shouldBe $ vec)
                             void $ with (nc_vlen_data VS.! idx) nc_free_vlen

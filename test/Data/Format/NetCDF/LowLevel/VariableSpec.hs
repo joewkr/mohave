@@ -345,6 +345,7 @@ spec = do
                     (SNCVLen SNCDouble) -> case ncVarNDimsProxy var of
                         Var1D -> do
                             (nc_vlen_data :: VS.Vector (NCVLenContainer U Double)) <- checkNC =<< nc_get_vara nc_id var (D 0) (D 2)
+                            _       <- checkNC =<< nc_close nc_id
                             let expected = zip [0,1..] [VS.fromList [1, 2], VS.fromList [9, 100, (-777)]]
                             forM_ expected $ \(idx,vec) -> do
                                 inspectVLenArray nc_vlen_data idx (flip shouldBe $ vec)
@@ -500,6 +501,7 @@ spec = do
                 case t of
                     (SNCVLen SCompound) -> do
                         nc_vlen_data <- checkNC =<< nc_get_var nc_id var
+                        _            <- checkNC =<< nc_close nc_id
                         let
                             expected_data = [
                                 VS.fromList [Compound 7 57.98 12.34, Compound 1 2 11.75]
@@ -562,6 +564,7 @@ spec = do
                     (SNCVLen SCompound) -> case ncVarNDimsProxy var of
                         Var1D -> do
                             nc_vlen_data <- checkNC =<< nc_get_vars nc_id var (D 0) (D 2) (D 2)
+                            _            <- checkNC =<< nc_close nc_id
                             let
                                 expected_data = [
                                     VS.fromList [Compound 7 57.98 12.34, Compound 1 2 11.75]

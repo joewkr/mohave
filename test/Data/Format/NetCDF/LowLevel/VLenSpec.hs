@@ -34,6 +34,7 @@ spec = do
                     (SNCVLen SNCDouble) -> case ncVarNDimsProxy var of
                         Var1D -> do
                             nc_vlen_data <- checkNC =<< nc_get_vara_vlen nc_id var (D 0) (D 2)
+                            _       <- checkNC =<< nc_close nc_id
                             let expected = zip [0,1..] [VS.fromList [1, 2], VS.fromList [9, 100, (-777)]]
                             forM_ expected $ \(idx,vec) -> do
                                 inspectVLenArray nc_vlen_data idx (flip shouldBe $ vec)
@@ -46,6 +47,7 @@ spec = do
                     (SNCVLen SNCDouble) -> case ncVarNDimsProxy var of
                         Var1D -> do
                             nc_data <- checkNC =<< nc_get_var1_vlen nc_id var (D 2)
+                            _       <- checkNC =<< nc_close nc_id
                             nc_data `shouldBe` VS.fromList [22.33, 77.98, 123.789, 0.554]
                         _ -> expectationFailure "Unexpected NC variable rank"
                     _ -> expectationFailure "Unexpected data type"
@@ -55,6 +57,7 @@ spec = do
                 case t of
                     (SNCVLen SCompound) -> do
                         nc_vlen_data <- checkNC =<< nc_get_var_vlen nc_id var
+                        _            <- checkNC =<< nc_close nc_id
                         let
                             expected_data = [
                                 VS.fromList [Compound 7 57.98 12.34, Compound 1 2 11.75]
@@ -71,6 +74,7 @@ spec = do
                     (SNCVLen SCompound) -> case ncVarNDimsProxy var of
                         Var1D -> do
                             nc_vlen_data <- checkNC =<< nc_get_vars_vlen nc_id var (D 0) (D 2) (D 2)
+                            _            <- checkNC =<< nc_close nc_id
                             let
                                 expected_data = [
                                     VS.fromList [Compound 7 57.98 12.34, Compound 1 2 11.75]
@@ -87,6 +91,7 @@ spec = do
                     (SNCVLen SNCDouble) -> case ncVarNDimsProxy var of
                         Var0D -> do
                             nc_data <- checkNC =<< nc_get_vlen nc_id var
+                            _       <- checkNC =<< nc_close nc_id
                             nc_data `shouldBe` VS.fromList [1, 2, 3, 4, 6]
                         _ -> expectationFailure "Unexpected NC variable rank"
                     _ -> expectationFailure "Unexpected data type"
@@ -121,9 +126,9 @@ spec = do
                 case t of
                     (SNCVLen SCompound) -> do
                         v  <- checkNC =<< nc_get_vlen_att nc_id at
+                        _  <- checkNC =<< nc_close nc_id
                         v `shouldBe` nc_data
                     _ -> expectationFailure $ "Unexpected data type:\t" ++ show t
-
             it "nc_get_scalar_vlen_att" $ do
                 let nc_data = VS.fromList [Compound 7 2.54 (-7.99), Compound 1 2.2 3.3, Compound 5 6.6 7.7]
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
