@@ -76,7 +76,7 @@ pattern SCompoundAttr :: forall (t :: NCDataTypeTag). () => (t ~ (TNCCompound '[
 pattern SCompoundAttr <- SNCCompound SNCUInt [snat3|0|] (SNCCompound SNCUByte [snat3|4|] SNCCompoundE)
 
 data CompoundWithComment = CompoundWithComment {
-    number  :: (EquivalentHaskellType TNCUInt)
+    number  :: (EquivalentHaskellType TNCInt)
   , comment :: (EquivalentHaskellType TNCString)
 } deriving (Show, Eq)
 instance Storable CompoundWithComment where
