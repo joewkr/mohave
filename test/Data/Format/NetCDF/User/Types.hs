@@ -95,6 +95,26 @@ type instance EquivalentHaskellType (TNCCompound '[ '( 'TNCInt, 0), '( 'TNCStrin
 pattern SCompoundWithComment :: forall (t :: NCDataTypeTag). () => (t ~ (TNCCompound '[ '( 'TNCInt, 0), '( 'TNCString, 8)])) => NCDataTypeTagS t
 pattern SCompoundWithComment <- SNCCompound SNCInt [snat3|0|] (SNCCompound SNCString [snat3|8|] SNCCompoundE)
 
+data CompoundVLen = CompoundVLen {
+    compoundId :: (EquivalentHaskellType TNCUInt)
+  , points     :: NCVLenContainer U Float
+}
+instance Storable CompoundVLen where
+  alignment _ = 8
+  sizeOf _ = 8 + sizeOf (undefined :: NCVLenContainer U Float)
+  poke ptr (CompoundVLen id' points') = do
+    poke (castPtr ptr) id'
+    poke (castPtr $ plusPtr ptr 8) points'
+  peek ptr = do
+    id'     <- peek (castPtr ptr)
+    points' <- peek (castPtr $ plusPtr ptr 8)
+    return $ CompoundVLen id' points'
+
+type instance EquivalentHaskellType (TNCCompound '[ '( 'TNCUInt, 0), '( 'TNCVLen ('TNCFloat), 8)]) = CompoundVLen
+
+pattern SCompoundVLen :: forall (t :: NCDataTypeTag). () => (t ~ (TNCCompound '[ '( 'TNCUInt, 0), '( 'TNCVLen ('TNCFloat), 8)])) => NCDataTypeTagS t
+pattern SCompoundVLen <- SNCCompound SNCUInt [snat3|0|] (SNCCompound (SNCVLen SNCFloat) [snat3|8|] SNCCompoundE)
+
 newtype OpaqueMB = OpaqueMB (Maybe Bool) deriving (Eq, Show)
 
 instance Storable OpaqueMB where

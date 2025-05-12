@@ -16,6 +16,12 @@ types:
     string comment;
   }
 
+  float(*) profile_f;
+  compound compound_vlen {
+    uint id;
+    profile_f points;
+  }
+
   byte enum qa_flags {Best\ quality = 0, Good\ quality = 1, Poor\ quality = 2, No\ decision= 127};
   short enum precip_type {None = 999, Rain = 0, Snow = 1};
 
@@ -48,6 +54,7 @@ variables:
   compound_profile vector_vlen_compound(dim1);
     compound_profile vector_vlen_compound:attr = {{7, 2.54, -7.99}, {1, 2.2, 3.3}}, {{5.5, 6.6, 7.7}};
     compound_profile vector_vlen_compound:scalar\ attr = {{7, 2.54, -7.99}, {1, 2.2, 3.3}, {5.5, 6.6, 7.7}};
+  compound_vlen vector_compound_with_vlen(dim1);
   int vector_int(dim1);
   float vector_float(dim1);
   string just_string;
@@ -71,6 +78,7 @@ data:
   scalar_vlen = {1,2,3,4,6};
   vector_vlen = {1,2}, {9,100,-777}, {22.33, 77.98, 123.789, 0.554};
   vector_vlen_compound = {{7, 57.98f, 12.34f}, {1, 2.0f, 11.75f}}, {{19, 0.2f, 34.56f}}, {{1, -12.22f, -13.54f}, {2, 65.56f, 123.321f}, {0, 0.1f, 0.2f}};
+  vector_compound_with_vlen = {1, {12.55f, 78.21f}}, {111, {}}, {576, {-1.2f, -3.5f, -77.88f, -99.21f}};
   vector_int = 3, 4, 5;
   vector_float = 13.4f, 14.5f, 15.6f;
   just_string = "some text";

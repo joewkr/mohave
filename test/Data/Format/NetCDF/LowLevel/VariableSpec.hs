@@ -305,7 +305,7 @@ spec = do
                             nc_data `shouldBe` VS.fromList [4]
                         _ -> expectationFailure "Unexpected NC variable rank"
                     _ -> expectationFailure "Unexpected data type"
-            it "correctly reads a compound vector variable" $ do
+            it "correctly reads a compound vector variable - 1" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
                 (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "vector_compound"
                 case t of
@@ -316,6 +316,21 @@ spec = do
                             nc_data `shouldBe` VS.fromList [Compound 17 0.1 23.45, Compound (-1) 22.44 1.0E+20]
                         _ -> expectationFailure "Unexpected NC variable rank"
                     _ -> expectationFailure "Unexpected data type"
+            it "correctly reads a compound vector variable - 2" $ do
+                nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "vector_compound_with_vlen"
+                case t of
+                    SCompoundVLen -> case ncVarNDimsProxy var of
+                        Var1D -> do
+                            nc_data <- checkNC =<< nc_get_vara nc_id var (D 0) (D 2)
+                            _       <- checkNC =<< nc_close nc_id
+                            let expected = zip3 [0,1..] [1,111,576] [VS.fromList [12.55, 78.21], VS.empty]
+                            forM_ expected $ \(idx,int,vec) -> do
+                                compoundId (nc_data VS.! idx) `shouldBe` int
+                                peekVLenArray (points $ nc_data VS.! idx) `shouldReturn` vec
+                                void $ with (points $ nc_data VS.! idx) nc_free_vlen
+                        _ -> expectationFailure "Unexpected NC variable rank"
+                    _ -> expectationFailure $ "Unexpected data type:\t" ++ show t
             it "correctly reads an opaque vector variable" $ do
                 nc_id                  <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
                 (SomeNCVariable t var) <- checkNC =<< nc_inq_varid nc_id "vector_opaque"
@@ -622,6 +637,29 @@ spec = do
                         v `shouldBe` nc_dataS
                     _ -> expectationFailure "Unexpected data type"
                 void $                    checkNC =<< nc_close nc_id
+            it "correctly writes a vector compound variable - vlen" $ do
+                let
+                    nc_data_id   = [26063, 1062]
+                    nc_data_vlen = [VS.fromList [12.54, -77.83], VS.fromList [1.1, 2.2, 3.3, 4.4]]
+                    expected = zip3 [0,1..] nc_data_id nc_data_vlen
+                nc_id                  <- checkNC =<< nc_create (testOutputPath </> "var1_write_cv.nc") NCNetCDF4 NCClobber
+                type_id_vlen           <- checkNC =<< nc_def_vlen nc_id NCFloat "inner_vlen"
+                type_id0               <- checkNC =<< nc_def_compound nc_id (fromIntegral $ sizeOf (undefined :: CompoundVLen)) "compound_type"
+                type_id1               <- checkNC =<< nc_insert_compound nc_id type_id0 "integer_field" [snat3|0|] NCUInt
+                type_id2               <- checkNC =<< nc_insert_compound nc_id type_id1 "vlen_field"    [snat3|8|] type_id_vlen
+                dim_id                 <- checkNC =<< nc_def_dim nc_id "nc_dimension" (Just 2)
+                var_id                 <- checkNC =<< nc_def_var nc_id "variable" type_id2 (D dim_id)
+
+                withVLenList nc_data_vlen $ \vlens -> do
+                    let payload = zipWith CompoundVLen nc_data_id vlens
+                    void $ checkNC =<< nc_put_vara nc_id var_id (D 0) (D 2) (VS.fromList payload)
+
+                nc_data                <- checkNC =<< nc_get_var nc_id var_id
+                _                      <- checkNC =<< nc_close nc_id
+                forM_ expected $ \(idx,int,vec) -> do
+                    compoundId (nc_data VS.! idx) `shouldBe` int
+                    peekVLenArray (points $ nc_data VS.! idx) `shouldReturn` vec
+                    void $ with (points $ nc_data VS.! idx) nc_free_vlen
             it "correctly writes a vector opaque variable" $ do
                 let
                     fileName = testOutputPath </> "var1_write_o.nc"
