@@ -199,6 +199,7 @@ data SomeNCVariable where
 data NCAttribute (t :: NCDataTypeTag) where
   NCAttribute :: forall t vn vt. {
     ncAttributeName :: String
+  , ncAttributeType :: NCType t
   , ncAttributeNValues :: Word32
   , ncAttributeParentVariable :: Maybe (NCVariableId vn vt)
 } -> NCAttribute t

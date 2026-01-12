@@ -97,9 +97,9 @@ nc_inq_att ncid varid attrName =
     alloca $ \ncTypePtr ->
     alloca $ \attrLenPtr -> do
         res <- c_nc_inq_att (ncRawId ncid) (fromMaybeVarId varid) c_attrName ncTypePtr attrLenPtr
-        (SomeNCType NCType{ncTypeTag=t}) <- peek ncTypePtr >>= fromNCTypeTag ncid
+        (SomeNCType at@NCType{ncTypeTag=t}) <- peek ncTypePtr >>= fromNCTypeTag ncid
         attrLen <- fromIntegral <$> peek attrLenPtr
-        return $! (fromIntegral res, SomeNCAttribute t $ NCAttribute attrName attrLen varid)
+        return $! (fromIntegral res, SomeNCAttribute t $ NCAttribute attrName at attrLen varid)
 
 nc_inq_attid :: forall id (t :: NCDataTypeTag) (n :: Nat).
        NC id
@@ -233,7 +233,7 @@ nc_put_att ncid varid attrName attrType attrValue =
                 (ncRawTypeId attrType)
                 (fromIntegral $ attrNVals)
                 (castPtr attrValuePtr)
-        return $! (fromIntegral res, NCAttribute attrName (fromIntegral attrNVals) varid)
+        return $! (fromIntegral res, NCAttribute attrName attrType (fromIntegral attrNVals) varid)
   where
     attrNVals :: Int
     attrNVals = attributeLen attrValue
@@ -255,4 +255,4 @@ nc_put_scalar_att ncid varid attrName attrType attrValue =
                 (ncRawTypeId attrType)
                 1
                 (castPtr attrValuePtr)
-        return $! (fromIntegral res, NCAttribute attrName 1 varid)
+        return $! (fromIntegral res, NCAttribute attrName attrType 1 varid)
