@@ -13,6 +13,7 @@ module Data.Format.NetCDF.LowLevel.Attribute(
   , nc_inq_natts
   , nc_inq_atttype
   , nc_inq_attlen
+  , nc_copy_att
   , nc_rename_att
   , nc_del_att
   , nc_get_att
@@ -79,6 +80,7 @@ foreign import ccall unsafe "nc_put_att" c_nc_put_att :: CInt -> CInt -> CString
 -- int     nc_put_att_longlong (int ncid, int varid, const char *name, nc_type xtype, size_t len, const long long *value)
 -- int     nc_put_att_ulonglong (int ncid, int varid, const char *name, nc_type xtype, size_t len, const unsigned long long *value)
 
+foreign import ccall unsafe "nc_copy_att" c_nc_copy_att :: CInt -> CInt -> CString -> CInt -> CInt -> IO CInt
 foreign import ccall unsafe "nc_rename_att" c_nc_rename_att :: CInt -> CInt -> CString -> CString -> IO CInt
 foreign import ccall unsafe "nc_del_att" c_nc_del_att :: CInt -> CInt -> CString -> IO CInt
 
@@ -155,6 +157,23 @@ nc_inq_attlen ncid varid attrName =
         res <- c_nc_inq_attlen (ncRawId ncid) (fromMaybeVarId varid) c_attrName attrLenPtr
         attrLen <- peek attrLenPtr
         return $! (fromIntegral res, fromIntegral attrLen)
+
+nc_copy_att :: forall id1 (t1 :: NCDataTypeTag) (n1 :: Nat) id2 (t2 :: NCDataTypeTag) (n2 :: Nat).
+       NC id1
+    -> Maybe (NCVariableId n1 t1)
+    -> String
+    -> NC id2
+    -> Maybe (NCVariableId n2 t2)
+    -> IO (Int32, ())
+nc_copy_att ncidS varidS attrName ncidD varidD =
+    withCString attrName $ \c_attrName -> do
+        res <- c_nc_copy_att
+            (ncRawId ncidS)
+            (fromMaybeVarId varidS)
+            c_attrName
+            (ncRawId ncidD)
+            (fromMaybeVarId varidD)
+        return $! (fromIntegral res, ())
 
 nc_rename_att :: forall id (t :: NCDataTypeTag) (n :: Nat).
        NC id

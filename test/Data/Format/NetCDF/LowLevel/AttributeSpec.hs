@@ -12,6 +12,7 @@ import           System.FilePath ((</>))
 
 import           Data.Format.NetCDF.LowLevel
 import           Data.Format.NetCDF.LowLevel.Attribute
+import           Data.Format.NetCDF.LowLevel.Group
 import           Data.Format.NetCDF.LowLevel.File
 import           Data.Format.NetCDF.LowLevel.String
 import           Data.Format.NetCDF.LowLevel.User.Type
@@ -235,6 +236,47 @@ spec = do
                 forM_ (zip [0,1..] nc_data) $ \(idx,vec) -> do
                     inspectVLenArray nc_vlen_data idx (flip shouldBe $ vec)
                     void $ with (nc_vlen_data VS.! idx) nc_free_vlen
+        context "nc_copy_att" $ do
+            it "correctly copies attribute - 1" $ do
+                nc_idS                     <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable _ var_idS) <- checkNC =<< nc_inq_varid nc_idS "scalar_int"
+                nc_idD                     <- checkNC =<< nc_create (testOutputPath </> "attr1_copy.nc") NCNetCDF4 NCClobber
+                var_idD                    <- checkNC =<< nc_def_scalar_var nc_idD "variable" NCInt
+                void  $                       checkNC =<< nc_copy_att nc_idS (Just var_idS) "many_ints" nc_idD (Just var_idD)
+                (SomeNCAttribute t at)     <- checkNC =<< nc_inq_att nc_idD (Just var_idD)  "many_ints"
+                case t of
+                    SNCInt64 -> do
+                        v <- checkNC =<< nc_get_att nc_idD at
+                        v `shouldBe` VS.fromList [3,7,21]
+                    _ -> expectationFailure "Unexpected data type"
+                void $                    checkNC =<< nc_close nc_idS
+                void $                    checkNC =<< nc_close nc_idD
+            it "correctly copies attribute - 2" $ do
+                nc_idS                     <- checkNC =<< nc_open "test-data/nc/test3.nc" NCNoWrite
+                (SomeNCVariable _ var_idS) <- checkNC =<< nc_inq_varid nc_idS "scalar_int"
+                nc_idD                     <- checkNC =<< nc_create (testOutputPath </> "attr2_copy.nc") NCNetCDF4 NCClobber
+                void  $                       checkNC =<< nc_copy_att nc_idS (Just var_idS) "many_ints" nc_idD Nothing
+                (SomeNCAttribute t at)     <- checkNC =<< nc_inq_att nc_idD Nothing  "many_ints"
+                case t of
+                    SNCInt64 -> do
+                        v <- checkNC =<< nc_get_att nc_idD at
+                        v `shouldBe` VS.fromList [3,7,21]
+                    _ -> expectationFailure "Unexpected data type"
+                void $                    checkNC =<< nc_close nc_idS
+                void $                    checkNC =<< nc_close nc_idD
+            it "correctly copies attribute - 3" $ do
+                nc_id                  <- checkNC =<< nc_create (testOutputPath </> "attr3_copy.nc") NCNetCDF4 NCClobber
+                var_id                 <- checkNC =<< nc_def_scalar_var nc_id "variable" NCInt
+                void $                    checkNC =<< nc_put_att nc_id (Just var_id) "attribute" NCInt64 [1,2,3]
+                gr_id                  <- checkNC =<< nc_def_grp nc_id "sub group"
+                void  $                   checkNC =<< nc_copy_att nc_id (Just var_id) "attribute" gr_id Nothing
+                (SomeNCAttribute t at) <- checkNC =<< nc_inq_att gr_id Nothing  "attribute"
+                case t of
+                    SNCInt64 -> do
+                        v  <- checkNC =<< nc_get_att gr_id at
+                        v `shouldBe` VS.fromList [1,2,3]
+                    _ -> expectationFailure $ "Unexpected data type:\t" ++ show t
+                void $                    checkNC =<< nc_close nc_id
         context "nc_rename_att" $ do
             it "correctly renames attribute" $ do
                 nc_id                  <- checkNC =<< nc_create (testOutputPath </> "attr1_rename.nc") NCNetCDF4 NCClobber
