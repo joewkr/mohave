@@ -27,21 +27,21 @@ import           Data.Format.NetCDF.LowLevel.Definitions
 import           Data.Format.NetCDF.LowLevel.C.Definitions
 import           Data.Format.NetCDF.LowLevel.Variable.Internal (mkSomeNCVariable)
 
-foreign import ccall unsafe "nc_def_grp" c_nc_def_grp :: CInt -> CString -> Ptr CInt -> IO CInt
-foreign import ccall unsafe "nc_inq_dimids" c_nc_inq_dimids :: CInt -> Ptr CInt -> Ptr CInt -> Int -> IO CInt
-foreign import ccall unsafe "nc_inq_grp_full_ncid" c_nc_inq_grp_full_ncid :: CInt -> CString -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_def_grp" c_nc_def_grp :: CInt -> CString -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_inq_dimids" c_nc_inq_dimids :: CInt -> Ptr CInt -> Ptr CInt -> Int -> IO CInt
+foreign import ccall safe "nc_inq_grp_full_ncid" c_nc_inq_grp_full_ncid :: CInt -> CString -> Ptr CInt -> IO CInt
 {- Just an alias for nc_inq_ncid -}
 -- int     nc_inq_grp_ncid (int ncid, const char *grp_name, int *grp_ncid)
-foreign import ccall unsafe "nc_inq_grp_parent" c_nc_inq_grp_parent :: CInt -> Ptr CInt -> IO CInt
-foreign import ccall unsafe "nc_inq_grpname" c_nc_inq_grpname :: CInt -> CString -> IO CInt
-foreign import ccall unsafe "nc_inq_grpname_full" c_nc_inq_grpname_full :: CInt -> Ptr CInt -> CString -> IO CInt
-foreign import ccall unsafe "nc_inq_grpname_len" c_nc_inq_grpname_len :: CInt -> Ptr CInt -> IO CInt
-foreign import ccall unsafe "nc_inq_grps" c_nc_inq_grps :: CInt -> Ptr CInt -> Ptr CInt -> IO CInt
-foreign import ccall unsafe "nc_inq_ncid" c_nc_inq_ncid :: CInt -> CString -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_inq_grp_parent" c_nc_inq_grp_parent :: CInt -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_inq_grpname" c_nc_inq_grpname :: CInt -> CString -> IO CInt
+foreign import ccall safe "nc_inq_grpname_full" c_nc_inq_grpname_full :: CInt -> Ptr CInt -> CString -> IO CInt
+foreign import ccall safe "nc_inq_grpname_len" c_nc_inq_grpname_len :: CInt -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_inq_grps" c_nc_inq_grps :: CInt -> Ptr CInt -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_inq_ncid" c_nc_inq_ncid :: CInt -> CString -> Ptr CInt -> IO CInt
 {- No Haskell-side support for user-defined types yet, so this function is not very useful -}
 -- int     nc_inq_typeids (int ncid, int *ntypes, int *typeids)
-foreign import ccall unsafe "nc_inq_varids" c_nc_inq_varids :: CInt -> Ptr CInt -> Ptr CInt -> IO CInt
-foreign import ccall unsafe "nc_rename_grp" c_nc_rename_grp :: CInt -> CString -> IO CInt
+foreign import ccall safe "nc_inq_varids" c_nc_inq_varids :: CInt -> Ptr CInt -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_rename_grp" c_nc_rename_grp :: CInt -> CString -> IO CInt
 -- int     nc_show_metadata (int ncid)
 
 nc_def_grp :: NC id -> String -> IO (Int32, NC GroupId)

@@ -20,11 +20,11 @@ import           GHC.TypeNats (Nat)
 
 import           Data.Format.NetCDF.LowLevel.Definitions
 
-foreign import ccall unsafe "nc_set_chunk_cache" c_nc_set_chunk_cache :: CSize -> CSize -> CFloat -> IO CInt
-foreign import ccall unsafe "nc_get_chunk_cache" c_nc_get_chunk_cache :: Ptr CSize -> Ptr CSize -> Ptr CFloat -> IO CInt
+foreign import ccall safe "nc_set_chunk_cache" c_nc_set_chunk_cache :: CSize -> CSize -> CFloat -> IO CInt
+foreign import ccall safe "nc_get_chunk_cache" c_nc_get_chunk_cache :: Ptr CSize -> Ptr CSize -> Ptr CFloat -> IO CInt
 
-foreign import ccall unsafe "nc_set_var_chunk_cache" c_nc_set_var_chunk_cache :: CInt -> CInt -> CSize -> CSize -> CFloat -> IO CInt
-foreign import ccall unsafe "nc_get_var_chunk_cache" c_nc_get_var_chunk_cache :: CInt -> CInt -> Ptr CSize -> Ptr CSize -> Ptr CFloat -> IO CInt
+foreign import ccall safe "nc_set_var_chunk_cache" c_nc_set_var_chunk_cache :: CInt -> CInt -> CSize -> CSize -> CFloat -> IO CInt
+foreign import ccall safe "nc_get_var_chunk_cache" c_nc_get_var_chunk_cache :: CInt -> CInt -> Ptr CSize -> Ptr CSize -> Ptr CFloat -> IO CInt
 
 data NCChunkCacheParams = NCChunkCacheParams {
     cacheSize       :: Int

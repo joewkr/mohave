@@ -21,8 +21,8 @@ data FFI_CIF
 
 type FFIRetCode = #{type ffi_status}
 
-foreign import ccall unsafe "ffi_prep_cif_var" c_ffi_prep_cif_var :: Ptr FFI_CIF -> FFIAbi -> CUInt -> CUInt -> Ptr FFI_Type -> Ptr (Ptr FFI_Type) -> IO FFIRetCode
-foreign import ccall unsafe "ffi_call" c_ffi_call :: Ptr FFI_CIF -> FunPtr a -> Ptr b -> Ptr (Ptr FFIArg) -> IO FFIRetCode
+foreign import ccall safe "ffi_prep_cif_var" c_ffi_prep_cif_var :: Ptr FFI_CIF -> FFIAbi -> CUInt -> CUInt -> Ptr FFI_Type -> Ptr (Ptr FFI_Type) -> IO FFIRetCode
+foreign import ccall safe "ffi_call" c_ffi_call :: Ptr FFI_CIF -> FunPtr a -> Ptr b -> Ptr (Ptr FFIArg) -> IO FFIRetCode
 foreign import ccall "&ffi_type_double"     ffi_double     :: Ptr FFI_Type
 foreign import ccall "&ffi_type_float"      ffi_float      :: Ptr FFI_Type
 -- No Haskell equivalent for long double C type

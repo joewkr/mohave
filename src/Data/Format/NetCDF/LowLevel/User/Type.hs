@@ -26,61 +26,61 @@ import           Internal.Numerals.Ternary
 import           Data.Format.NetCDF.LowLevel.Definitions
 import           Data.Format.NetCDF.LowLevel.C.Definitions
 
-foreign import ccall unsafe "nc_inq_type_equal" c_nc_inq_type_equal :: CInt -> CInt -> CInt -> CInt -> Ptr CInt -> IO CInt
-foreign import ccall unsafe "nc_inq_typeid" c_nc_inq_typeid :: CInt -> CString -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_inq_type_equal" c_nc_inq_type_equal :: CInt -> CInt -> CInt -> CInt -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_inq_typeid" c_nc_inq_typeid :: CInt -> CString -> Ptr CInt -> IO CInt
 -- int     nc_inq_typeid (int ncid, const char *name, nc_type *typeidp)
-foreign import ccall unsafe "nc_inq_user_type" c_nc_inq_user_type :: CInt -> CInt -> CString -> Ptr CSize -> Ptr CInt -> Ptr CSize -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_inq_user_type" c_nc_inq_user_type :: CInt -> CInt -> CString -> Ptr CSize -> Ptr CInt -> Ptr CSize -> Ptr CInt -> IO CInt
 
-foreign import ccall unsafe "nc_def_compound" c_nc_def_compound :: CInt -> CSize -> CString -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_def_compound" c_nc_def_compound :: CInt -> CSize -> CString -> Ptr CInt -> IO CInt
 -- int     nc_def_compound (int ncid, size_t size, const char *name, nc_type *typeidp)
-foreign import ccall unsafe "nc_insert_compound" c_nc_insert_compound :: CInt -> CInt -> CString -> CSize -> CInt -> IO CInt
+foreign import ccall safe "nc_insert_compound" c_nc_insert_compound :: CInt -> CInt -> CString -> CSize -> CInt -> IO CInt
 -- int     nc_insert_compound (int ncid, nc_type xtype, const char *name, size_t offset, nc_type field_typeid)
 -- int     nc_insert_array_compound (int ncid, nc_type xtype, const char *name, size_t offset, nc_type field_typeid, int ndims, const int *dim_sizes)
-foreign import ccall unsafe "nc_inq_compound" c_nc_inq_compound :: CInt -> CInt -> CString -> Ptr CSize -> Ptr CSize -> IO CInt
+foreign import ccall safe "nc_inq_compound" c_nc_inq_compound :: CInt -> CInt -> CString -> Ptr CSize -> Ptr CSize -> IO CInt
 -- int     nc_inq_compound (int ncid, nc_type xtype, char *name, size_t *sizep, size_t *nfieldsp)
-foreign import ccall unsafe "nc_inq_compound_name" c_nc_inq_compound_name :: CInt -> CInt -> CString -> IO CInt
+foreign import ccall safe "nc_inq_compound_name" c_nc_inq_compound_name :: CInt -> CInt -> CString -> IO CInt
 -- int     nc_inq_compound_name (int ncid, nc_type xtype, char *name)
-foreign import ccall unsafe "nc_inq_compound_size" c_nc_inq_compound_size :: CInt -> CInt -> Ptr CSize -> IO CInt
+foreign import ccall safe "nc_inq_compound_size" c_nc_inq_compound_size :: CInt -> CInt -> Ptr CSize -> IO CInt
 -- int     nc_inq_compound_size (int ncid, nc_type xtype, size_t *sizep)
-foreign import ccall unsafe "nc_inq_compound_nfields" c_nc_inq_compound_nfields :: CInt -> CInt -> Ptr CSize -> IO CInt
+foreign import ccall safe "nc_inq_compound_nfields" c_nc_inq_compound_nfields :: CInt -> CInt -> Ptr CSize -> IO CInt
 -- int     nc_inq_compound_nfields (int ncid, nc_type xtype, size_t *nfieldsp)
-foreign import ccall unsafe "nc_inq_compound_field" c_nc_inq_compound_field :: CInt -> CInt -> CInt -> CString -> Ptr CSize -> Ptr CInt -> Ptr CInt -> Ptr CInt -> IO CInt
-foreign import ccall unsafe "nc_inq_compound_fieldname" c_nc_inq_compound_fieldname :: CInt -> CInt -> CInt -> CString -> IO CInt
+foreign import ccall safe "nc_inq_compound_field" c_nc_inq_compound_field :: CInt -> CInt -> CInt -> CString -> Ptr CSize -> Ptr CInt -> Ptr CInt -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_inq_compound_fieldname" c_nc_inq_compound_fieldname :: CInt -> CInt -> CInt -> CString -> IO CInt
 -- int     nc_inq_compound_fieldname (int ncid, nc_type xtype, int fieldid, char *name)
-foreign import ccall unsafe "nc_inq_compound_fieldoffset" c_nc_inq_compound_fieldoffset :: CInt -> CInt -> CInt -> Ptr CSize -> IO CInt
+foreign import ccall safe "nc_inq_compound_fieldoffset" c_nc_inq_compound_fieldoffset :: CInt -> CInt -> CInt -> Ptr CSize -> IO CInt
 -- int     nc_inq_compound_fieldoffset (int ncid, nc_type xtype, int fieldid, size_t *offsetp)
-foreign import ccall unsafe "nc_inq_compound_fieldtype" c_nc_inq_compound_fieldtype :: CInt -> CInt -> CInt -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_inq_compound_fieldtype" c_nc_inq_compound_fieldtype :: CInt -> CInt -> CInt -> Ptr CInt -> IO CInt
 -- int     nc_inq_compound_fieldtype (int ncid, nc_type xtype, int fieldid, nc_type *field_typeidp)
-foreign import ccall unsafe "nc_inq_compound_fieldndims" c_nc_inq_compound_fieldndims :: CInt -> CInt -> CInt -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_inq_compound_fieldndims" c_nc_inq_compound_fieldndims :: CInt -> CInt -> CInt -> Ptr CInt -> IO CInt
 -- int     nc_inq_compound_fieldndims (int ncid, nc_type xtype, int fieldid, int *ndimsp)
-foreign import ccall unsafe "nc_inq_compound_fielddim_sizes" c_nc_inq_compound_fielddim_sizes :: CInt -> CInt -> CInt -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_inq_compound_fielddim_sizes" c_nc_inq_compound_fielddim_sizes :: CInt -> CInt -> CInt -> Ptr CInt -> IO CInt
 -- int     nc_inq_compound_fielddim_sizes (int ncid, nc_type xtype, int fieldid, int *dim_sizesp)
-foreign import ccall unsafe "nc_inq_compound_fieldindex" c_nc_inq_compound_fieldindex :: CInt -> CInt -> CString -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_inq_compound_fieldindex" c_nc_inq_compound_fieldindex :: CInt -> CInt -> CString -> Ptr CInt -> IO CInt
 -- int     nc_inq_compound_fieldindex (int ncid, nc_type xtype, const char *name, int *fieldidp)
 
-foreign import ccall unsafe "nc_def_enum" c_nc_def_enum :: CInt -> CInt -> CString -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_def_enum" c_nc_def_enum :: CInt -> CInt -> CString -> Ptr CInt -> IO CInt
 -- int     nc_def_enum (int ncid, nc_type base_typeid, const char *name, nc_type *typeidp)
-foreign import ccall unsafe "nc_insert_enum" c_nc_insert_enum :: CInt -> CInt -> CString -> Ptr NCData -> IO CInt
+foreign import ccall safe "nc_insert_enum" c_nc_insert_enum :: CInt -> CInt -> CString -> Ptr NCData -> IO CInt
 -- int     nc_insert_enum (int ncid, nc_type xtype, const char *name, const void *value)
-foreign import ccall unsafe "nc_inq_enum" c_nc_inq_enum :: CInt -> CInt -> CString -> Ptr CInt -> Ptr CSize -> Ptr CSize -> IO CInt
+foreign import ccall safe "nc_inq_enum" c_nc_inq_enum :: CInt -> CInt -> CString -> Ptr CInt -> Ptr CSize -> Ptr CSize -> IO CInt
 -- int     nc_inq_enum (int ncid, nc_type xtype, char *name, nc_type *base_nc_typep, size_t *base_sizep, size_t *num_membersp)
-foreign import ccall unsafe "nc_inq_enum_member" c_nc_inq_enum_member :: CInt -> CInt -> CInt -> CString -> Ptr NCData -> IO CInt
+foreign import ccall safe "nc_inq_enum_member" c_nc_inq_enum_member :: CInt -> CInt -> CInt -> CString -> Ptr NCData -> IO CInt
 -- int     nc_inq_enum_member (int ncid, nc_type xtype, int idx, char *name, void *value)
-foreign import ccall unsafe "nc_inq_enum_ident" c_nc_inq_enum_ident :: CInt -> CInt -> CLLong -> CString -> IO CInt
+foreign import ccall safe "nc_inq_enum_ident" c_nc_inq_enum_ident :: CInt -> CInt -> CLLong -> CString -> IO CInt
 -- int     nc_inq_enum_ident (int ncid, nc_type xtype, long long value, char *identifier)
 
-foreign import ccall unsafe "nc_free_vlens" c_nc_free_vlens :: CSize -> Ptr NCVLenData -> IO CInt
+foreign import ccall safe "nc_free_vlens" c_nc_free_vlens :: CSize -> Ptr NCVLenData -> IO CInt
 -- int     nc_free_vlens (size_t nelems, nc_vlen_t vlens[])
-foreign import ccall unsafe "nc_free_vlen" c_nc_free_vlen :: Ptr NCVLenData -> IO CInt
+foreign import ccall safe "nc_free_vlen" c_nc_free_vlen :: Ptr NCVLenData -> IO CInt
 -- int     nc_free_vlen (nc_vlen_t *vl)
-foreign import ccall unsafe "nc_def_vlen" c_nc_def_vlen :: CInt -> CString -> CInt -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_def_vlen" c_nc_def_vlen :: CInt -> CString -> CInt -> Ptr CInt -> IO CInt
 -- int     nc_def_vlen (int ncid, const char *name, nc_type base_typeid, nc_type *xtypep)
-foreign import ccall unsafe "nc_inq_vlen" c_nc_inq_vlen :: CInt -> CInt -> CString -> Ptr CSize -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_inq_vlen" c_nc_inq_vlen :: CInt -> CInt -> CString -> Ptr CSize -> Ptr CInt -> IO CInt
 -- int     nc_inq_vlen (int ncid, nc_type xtype, char *name, size_t *datum_sizep, nc_type *base_nc_typep)
 
-foreign import ccall unsafe "nc_def_opaque" c_nc_def_opaque :: CInt -> CSize -> CString -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_def_opaque" c_nc_def_opaque :: CInt -> CSize -> CString -> Ptr CInt -> IO CInt
 -- int     nc_def_opaque (int ncid, size_t size, const char *name, nc_type *xtypep)
-foreign import ccall unsafe "nc_inq_opaque" c_nc_inq_opaque :: CInt -> CInt -> CString -> Ptr CSize -> IO CInt
+foreign import ccall safe "nc_inq_opaque" c_nc_inq_opaque :: CInt -> CInt -> CString -> Ptr CSize -> IO CInt
 -- int     nc_inq_opaque (int ncid, nc_type xtype, char *name, size_t *sizep)
 
 nc_inq_type_equal :: forall id1 id2 (t1 :: NCDataTypeTag) (t2 :: NCDataTypeTag).

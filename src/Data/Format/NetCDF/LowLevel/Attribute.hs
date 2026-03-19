@@ -41,14 +41,14 @@ import           Data.Format.NetCDF.LowLevel.Definitions
 import           Data.Format.NetCDF.LowLevel.C.Definitions
 import           Data.Format.NetCDF.LowLevel.User.Type
 
-foreign import ccall unsafe "nc_inq_att" c_nc_inq_att :: CInt -> CInt -> CString -> Ptr CInt -> Ptr CSize -> IO CInt
-foreign import ccall unsafe "nc_inq_attid" c_nc_inq_attid :: CInt -> CInt -> CString -> Ptr CInt -> IO CInt
-foreign import ccall unsafe "nc_inq_attname" c_nc_inq_attname :: CInt -> CInt -> CInt -> CString -> IO CInt
-foreign import ccall unsafe "nc_inq_natts" c_nc_inq_natts :: CInt -> Ptr CInt -> IO CInt
-foreign import ccall unsafe "nc_inq_atttype" c_nc_inq_atttype :: CInt -> CInt -> CString -> Ptr CInt -> IO CInt
-foreign import ccall unsafe "nc_inq_attlen" c_nc_inq_attlen :: CInt -> CInt -> CString -> Ptr CSize -> IO CInt
+foreign import ccall safe "nc_inq_att" c_nc_inq_att :: CInt -> CInt -> CString -> Ptr CInt -> Ptr CSize -> IO CInt
+foreign import ccall safe "nc_inq_attid" c_nc_inq_attid :: CInt -> CInt -> CString -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_inq_attname" c_nc_inq_attname :: CInt -> CInt -> CInt -> CString -> IO CInt
+foreign import ccall safe "nc_inq_natts" c_nc_inq_natts :: CInt -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_inq_atttype" c_nc_inq_atttype :: CInt -> CInt -> CString -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_inq_attlen" c_nc_inq_attlen :: CInt -> CInt -> CString -> Ptr CSize -> IO CInt
 
-foreign import ccall unsafe "nc_get_att" c_nc_get_att :: CInt -> CInt -> CString -> Ptr NCData -> IO CInt
+foreign import ccall safe "nc_get_att" c_nc_get_att :: CInt -> CInt -> CString -> Ptr NCData -> IO CInt
 -- int     nc_get_att_text (int ncid, int varid, const char *name, char *value)
 -- int     nc_get_att_schar (int ncid, int varid, const char *name, signed char *value)
 -- int     nc_get_att_uchar (int ncid, int varid, const char *name, unsigned char *value)
@@ -64,7 +64,7 @@ foreign import ccall unsafe "nc_get_att" c_nc_get_att :: CInt -> CInt -> CString
 -- int     nc_get_att_ulonglong (int ncid, int varid, const char *name, unsigned long long *value)
 -- int     nc_get_att_string (int ncid, int varid, const char *name, char **value)
 
-foreign import ccall unsafe "nc_put_att" c_nc_put_att :: CInt -> CInt -> CString -> CInt -> CSize -> Ptr NCData -> IO CInt
+foreign import ccall safe "nc_put_att" c_nc_put_att :: CInt -> CInt -> CString -> CInt -> CSize -> Ptr NCData -> IO CInt
 -- int     nc_put_att_string (int ncid, int varid, const char *name, size_t len, const char **value)
 -- int     nc_put_att_text (int ncid, int varid, const char *name, size_t len, const char *value)
 -- int     nc_put_att_schar (int ncid, int varid, const char *name, nc_type xtype, size_t len, const signed char *value)
@@ -80,9 +80,9 @@ foreign import ccall unsafe "nc_put_att" c_nc_put_att :: CInt -> CInt -> CString
 -- int     nc_put_att_longlong (int ncid, int varid, const char *name, nc_type xtype, size_t len, const long long *value)
 -- int     nc_put_att_ulonglong (int ncid, int varid, const char *name, nc_type xtype, size_t len, const unsigned long long *value)
 
-foreign import ccall unsafe "nc_copy_att" c_nc_copy_att :: CInt -> CInt -> CString -> CInt -> CInt -> IO CInt
-foreign import ccall unsafe "nc_rename_att" c_nc_rename_att :: CInt -> CInt -> CString -> CString -> IO CInt
-foreign import ccall unsafe "nc_del_att" c_nc_del_att :: CInt -> CInt -> CString -> IO CInt
+foreign import ccall safe "nc_copy_att" c_nc_copy_att :: CInt -> CInt -> CString -> CInt -> CInt -> IO CInt
+foreign import ccall safe "nc_rename_att" c_nc_rename_att :: CInt -> CInt -> CString -> CString -> IO CInt
+foreign import ccall safe "nc_del_att" c_nc_del_att :: CInt -> CInt -> CString -> IO CInt
 
 fromMaybeVarId :: forall (t :: NCDataTypeTag) (n :: Nat).
        Maybe (NCVariableId n t)

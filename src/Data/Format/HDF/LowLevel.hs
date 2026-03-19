@@ -13,8 +13,8 @@ import           Foreign.C.Types
 import           Data.Format.HDF.LowLevel.C.Definitions (toHDFOpenModeTag)
 import           Data.Format.HDF.LowLevel.Definitions
 
-foreign import ccall unsafe "Hopen" c_hopen :: CString -> CInt -> Int16 -> IO Int32
-foreign import ccall unsafe "Hclose" c_hclose :: Int32 -> IO CInt
+foreign import ccall safe "Hopen" c_hopen :: CString -> CInt -> Int16 -> IO Int32
+foreign import ccall safe "Hclose" c_hclose :: Int32 -> IO CInt
 
 newtype HDFId = HDFId Int32
 

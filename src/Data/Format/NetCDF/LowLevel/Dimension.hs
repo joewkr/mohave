@@ -24,14 +24,14 @@ import           Foreign.Storable
 import           Data.Format.NetCDF.LowLevel.Definitions
 import           Data.Format.NetCDF.LowLevel.C.Definitions
 
-foreign import ccall unsafe "nc_def_dim" c_nc_def_dim :: CInt -> CString -> CSize -> Ptr CInt -> IO CInt
-foreign import ccall unsafe "nc_inq_dim" c_nc_inq_dim :: CInt -> CInt -> CString -> Ptr CSize -> IO CInt
-foreign import ccall unsafe "nc_inq_dimid" c_nc_inq_dimid :: CInt -> CString -> Ptr CInt -> IO CInt
-foreign import ccall unsafe "nc_inq_dimlen" c_nc_inq_dimlen :: CInt -> CInt -> Ptr CSize -> IO CInt
-foreign import ccall unsafe "nc_inq_dimname" c_nc_inq_dimname :: CInt -> CInt -> CString -> IO CInt
-foreign import ccall unsafe "nc_inq_ndims" c_nc_inq_ndims :: CInt -> Ptr CInt -> IO CInt
-foreign import ccall unsafe "nc_inq_unlimdim" c_nc_inq_unlimdim :: CInt -> Ptr CInt -> IO CInt
-foreign import ccall unsafe "nc_rename_dim" c_nc_rename_dim :: CInt -> CInt -> CString -> IO CInt
+foreign import ccall safe "nc_def_dim" c_nc_def_dim :: CInt -> CString -> CSize -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_inq_dim" c_nc_inq_dim :: CInt -> CInt -> CString -> Ptr CSize -> IO CInt
+foreign import ccall safe "nc_inq_dimid" c_nc_inq_dimid :: CInt -> CString -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_inq_dimlen" c_nc_inq_dimlen :: CInt -> CInt -> Ptr CSize -> IO CInt
+foreign import ccall safe "nc_inq_dimname" c_nc_inq_dimname :: CInt -> CInt -> CString -> IO CInt
+foreign import ccall safe "nc_inq_ndims" c_nc_inq_ndims :: CInt -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_inq_unlimdim" c_nc_inq_unlimdim :: CInt -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_rename_dim" c_nc_rename_dim :: CInt -> CInt -> CString -> IO CInt
 
 nc_def_dim :: NC id -> String -> Maybe Word32 -> IO (Int32, NCDimensionId)
 nc_def_dim ncid dimName dimSize =

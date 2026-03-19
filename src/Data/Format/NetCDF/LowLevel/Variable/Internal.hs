@@ -70,21 +70,21 @@ import           Data.Format.NetCDF.LowLevel.C.Definitions
 import           Data.Format.NetCDF.LowLevel.Dimension (nc_inq_dimlen)
 import           Data.Format.NetCDF.LowLevel.User.Type
 
-foreign import ccall unsafe "nc_def_var" c_nc_def_var :: CInt -> CString -> CInt -> CInt -> Ptr CInt -> Ptr CInt -> IO CInt
-foreign import ccall unsafe "nc_def_var_fill" c_nc_def_var_fill :: CInt -> CInt -> CInt -> Ptr NCData -> IO CInt
-foreign import ccall unsafe "nc_def_var_deflate" c_nc_def_var_deflate :: CInt -> CInt -> CInt -> CInt -> CInt -> IO CInt
-foreign import ccall unsafe "nc_def_var_fletcher32" c_nc_def_var_fletcher32 :: CInt -> CInt -> CInt -> IO CInt
-foreign import ccall unsafe "nc_def_var_chunking" c_nc_def_var_chunking :: CInt -> CInt -> CInt -> Ptr CSize -> IO CInt
-foreign import ccall unsafe "nc_def_var_endian" c_nc_def_var_endian :: CInt -> CInt -> CInt -> IO CInt
+foreign import ccall safe "nc_def_var" c_nc_def_var :: CInt -> CString -> CInt -> CInt -> Ptr CInt -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_def_var_fill" c_nc_def_var_fill :: CInt -> CInt -> CInt -> Ptr NCData -> IO CInt
+foreign import ccall safe "nc_def_var_deflate" c_nc_def_var_deflate :: CInt -> CInt -> CInt -> CInt -> CInt -> IO CInt
+foreign import ccall safe "nc_def_var_fletcher32" c_nc_def_var_fletcher32 :: CInt -> CInt -> CInt -> IO CInt
+foreign import ccall safe "nc_def_var_chunking" c_nc_def_var_chunking :: CInt -> CInt -> CInt -> Ptr CSize -> IO CInt
+foreign import ccall safe "nc_def_var_endian" c_nc_def_var_endian :: CInt -> CInt -> CInt -> IO CInt
 -- TODO: not clear how to correctly implement this
 -- int     nc_def_var_filter (int ncid, int varid, unsigned int id, size_t nparams, const unsigned int *parms)
 
-foreign import ccall unsafe "nc_rename_var" c_nc_rename_var :: CInt -> CInt -> CString -> IO CInt
+foreign import ccall safe "nc_rename_var" c_nc_rename_var :: CInt -> CInt -> CString -> IO CInt
 
 -- int     nc_set_var_chunk_cache (int ncid, int varid, size_t size, size_t nelems, float preemption)
 -- int     nc_get_var_chunk_cache (int ncid, int varid, size_t *sizep, size_t *nelemsp, float *preemptionp)
 
-foreign import ccall unsafe "nc_get_vara" c_nc_get_vara :: CInt -> CInt -> Ptr CSize -> Ptr CSize -> Ptr NCData -> IO CInt
+foreign import ccall safe "nc_get_vara" c_nc_get_vara :: CInt -> CInt -> Ptr CSize -> Ptr CSize -> Ptr NCData -> IO CInt
 -- int     nc_get_vara_text (int ncid, int varid, const size_t *startp, const size_t *countp, char *ip)
 -- int     nc_get_vara_schar (int ncid, int varid, const size_t *startp, const size_t *countp, signed char *ip)
 -- int     nc_get_vara_uchar (int ncid, int varid, const size_t *startp, const size_t *countp, unsigned char *ip)
@@ -99,7 +99,7 @@ foreign import ccall unsafe "nc_get_vara" c_nc_get_vara :: CInt -> CInt -> Ptr C
 -- int     nc_get_vara_longlong (int ncid, int varid, const size_t *startp, const size_t *countp, long long *ip)
 -- int     nc_get_vara_ulonglong (int ncid, int varid, const size_t *startp, const size_t *countp, unsigned long long *ip)
 -- int     nc_get_vara_string (int ncid, int varid, const size_t *startp, const size_t *countp, char **ip)
-foreign import ccall unsafe "nc_get_var1" c_nc_get_var1 :: CInt -> CInt -> Ptr CSize -> Ptr NCData -> IO CInt
+foreign import ccall safe "nc_get_var1" c_nc_get_var1 :: CInt -> CInt -> Ptr CSize -> Ptr NCData -> IO CInt
 -- int     nc_get_var1_text (int ncid, int varid, const size_t *indexp, char *ip)
 -- int     nc_get_var1_schar (int ncid, int varid, const size_t *indexp, signed char *ip)
 -- int     nc_get_var1_uchar (int ncid, int varid, const size_t *indexp, unsigned char *ip)
@@ -114,7 +114,7 @@ foreign import ccall unsafe "nc_get_var1" c_nc_get_var1 :: CInt -> CInt -> Ptr C
 -- int     nc_get_var1_longlong (int ncid, int varid, const size_t *indexp, long long *ip)
 -- int     nc_get_var1_ulonglong (int ncid, int varid, const size_t *indexp, unsigned long long *ip)
 -- int     nc_get_var1_string (int ncid, int varid, const size_t *indexp, char **ip)
-foreign import ccall unsafe "nc_get_var" c_nc_get_var :: CInt -> CInt -> Ptr NCData -> IO CInt
+foreign import ccall safe "nc_get_var" c_nc_get_var :: CInt -> CInt -> Ptr NCData -> IO CInt
 -- int     nc_get_var_text (int ncid, int varid, char *ip)
 -- int     nc_get_var_schar (int ncid, int varid, signed char *ip)
 -- int     nc_get_var_uchar (int ncid, int varid, unsigned char *ip)
@@ -129,7 +129,7 @@ foreign import ccall unsafe "nc_get_var" c_nc_get_var :: CInt -> CInt -> Ptr NCD
 -- int     nc_get_var_longlong (int ncid, int varid, long long *ip)
 -- int     nc_get_var_ulonglong (int ncid, int varid, unsigned long long *ip)
 -- int     nc_get_var_string (int ncid, int varid, char **ip)
-foreign import ccall unsafe "nc_get_vars" c_nc_get_vars :: CInt -> CInt -> Ptr CSize -> Ptr CSize -> Ptr CPtrdiff -> Ptr NCData -> IO CInt
+foreign import ccall safe "nc_get_vars" c_nc_get_vars :: CInt -> CInt -> Ptr CSize -> Ptr CSize -> Ptr CPtrdiff -> Ptr NCData -> IO CInt
 -- int     nc_get_vars_text (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, char *ip)
 -- int     nc_get_vars_schar (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, signed char *ip)
 -- int     nc_get_vars_uchar (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, unsigned char *ip)
@@ -160,25 +160,25 @@ foreign import ccall unsafe "nc_get_vars" c_nc_get_vars :: CInt -> CInt -> Ptr C
 -- int     nc_get_varm_text (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const ptrdiff_t *imapp, char *ip)
 -- int     nc_get_varm_string (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const ptrdiff_t *imapp, char **ip)
 
-foreign import ccall unsafe "nc_inq_varid" c_nc_inq_varid :: CInt -> CString -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_inq_varid" c_nc_inq_varid :: CInt -> CString -> Ptr CInt -> IO CInt
 -- int     nc_inq_var (int ncid, int varid, char *name, nc_type *xtypep, int *ndimsp, int *dimidsp, int *nattsp)
-foreign import ccall unsafe "nc_inq_varname" c_nc_inq_varname :: CInt -> CInt -> CString -> IO CInt
-foreign import ccall unsafe "nc_inq_vartype" c_nc_inq_vartype :: CInt -> CInt -> Ptr CInt -> IO CInt
-foreign import ccall unsafe "nc_inq_varndims" c_nc_inq_varndims :: CInt -> CInt -> Ptr CInt -> IO CInt
-foreign import ccall unsafe "nc_inq_vardimid" c_nc_inq_vardimid :: CInt -> CInt -> Ptr CInt -> IO CInt
-foreign import ccall unsafe "nc_inq_varnatts" c_nc_inq_varnatts :: CInt -> CInt -> Ptr CInt -> IO CInt
-foreign import ccall unsafe "nc_inq_var_deflate" c_nc_inq_var_deflate :: CInt -> CInt -> Ptr CInt -> Ptr CInt -> Ptr CInt -> IO CInt
-foreign import ccall unsafe "nc_inq_var_fletcher32" c_nc_inq_var_fletcher32 :: CInt -> CInt -> Ptr CInt -> IO CInt
-foreign import ccall unsafe "nc_inq_var_chunking" c_nc_inq_var_chunking :: CInt -> CInt -> Ptr CInt -> Ptr CSize -> IO CInt
-foreign import ccall unsafe "nc_inq_var_fill" c_nc_inq_var_fill :: CInt -> CInt -> Ptr CInt -> Ptr NCData -> IO CInt
-foreign import ccall unsafe "nc_inq_var_endian" c_nc_inq_var_endian :: CInt -> CInt -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_inq_varname" c_nc_inq_varname :: CInt -> CInt -> CString -> IO CInt
+foreign import ccall safe "nc_inq_vartype" c_nc_inq_vartype :: CInt -> CInt -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_inq_varndims" c_nc_inq_varndims :: CInt -> CInt -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_inq_vardimid" c_nc_inq_vardimid :: CInt -> CInt -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_inq_varnatts" c_nc_inq_varnatts :: CInt -> CInt -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_inq_var_deflate" c_nc_inq_var_deflate :: CInt -> CInt -> Ptr CInt -> Ptr CInt -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_inq_var_fletcher32" c_nc_inq_var_fletcher32 :: CInt -> CInt -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_inq_var_chunking" c_nc_inq_var_chunking :: CInt -> CInt -> Ptr CInt -> Ptr CSize -> IO CInt
+foreign import ccall safe "nc_inq_var_fill" c_nc_inq_var_fill :: CInt -> CInt -> Ptr CInt -> Ptr NCData -> IO CInt
+foreign import ccall safe "nc_inq_var_endian" c_nc_inq_var_endian :: CInt -> CInt -> Ptr CInt -> IO CInt
 -- TODO: not clear how to correctly implement this
 -- int     nc_inq_var_filter (int ncid, int varid, unsigned int *idp, size_t *nparamsp, unsigned int *params)
 -- int     nc_inq_var_szip (int ncid, int varid, int *options_maskp, int *pixels_per_blockp)
-foreign import ccall unsafe "nc_inq_unlimdims" c_nc_inq_unlimdims :: CInt -> Ptr CInt -> Ptr CInt -> IO CInt
+foreign import ccall safe "nc_inq_unlimdims" c_nc_inq_unlimdims :: CInt -> Ptr CInt -> Ptr CInt -> IO CInt
 -- int     NC_inq_var_all (int ncid, int varid, char *name, nc_type *xtypep, int *ndimsp, int *dimidsp, int *nattsp, int *shufflep, int *deflatep, int *deflate_levelp, int *fletcher32p, int *contiguousp, size_t *chunksizesp, int *no_fill, void *fill_valuep, int *endiannessp, unsigned int *idp, size_t *nparamsp, unsigned int *params)
 
-foreign import ccall unsafe "nc_put_vara" c_nc_put_vara :: CInt -> CInt -> Ptr CSize -> Ptr CSize -> Ptr NCData -> IO CInt
+foreign import ccall safe "nc_put_vara" c_nc_put_vara :: CInt -> CInt -> Ptr CSize -> Ptr CSize -> Ptr NCData -> IO CInt
 -- int     nc_put_vara_text (int ncid, int varid, const size_t *startp, const size_t *countp, const char *op)
 -- int     nc_put_vara_schar (int ncid, int varid, const size_t *startp, const size_t *countp, const signed char *op)
 -- int     nc_put_vara_uchar (int ncid, int varid, const size_t *startp, const size_t *countp, const unsigned char *op)
@@ -193,7 +193,7 @@ foreign import ccall unsafe "nc_put_vara" c_nc_put_vara :: CInt -> CInt -> Ptr C
 -- int     nc_put_vara_longlong (int ncid, int varid, const size_t *startp, const size_t *countp, const long long *op)
 -- int     nc_put_vara_ulonglong (int ncid, int varid, const size_t *startp, const size_t *countp, const unsigned long long *op)
 -- int     nc_put_vara_string (int ncid, int varid, const size_t *startp, const size_t *countp, const char **op)
-foreign import ccall unsafe "nc_put_var1" c_nc_put_var1 :: CInt -> CInt -> Ptr CSize -> Ptr NCData -> IO CInt
+foreign import ccall safe "nc_put_var1" c_nc_put_var1 :: CInt -> CInt -> Ptr CSize -> Ptr NCData -> IO CInt
 -- int     nc_put_var1_text (int ncid, int varid, const size_t *indexp, const char *op)
 -- int     nc_put_var1_schar (int ncid, int varid, const size_t *indexp, const signed char *op)
 -- int     nc_put_var1_uchar (int ncid, int varid, const size_t *indexp, const unsigned char *op)
@@ -208,7 +208,7 @@ foreign import ccall unsafe "nc_put_var1" c_nc_put_var1 :: CInt -> CInt -> Ptr C
 -- int     nc_put_var1_longlong (int ncid, int varid, const size_t *indexp, const long long *op)
 -- int     nc_put_var1_ulonglong (int ncid, int varid, const size_t *indexp, const unsigned long long *op)
 -- int     nc_put_var1_string (int ncid, int varid, const size_t *indexp, const char **op)
-foreign import ccall unsafe "nc_put_var" c_nc_put_var :: CInt -> CInt -> Ptr NCData -> IO CInt
+foreign import ccall safe "nc_put_var" c_nc_put_var :: CInt -> CInt -> Ptr NCData -> IO CInt
 -- int     nc_put_var_text (int ncid, int varid, const char *op)
 -- int     nc_put_var_schar (int ncid, int varid, const signed char *op)
 -- int     nc_put_var_uchar (int ncid, int varid, const unsigned char *op)
@@ -223,7 +223,7 @@ foreign import ccall unsafe "nc_put_var" c_nc_put_var :: CInt -> CInt -> Ptr NCD
 -- int     nc_put_var_longlong (int ncid, int varid, const long long *op)
 -- int     nc_put_var_ulonglong (int ncid, int varid, const unsigned long long *op)
 -- int     nc_put_var_string (int ncid, int varid, const char **op)
-foreign import ccall unsafe "nc_put_vars" c_nc_put_vars :: CInt -> CInt -> Ptr CSize -> Ptr CSize -> Ptr CPtrdiff -> Ptr NCData -> IO CInt
+foreign import ccall safe "nc_put_vars" c_nc_put_vars :: CInt -> CInt -> Ptr CSize -> Ptr CSize -> Ptr CPtrdiff -> Ptr NCData -> IO CInt
 -- int     nc_put_vars_text (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const char *op)
 -- int     nc_put_vars_schar (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const signed char *op)
 -- int     nc_put_vars_uchar (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const unsigned char *op)

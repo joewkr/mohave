@@ -26,10 +26,10 @@ import           Data.Format.HDF.LowLevel.C.Definitions (HDFErrorCode, toHDFErro
 import           Data.Format.HDF.LowLevel.Definitions (HDFError(..))
 import           Foreign.C.Lib.FFI
 
-foreign import ccall unsafe "fopen" c_fopen ::CString -> CString -> IO (Ptr CFile)
-foreign import ccall unsafe "fclose" c_fclose :: Ptr CFile -> IO ()
+foreign import ccall safe "fopen" c_fopen ::CString -> CString -> IO (Ptr CFile)
+foreign import ccall safe "fclose" c_fclose :: Ptr CFile -> IO ()
 
-foreign import ccall unsafe "HEprint" c_heprint :: Ptr CFile -> Int32 -> IO ()
+foreign import ccall safe "HEprint" c_heprint :: Ptr CFile -> Int32 -> IO ()
 foreign import ccall unsafe "HEstring" c_hestring :: HDFErrorCode -> IO CString
 foreign import ccall unsafe "HEvalue" c_hevalue :: Int32 -> IO HDFErrorCode
 foreign import ccall unsafe "wrp_HEpush" c_hepush :: HDFErrorCode -> CString -> CString -> CInt -> Ptr CSize -> IO (Ptr CString)

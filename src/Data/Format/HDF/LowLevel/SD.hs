@@ -140,86 +140,86 @@ import qualified Internal.Definitions as InternalDefs (
                     , pattern Var6D)
 
 -- Access
-foreign import ccall unsafe "SDstart" c_sdstart :: CString -> Int32 -> IO Int32
-foreign import ccall unsafe "SDcreate" c_sdcreate :: Int32 -> CString -> Int32 -> Int32 -> Ptr Int32 -> IO Int32
-foreign import ccall unsafe "SDselect" c_sdselect :: Int32 -> Int32 -> IO Int32
-foreign import ccall unsafe "SDendaccess" c_sdendaccess :: Int32 -> IO CInt
-foreign import ccall unsafe "SDend" c_sdend :: Int32 -> IO CInt
+foreign import ccall safe "SDstart" c_sdstart :: CString -> Int32 -> IO Int32
+foreign import ccall safe "SDcreate" c_sdcreate :: Int32 -> CString -> Int32 -> Int32 -> Ptr Int32 -> IO Int32
+foreign import ccall safe "SDselect" c_sdselect :: Int32 -> Int32 -> IO Int32
+foreign import ccall safe "SDendaccess" c_sdendaccess :: Int32 -> IO CInt
+foreign import ccall safe "SDend" c_sdend :: Int32 -> IO CInt
 
 -- Read and write
-foreign import ccall unsafe "SDreaddata" c_sdreaddata :: Int32 -> Ptr Int32 -> Ptr Int32 -> Ptr Int32 -> Ptr HDFData -> IO CInt
-foreign import ccall unsafe "SDwritedata" c_sdwritedata :: Int32 -> Ptr Int32 -> Ptr Int32 -> Ptr Int32 -> Ptr HDFData -> IO CInt
+foreign import ccall safe "SDreaddata" c_sdreaddata :: Int32 -> Ptr Int32 -> Ptr Int32 -> Ptr Int32 -> Ptr HDFData -> IO CInt
+foreign import ccall safe "SDwritedata" c_sdwritedata :: Int32 -> Ptr Int32 -> Ptr Int32 -> Ptr Int32 -> Ptr HDFData -> IO CInt
 
 -- General inquiry
-foreign import ccall unsafe "SDcheckempty" c_sdcheckempty :: Int32 -> Ptr CInt -> IO Int32
-foreign import ccall unsafe "SDfileinfo" c_sdfileinfo :: Int32 -> Ptr Int32 -> Ptr Int32 -> IO CInt
-foreign import ccall unsafe "SDgetfilename" c_sdgetfilename :: Int32 -> CString -> IO CInt
-foreign import ccall unsafe "SDgetinfo" c_sdgetinfo :: Int32 -> CString -> Ptr Int32 -> Ptr Int32 -> Ptr Int32 -> Ptr Int32 -> IO CInt
-foreign import ccall unsafe "SDget_maxopenfiles" c_sdget_maxopenfiles :: Ptr CInt -> Ptr CInt -> IO CInt
-foreign import ccall unsafe "SDgetnamelen" c_sdgetnamelen :: Int32 -> Ptr Word16 -> IO CInt
-foreign import ccall unsafe "SDget_numopenfiles" c_sdget_numopenfiles :: IO CInt
-foreign import ccall unsafe "SDgetnumvars_byname" c_sdgetnumvars_byname :: Int32 -> CString -> Ptr Int32 -> IO CInt
-foreign import ccall unsafe "SDidtoref" c_sdidtoref :: Int32 -> IO Int32
+foreign import ccall safe "SDcheckempty" c_sdcheckempty :: Int32 -> Ptr CInt -> IO Int32
+foreign import ccall safe "SDfileinfo" c_sdfileinfo :: Int32 -> Ptr Int32 -> Ptr Int32 -> IO CInt
+foreign import ccall safe "SDgetfilename" c_sdgetfilename :: Int32 -> CString -> IO CInt
+foreign import ccall safe "SDgetinfo" c_sdgetinfo :: Int32 -> CString -> Ptr Int32 -> Ptr Int32 -> Ptr Int32 -> Ptr Int32 -> IO CInt
+foreign import ccall safe "SDget_maxopenfiles" c_sdget_maxopenfiles :: Ptr CInt -> Ptr CInt -> IO CInt
+foreign import ccall safe "SDgetnamelen" c_sdgetnamelen :: Int32 -> Ptr Word16 -> IO CInt
+foreign import ccall safe "SDget_numopenfiles" c_sdget_numopenfiles :: IO CInt
+foreign import ccall safe "SDgetnumvars_byname" c_sdgetnumvars_byname :: Int32 -> CString -> Ptr Int32 -> IO CInt
+foreign import ccall safe "SDidtoref" c_sdidtoref :: Int32 -> IO Int32
 -- SDidtype {- no use for this function in Haskell interface -}
-foreign import ccall unsafe "SDiscoordvar" c_sdiscoordvar :: Int32 -> IO CInt
-foreign import ccall unsafe "SDisrecord" c_sdisrecord :: Int32 -> IO Int32
-foreign import ccall unsafe "SDnametoindex" c_sdnametoindex :: Int32 -> CString -> IO Int32
-foreign import ccall unsafe "SDnametoindices" c_sdnametoindices :: Int32 -> CString -> Ptr HDFVarList -> IO CInt
-foreign import ccall unsafe "SDreftoindex" c_sdreftoindex :: Int32 -> Int32 -> IO Int32
-foreign import ccall unsafe "SDreset_maxopenfiles" c_sdreset_maxopenfiles :: CInt -> IO CInt
+foreign import ccall safe "SDiscoordvar" c_sdiscoordvar :: Int32 -> IO CInt
+foreign import ccall safe "SDisrecord" c_sdisrecord :: Int32 -> IO Int32
+foreign import ccall safe "SDnametoindex" c_sdnametoindex :: Int32 -> CString -> IO Int32
+foreign import ccall safe "SDnametoindices" c_sdnametoindices :: Int32 -> CString -> Ptr HDFVarList -> IO CInt
+foreign import ccall safe "SDreftoindex" c_sdreftoindex :: Int32 -> Int32 -> IO Int32
+foreign import ccall safe "SDreset_maxopenfiles" c_sdreset_maxopenfiles :: CInt -> IO CInt
 
 -- Dimensions
-foreign import ccall unsafe "SDdiminfo" c_sddiminfo :: Int32 -> CString -> Ptr Int32 -> Ptr Int32 -> Ptr Int32 -> IO CInt
-foreign import ccall unsafe "SDgetdimid" c_sdgetdimid :: Int32 -> CInt -> IO Int32
-foreign import ccall unsafe "SDsetdimname" c_sdsetdimname :: Int32 -> CString -> IO CInt
+foreign import ccall safe "SDdiminfo" c_sddiminfo :: Int32 -> CString -> Ptr Int32 -> Ptr Int32 -> Ptr Int32 -> IO CInt
+foreign import ccall safe "SDgetdimid" c_sdgetdimid :: Int32 -> CInt -> IO Int32
+foreign import ccall safe "SDsetdimname" c_sdsetdimname :: Int32 -> CString -> IO CInt
 
 -- Dimension scales
-foreign import ccall unsafe "SDgetdimscale" c_sdgetdimscale :: Int32 -> Ptr HDFData -> IO CInt
-foreign import ccall unsafe "SDsetdimscale" c_sdsetdimscale :: Int32 -> Int32 -> Int32 -> Ptr HDFData -> IO CInt
+foreign import ccall safe "SDgetdimscale" c_sdgetdimscale :: Int32 -> Ptr HDFData -> IO CInt
+foreign import ccall safe "SDsetdimscale" c_sdsetdimscale :: Int32 -> Int32 -> Int32 -> Ptr HDFData -> IO CInt
 
 -- User-defined attributes
-foreign import ccall unsafe "SDattrinfo" c_sdattrinfo :: Int32 -> Int32 -> CString -> Ptr Int32 -> Ptr Int32 -> IO CInt
-foreign import ccall unsafe "SDfindattr" c_sdfindattr :: Int32 -> CString -> IO Int32
-foreign import ccall unsafe "SDreadattr" c_sdreadattr :: Int32 -> Int32 -> Ptr HDFData -> IO CInt
-foreign import ccall unsafe "SDsetattr" c_sdsetattr :: Int32 -> CString -> Int32 -> Int32 -> Ptr HDFData -> IO CInt
+foreign import ccall safe "SDattrinfo" c_sdattrinfo :: Int32 -> Int32 -> CString -> Ptr Int32 -> Ptr Int32 -> IO CInt
+foreign import ccall safe "SDfindattr" c_sdfindattr :: Int32 -> CString -> IO Int32
+foreign import ccall safe "SDreadattr" c_sdreadattr :: Int32 -> Int32 -> Ptr HDFData -> IO CInt
+foreign import ccall safe "SDsetattr" c_sdsetattr :: Int32 -> CString -> Int32 -> Int32 -> Ptr HDFData -> IO CInt
 
 -- Predefined attributes
-foreign import ccall unsafe "SDgetcal" c_sdgetcal :: Int32 -> Ptr Double -> Ptr Double -> Ptr Double -> Ptr Double -> Ptr Int32 -> IO CInt
-foreign import ccall unsafe "SDgetdatastrs" c_sdgetdatastrs :: Int32 -> CString -> CString -> CString -> CString -> CInt -> IO CInt
-foreign import ccall unsafe "SDgetdimstrs" c_sdgetdimstrs :: Int32 -> CString -> CString -> CString -> CInt -> IO CInt
-foreign import ccall unsafe "SDgetfillvalue" c_sdgetfillvalue :: Int32 -> Ptr HDFData -> IO CInt
-foreign import ccall unsafe "SDgetrange" c_sdgetrange :: Int32 -> Ptr HDFData -> Ptr HDFData -> IO CInt
-foreign import ccall unsafe "SDsetcal" c_sdsetcal :: Int32 -> Double -> Double -> Double -> Double -> Int32 -> IO CInt
-foreign import ccall unsafe "SDsetdatastrs" c_sdsetdatastrs :: Int32 -> CString -> CString -> CString -> CString -> IO CInt
-foreign import ccall unsafe "SDsetdimstrs" c_sdsetdimstrs :: Int32 -> CString -> CString -> CString -> IO CInt
-foreign import ccall unsafe "SDsetfillvalue" c_sdsetfillvalue :: Int32 -> Ptr HDFData -> IO CInt
-foreign import ccall unsafe "SDsetfillmode" c_sdsetfillmode :: Int32 -> CInt -> IO CInt
-foreign import ccall unsafe "SDsetrange" c_sdsetrange :: Int32 -> Ptr HDFData -> Ptr HDFData -> IO CInt
+foreign import ccall safe "SDgetcal" c_sdgetcal :: Int32 -> Ptr Double -> Ptr Double -> Ptr Double -> Ptr Double -> Ptr Int32 -> IO CInt
+foreign import ccall safe "SDgetdatastrs" c_sdgetdatastrs :: Int32 -> CString -> CString -> CString -> CString -> CInt -> IO CInt
+foreign import ccall safe "SDgetdimstrs" c_sdgetdimstrs :: Int32 -> CString -> CString -> CString -> CInt -> IO CInt
+foreign import ccall safe "SDgetfillvalue" c_sdgetfillvalue :: Int32 -> Ptr HDFData -> IO CInt
+foreign import ccall safe "SDgetrange" c_sdgetrange :: Int32 -> Ptr HDFData -> Ptr HDFData -> IO CInt
+foreign import ccall safe "SDsetcal" c_sdsetcal :: Int32 -> Double -> Double -> Double -> Double -> Int32 -> IO CInt
+foreign import ccall safe "SDsetdatastrs" c_sdsetdatastrs :: Int32 -> CString -> CString -> CString -> CString -> IO CInt
+foreign import ccall safe "SDsetdimstrs" c_sdsetdimstrs :: Int32 -> CString -> CString -> CString -> IO CInt
+foreign import ccall safe "SDsetfillvalue" c_sdsetfillvalue :: Int32 -> Ptr HDFData -> IO CInt
+foreign import ccall safe "SDsetfillmode" c_sdsetfillmode :: Int32 -> CInt -> IO CInt
+foreign import ccall safe "SDsetrange" c_sdsetrange :: Int32 -> Ptr HDFData -> Ptr HDFData -> IO CInt
 
 -- Compression
-foreign import ccall unsafe "SDsetcompress" c_sdsetcompress :: Int32 -> HDFCompType -> Ptr HDFCompParams -> IO CInt
-foreign import ccall unsafe "SDsetnbitdataset" c_sdsetnbitdataset :: Int32 -> CInt -> CInt -> CInt -> CInt -> IO CInt
-foreign import ccall unsafe "SDgetcompinfo" c_sdgetcompinfo :: Int32 -> Ptr HDFCompType -> Ptr HDFCompParams -> IO CInt
+foreign import ccall safe "SDsetcompress" c_sdsetcompress :: Int32 -> HDFCompType -> Ptr HDFCompParams -> IO CInt
+foreign import ccall safe "SDsetnbitdataset" c_sdsetnbitdataset :: Int32 -> CInt -> CInt -> CInt -> CInt -> IO CInt
+foreign import ccall safe "SDgetcompinfo" c_sdgetcompinfo :: Int32 -> Ptr HDFCompType -> Ptr HDFCompParams -> IO CInt
 
 -- Chunking/Tiling
-foreign import ccall unsafe "SDgetchunkinfo" c_sdgetchunkinfo :: Int32 -> Ptr HDFChunkParams -> Ptr Int32 -> IO CInt
-foreign import ccall unsafe "SDreadchunk" c_sdreadchunk :: Int32 -> Ptr Int32 -> Ptr HDFData -> IO CInt
-foreign import ccall unsafe "wrp_SDsetchunk" c_sdsetchunk :: Int32 -> Ptr HDFChunkParams -> Int32 -> IO CInt
-foreign import ccall unsafe "SDsetchunkcache" c_sdsetchunkcache :: Int32 -> Int32 -> Int32 -> IO CInt
-foreign import ccall unsafe "SDwritechunk" c_sdwritechunk :: Int32 -> Ptr Int32 -> Ptr HDFData -> IO CInt
+foreign import ccall safe "SDgetchunkinfo" c_sdgetchunkinfo :: Int32 -> Ptr HDFChunkParams -> Ptr Int32 -> IO CInt
+foreign import ccall safe "SDreadchunk" c_sdreadchunk :: Int32 -> Ptr Int32 -> Ptr HDFData -> IO CInt
+foreign import ccall safe "wrp_SDsetchunk" c_sdsetchunk :: Int32 -> Ptr HDFChunkParams -> Int32 -> IO CInt
+foreign import ccall safe "SDsetchunkcache" c_sdsetchunkcache :: Int32 -> Int32 -> Int32 -> IO CInt
+foreign import ccall safe "SDwritechunk" c_sdwritechunk :: Int32 -> Ptr Int32 -> Ptr HDFData -> IO CInt
 
 -- Raw data information
-foreign import ccall unsafe "SDgetanndatainfo" c_sdgetanndatainfo :: Int32 -> CAnnType -> CUInt -> Ptr Int32 -> Ptr Int32 -> IO CInt
-foreign import ccall unsafe "SDgetattdatainfo" c_sdgetattdatainfo :: Int32 -> Int32 -> Ptr Int32 -> Ptr Int32 -> IO CInt
-foreign import ccall unsafe "SDgetdatainfo" c_sdgetdatainfo :: Int32 -> Ptr Int32 -> CUInt -> CUInt -> Ptr Int32 -> Ptr Int32 -> IO CInt
-foreign import ccall unsafe "SDgetoldattdatainfo" c_sdgetoldattdatainfo :: Int32 -> Int32 -> CString -> Ptr Int32 -> Ptr Int32 -> IO CInt
+foreign import ccall safe "SDgetanndatainfo" c_sdgetanndatainfo :: Int32 -> CAnnType -> CUInt -> Ptr Int32 -> Ptr Int32 -> IO CInt
+foreign import ccall safe "SDgetattdatainfo" c_sdgetattdatainfo :: Int32 -> Int32 -> Ptr Int32 -> Ptr Int32 -> IO CInt
+foreign import ccall safe "SDgetdatainfo" c_sdgetdatainfo :: Int32 -> Ptr Int32 -> CUInt -> CUInt -> Ptr Int32 -> Ptr Int32 -> IO CInt
+foreign import ccall safe "SDgetoldattdatainfo" c_sdgetoldattdatainfo :: Int32 -> Int32 -> CString -> Ptr Int32 -> Ptr Int32 -> IO CInt
 
 -- Miscellaneous
-foreign import ccall unsafe "SDgetexternalinfo" c_sdgetexternalinfo :: Int32 -> CUInt -> CString -> Ptr Int32 -> Ptr Int32 -> IO CInt
-foreign import ccall unsafe "SDsetblocksize" c_sdsetblocksize :: Int32 -> Int32 -> IO CInt
-foreign import ccall unsafe "SDsetexternalfile" c_sdsetexternalfile :: Int32 -> CString -> Int32 -> IO CInt
-foreign import ccall unsafe "SDisdimval_bwcomp" c_sdisdimval_bwcomp :: Int32 -> IO CInt
-foreign import ccall unsafe "SDsetdimval_comp" c_sdsetdimval_comp :: Int32 -> CInt -> IO CInt
+foreign import ccall safe "SDgetexternalinfo" c_sdgetexternalinfo :: Int32 -> CUInt -> CString -> Ptr Int32 -> Ptr Int32 -> IO CInt
+foreign import ccall safe "SDsetblocksize" c_sdsetblocksize :: Int32 -> Int32 -> IO CInt
+foreign import ccall safe "SDsetexternalfile" c_sdsetexternalfile :: Int32 -> CString -> Int32 -> IO CInt
+foreign import ccall safe "SDisdimval_bwcomp" c_sdisdimval_bwcomp :: Int32 -> IO CInt
+foreign import ccall safe "SDsetdimval_comp" c_sdsetdimval_comp :: Int32 -> CInt -> IO CInt
 -- SDsetaccesstype {- this function does not seem to do any useful work as in HDF-4.2.14 -}
 
 {-# NOINLINE currentLine #-}
