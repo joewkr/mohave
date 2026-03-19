@@ -26,7 +26,7 @@ jobs:
             os: ubuntu-24.04-arm
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v6
       if: github.event.action == 'opened' || github.event.action == 'synchronize' || github.event.ref == 'refs/heads/master'
 
     - uses: haskell-actions/setup@v2
@@ -56,7 +56,7 @@ jobs:
         cabal configure --enable-tests --enable-benchmarks --test-show-details=direct
         cabal freeze
 
-    - uses: actions/cache@v4
+    - uses: actions/cache@v5
       name: Cache ~/.cabal/store
       with:
         path: ${{ steps.setup-haskell-cabal.outputs.cabal-store }}
