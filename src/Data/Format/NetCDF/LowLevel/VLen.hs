@@ -19,8 +19,8 @@ module Data.Format.NetCDF.LowLevel.VLen(
 ) where
 
 import           Control.Monad (void)
-import           Data.Int
 import qualified Data.Vector.Storable as VS
+import           Foreign.C.Types (CInt)
 import           Foreign.Concurrent (addForeignPtrFinalizer)
 import           Foreign.Storable
 import           Foreign.ForeignPtr hiding (addForeignPtrFinalizer)
@@ -47,7 +47,7 @@ import           Data.Format.NetCDF.LowLevel.Variable
 import           Data.Format.NetCDF.LowLevel.User.Type
 
 
-ncVLenForeignPtrToVS :: Int32 -> (ForeignPtr (NCVLenContainer 'U a), Int) -> IO (Int32, VS.Vector (NCVLenContainer 'M a))
+ncVLenForeignPtrToVS :: CInt -> (ForeignPtr (NCVLenContainer 'U a), Int) -> IO (CInt, VS.Vector (NCVLenContainer 'M a))
 ncVLenForeignPtrToVS res (fp, len) = if res /= 0
   then return (res, VS.empty)
   else do
@@ -55,7 +55,7 @@ ncVLenForeignPtrToVS res (fp, len) = if res /= 0
     return (res, VS.unsafeFromForeignPtr0 (castForeignPtr fp) len)
 
 {-# INLINE fromScalarVLen #-}
-fromScalarVLen :: forall a. Storable a => (Int32, NCVLenContainer 'U a) -> IO (Int32, VS.Vector a)
+fromScalarVLen :: forall a. Storable a => (CInt, NCVLenContainer 'U a) -> IO (CInt, VS.Vector a)
 fromScalarVLen (res, ncVLenContainer) = if res /= 0
     then return (res, VS.empty)
     else do
@@ -69,7 +69,7 @@ nc_get_vara_vlen :: forall id a (t :: NCDataTypeTag) (n :: Nat).
   -> NCVariableId n ('TNCVLen t)
   -> StaticVector n Int
   -> StaticVector n Int
-  -> IO (Int32, VS.Vector (NCVLenContainer 'M a))
+  -> IO (CInt, VS.Vector (NCVLenContainer 'M a))
 nc_get_vara_vlen ncid varid start count = do
   (res, fpLen) <- nc_get_vara_fptr ncid varid start count
   ncVLenForeignPtrToVS res fpLen
@@ -79,7 +79,7 @@ nc_get_var1_vlen :: forall id a (t :: NCDataTypeTag) (n :: Nat).
      NC id
   -> NCVariableId n ('TNCVLen t)
   -> StaticVector n Int
-  -> IO (Int32, VS.Vector a)
+  -> IO (CInt, VS.Vector a)
 nc_get_var1_vlen ncid varid start = do
   nc_get_var1 ncid varid start >>= fromScalarVLen
 
@@ -87,7 +87,7 @@ nc_get_var_vlen :: forall id a (t :: NCDataTypeTag) (n :: Nat).
   (KnownNat n, a ~ EquivalentHaskellType t, Storable a) =>
      NC id
   -> NCVariableId n ('TNCVLen t)
-  -> IO (Int32, VS.Vector (NCVLenContainer 'M a))
+  -> IO (CInt, VS.Vector (NCVLenContainer 'M a))
 nc_get_var_vlen ncid varid = do
     (res, fpLen) <- nc_get_var_fptr ncid varid
     ncVLenForeignPtrToVS res fpLen
@@ -99,7 +99,7 @@ nc_get_vars_vlen :: forall id a (t :: NCDataTypeTag) (n :: Nat).
   -> StaticVector n Int
   -> StaticVector n Int
   -> StaticVector n Int
-  -> IO (Int32, VS.Vector (NCVLenContainer 'M a))
+  -> IO (CInt, VS.Vector (NCVLenContainer 'M a))
 nc_get_vars_vlen ncid varid start count stride = do
     (res, fpLen) <- nc_get_vars_fptr ncid varid start count stride
     ncVLenForeignPtrToVS res fpLen
@@ -108,7 +108,7 @@ nc_get_vlen :: forall id a (t :: NCDataTypeTag).
   (a ~ EquivalentHaskellType t, Storable a) =>
      NC id
   -> NCVariableId 0 ('TNCVLen t)
-  -> IO (Int32, VS.Vector a)
+  -> IO (CInt, VS.Vector a)
 nc_get_vlen ncid varid = do
   nc_get_scalar ncid varid >>= fromScalarVLen
 
@@ -117,7 +117,7 @@ nc_put_vlen :: forall id a (t :: NCDataTypeTag).
      NC id
   -> NCVariableId 0 ('TNCVLen t)
   -> VS.Vector a
-  -> IO (Int32, ())
+  -> IO (CInt, ())
 nc_put_vlen ncid varid ncData =
   withVLen ncData $ \ncDataPtr ->
     nc_put_scalar ncid varid ncDataPtr
@@ -128,7 +128,7 @@ nc_put_var1_vlen :: forall id a (t :: NCDataTypeTag) (n :: Nat).
   -> NCVariableId n ('TNCVLen t)
   -> StaticVector n Int
   -> VS.Vector a
-  -> IO (Int32, ())
+  -> IO (CInt, ())
 nc_put_var1_vlen ncid varid start ncData =
   withVLen ncData $ \ncDataPtr ->
     nc_put_var1 ncid varid start ncDataPtr
@@ -137,7 +137,7 @@ nc_get_vlen_att :: forall id a (t :: NCDataTypeTag).
   (a ~ EquivalentHaskellType t, Storable a) =>
      NC id
   -> NCAttribute ('TNCVLen t)
-  -> IO (Int32, [VS.Vector a])
+  -> IO (CInt, [VS.Vector a])
 nc_get_vlen_att ncid attr = do
   (res, ncVLenContainer) <- nc_get_att ncid attr
   vlen <- if res /= 0
@@ -152,7 +152,7 @@ nc_get_scalar_vlen_att :: forall id a (t :: NCDataTypeTag).
   (a ~ EquivalentHaskellType t, Storable a) =>
      NC id
   -> NCAttribute ('TNCVLen t)
-  -> IO (Int32, VS.Vector a)
+  -> IO (CInt, VS.Vector a)
 nc_get_scalar_vlen_att ncid attr = do
   -- Instead of checking that attribute is indeed scalar, we simply
   -- read the whole thing and then return the first element of the
@@ -172,7 +172,7 @@ nc_put_vlen_att :: forall id a (vt :: NCDataTypeTag) (at :: NCDataTypeTag) (n ::
   -> String
   -> NCType ('TNCVLen at)
   -> [VS.Vector a]
-  -> IO (Int32, NCAttribute ('TNCVLen at))
+  -> IO (CInt, NCAttribute ('TNCVLen at))
 nc_put_vlen_att ncid varid attrName attrType attrValue =
   withVLenList attrValue $ nc_put_att ncid varid attrName attrType
 
@@ -183,6 +183,6 @@ nc_put_scalar_vlen_att :: forall id a (vt :: NCDataTypeTag) (at :: NCDataTypeTag
   -> String
   -> NCType ('TNCVLen at)
   -> VS.Vector a
-  -> IO (Int32, NCAttribute ('TNCVLen at))
+  -> IO (CInt, NCAttribute ('TNCVLen at))
 nc_put_scalar_vlen_att ncid varid attrName attrType attrValue =
   withVLen attrValue $ nc_put_scalar_att ncid varid attrName attrType

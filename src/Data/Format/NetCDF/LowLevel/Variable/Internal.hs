@@ -50,7 +50,6 @@ module Data.Format.NetCDF.LowLevel.Variable.Internal (
   , mkSomeNCVariable
 ) where
 
-import           Data.Int
 import           Data.Proxy (Proxy(..))
 import qualified Data.Vector.Storable as VS
 import           Data.Word
@@ -259,14 +258,14 @@ nc_def_var' :: forall id (t :: NCDataTypeTag) (n :: Nat). KnownNat n =>
     -> String
     -> NCType t
     -> VarShapeDef n NCDimensionId
-    -> IO (Int32, NCVariableId n t)
+    -> IO (CInt, NCVariableId n t)
 nc_def_var' ncid varName (NCType cVarType _) varDims =
     withCString varName $ \c_varName ->
     withStaticVectororNull varDims $ \varDimsPtr ->
     alloca $ \varidPtr -> do
         res <- c_nc_def_var (ncRawId ncid) c_varName cVarType rank (castPtr varDimsPtr) varidPtr
         varid  <- peek varidPtr
-        return $! (fromIntegral res, NCVariableId varid)
+        return $! (res, NCVariableId varid)
   where
     rank = fromIntegral $! natVal (Proxy :: Proxy n)
     withStaticVectororNull varShp f = case varShp of
@@ -278,25 +277,25 @@ nc_def_var :: forall id (t :: NCDataTypeTag) (n :: Nat). KnownNat n =>
     -> String
     -> NCType t
     -> StaticVector n NCDimensionId
-    -> IO (Int32, NCVariableId n t)
+    -> IO (CInt, NCVariableId n t)
 nc_def_var ncid varName varType varDims = nc_def_var' ncid varName varType (ArrayVar varDims)
 
 nc_def_scalar_var :: forall id (t :: NCDataTypeTag).
        NC id
     -> String
     -> NCType t
-    -> IO (Int32, NCVariableId 0 t)
+    -> IO (CInt, NCVariableId 0 t)
 nc_def_scalar_var ncid varName varType = nc_def_var' ncid varName varType ScalarVar
 
 nc_def_var_fill :: forall id a (t :: NCDataTypeTag) (n :: Nat). (KnownNat n, a ~ EquivalentHaskellType t, Storable a) =>
        NC id
     -> NCVariableId n t
     -> Maybe a
-    -> IO (Int32, ())
+    -> IO (CInt, ())
 nc_def_var_fill ncid (NCVariableId varid) fillValue =
     maybeWith with fillValue $ \fillValuePtr -> do
         res <- c_nc_def_var_fill (ncRawId ncid) varid (toNCFillTag fillMode) (castPtr fillValuePtr)
-        return $! (fromIntegral res, ())
+        return $! (res, ())
   where
     fillMode = case fillValue of
         Just{} -> NCFill
@@ -307,10 +306,10 @@ nc_def_var_deflate :: forall id (t :: NCDataTypeTag) (n :: Nat).
     -> NCVariableId n t
     -> Bool
     -> Maybe Int
-    -> IO (Int32, ())
+    -> IO (CInt, ())
 nc_def_var_deflate ncid (NCVariableId varid) shuffle deflateLevel = do
     res <- c_nc_def_var_deflate (ncRawId ncid) varid (fromBool shuffle) (fromBool deflate) (fromIntegral level)
-    return $! (fromIntegral res, ())
+    return $! (res, ())
   where
     (deflate,level) = case deflateLevel of
         Just l -> (True, l)
@@ -320,20 +319,20 @@ nc_def_var_fletcher32 :: forall id (t :: NCDataTypeTag) (n :: Nat).
        NC id
     -> NCVariableId n t
     -> Bool
-    -> IO (Int32, ())
+    -> IO (CInt, ())
 nc_def_var_fletcher32 ncid (NCVariableId varid) fletcher32 = do
     res <- c_nc_def_var_fletcher32 (ncRawId ncid) varid (fromBool fletcher32)
-    return $! (fromIntegral res, ())
+    return $! (res, ())
 
 nc_def_var_chunking :: forall id (t :: NCDataTypeTag) (n :: Nat). KnownNat n =>
        NC id
     -> NCVariableId n t
     -> Maybe (StaticVector n Word32)
-    -> IO (Int32, ())
+    -> IO (CInt, ())
 nc_def_var_chunking ncid (NCVariableId varid) chunkSizes =
     maybeWith withStaticVector ((fromIntegral <$>) <$> chunkSizes) $ \chunkSizesPtr -> do
         res <- c_nc_def_var_chunking (ncRawId ncid) varid (toNCStorageTypeTag storageMode) chunkSizesPtr
-        return $! (fromIntegral res, ())
+        return $! (res, ())
   where
     storageMode :: NCStorageType
     storageMode = case chunkSizes of
@@ -344,31 +343,31 @@ nc_def_var_endian :: forall id (t :: NCDataTypeTag) (n :: Nat).
        NC id
     -> NCVariableId n t
     -> NCEndianness
-    -> IO (Int32, ())
+    -> IO (CInt, ())
 nc_def_var_endian ncid (NCVariableId varid) endianness = do
     res <- c_nc_def_var_endian (ncRawId ncid) varid (toNCEndiannessTypeTag endianness)
-    return $! (fromIntegral res, ())
+    return $! (res, ())
 
 nc_rename_var :: forall id (t :: NCDataTypeTag) (n :: Nat).
        NC id
     -> NCVariableId n t
     -> String
-    -> IO (Int32, ())
+    -> IO (CInt, ())
 nc_rename_var ncid (NCVariableId varid) newName =
     withCString newName $ \c_newName -> do
         res <- c_nc_rename_var (ncRawId ncid) varid c_newName
-        return $! (fromIntegral res, ())
+        return $! (res, ())
 
 nc_inq_varid :: forall id.
        NC id
     -> String
-    -> IO (Int32, SomeNCVariable)
+    -> IO (CInt, SomeNCVariable)
 nc_inq_varid ncid varName =
     withCString varName $ \c_varName ->
     alloca $ \varidPtr -> do
         res <- c_nc_inq_varid (ncRawId ncid) c_varName varidPtr
         varid <- peek varidPtr >>= mkSomeNCVariable ncid
-        return $! (fromIntegral res, varid)
+        return $! (res, varid)
 
 mkSomeNCVariable :: NC id -> CInt -> IO SomeNCVariable
 mkSomeNCVariable ncid varid = do
@@ -381,56 +380,56 @@ mkSomeNCVariable ncid varid = do
 nc_inq_varndims :: forall id (t :: NCDataTypeTag) (n :: Nat).
        NC id
     -> NCVariableId n t
-    -> IO (Int32, Word32)
+    -> IO (CInt, Word32)
 nc_inq_varndims ncid (NCVariableId varid) =
     alloca $ \numDimsPtr -> do
         res <- c_nc_inq_varndims (ncRawId ncid) varid numDimsPtr
         numDims <- peek numDimsPtr
-        return $! (fromIntegral res, fromIntegral numDims)
+        return $! (res, fromIntegral numDims)
 
 nc_inq_vartype :: forall id (t :: NCDataTypeTag) (n :: Nat).
        NC id
     -> NCVariableId n t
-    -> IO (Int32, SomeNCType)
+    -> IO (CInt, SomeNCType)
 nc_inq_vartype ncid (NCVariableId varid) =
     alloca $ \ncTypePtr -> do
         res <- c_nc_inq_vartype (ncRawId ncid) varid ncTypePtr
         typeid <- peek ncTypePtr >>= fromNCTypeTag ncid
-        return $! (fromIntegral res, typeid)
+        return $! (res, typeid)
 
 nc_inq_varname :: forall id (t :: NCDataTypeTag) (n :: Nat).
        NC id
     -> NCVariableId n t
-    -> IO (Int32, String)
+    -> IO (CInt, String)
 nc_inq_varname ncid (NCVariableId varid) =
     allocaArray0 (fromIntegral ncMaxNameLen) $ \c_varName -> do
         res <- c_nc_inq_varname (ncRawId ncid) varid c_varName
         varName <- peekCString c_varName
-        return $! (fromIntegral res, varName)
+        return $! (res, varName)
 
 nc_inq_vardimid :: forall id (t :: NCDataTypeTag) (n :: Nat). KnownNat n =>
        NC id
     -> NCVariableId n t
-    -> IO (Int32, Maybe (StaticVector n NCDimensionId))
+    -> IO (CInt, Maybe (StaticVector n NCDimensionId))
 nc_inq_vardimid ncid v@(NCVariableId varid) = do
     (res1, numDims) <- nc_inq_varndims ncid v
     if (res1 /= 0)
-        then return (fromIntegral res1, Nothing)
+        then return (res1, Nothing)
         else allocaArray (fromIntegral numDims) $ \dimIdsPtr -> do
             res2 <- c_nc_inq_vardimid (ncRawId ncid) varid dimIdsPtr
             dimIds <- toStaticVector (Proxy :: Proxy n) . map NCDimensionId <$>
                         peekArray (fromIntegral numDims) dimIdsPtr
-            return $! (fromIntegral res2, dimIds)
+            return $! (res2, dimIds)
 
 nc_inq_varnatts :: forall id (t :: NCDataTypeTag) (n :: Nat).
        NC id
     -> NCVariableId n t
-    -> IO (Int32, Word32)
+    -> IO (CInt, Word32)
 nc_inq_varnatts ncid (NCVariableId varid) =
     alloca $ \numAttsPtr -> do
         res <- c_nc_inq_varnatts (ncRawId ncid) varid numAttsPtr
         numAtts <- peek numAttsPtr
-        return $! (fromIntegral res, fromIntegral numAtts)
+        return $! (res, fromIntegral numAtts)
 
 data NCDeflateParams = NCDeflateParams {
     ncShuffle :: Bool
@@ -440,7 +439,7 @@ data NCDeflateParams = NCDeflateParams {
 nc_inq_var_deflate :: forall id (t :: NCDataTypeTag) (n :: Nat).
        NC id
     -> NCVariableId n t
-    -> IO (Int32, NCDeflateParams)
+    -> IO (CInt, NCDeflateParams)
 nc_inq_var_deflate ncid (NCVariableId varid) =
     alloca $ \doShufflePtr ->
     alloca $ \deflatePtr ->
@@ -450,23 +449,23 @@ nc_inq_var_deflate ncid (NCVariableId varid) =
         deflate <- toBool <$> peek deflatePtr
         deflateLevel <- fromIntegral <$> peek deflateLevelPtr
         return $! (
-            fromIntegral res
+            res
           , NCDeflateParams doShuffle $ if deflate && deflateLevel /= 0 then Just deflateLevel else Nothing)
 
 nc_inq_var_fletcher32 :: forall id (t :: NCDataTypeTag) (n :: Nat).
        NC id
     -> NCVariableId n t
-    -> IO (Int32, Bool)
+    -> IO (CInt, Bool)
 nc_inq_var_fletcher32 ncid (NCVariableId varid) =
     alloca $ \fletcher32Ptr -> do
         res <- c_nc_inq_var_fletcher32 (ncRawId ncid) varid fletcher32Ptr
         fletcher32 <- toBool <$> peek fletcher32Ptr
-        return $! (fromIntegral res, fletcher32)
+        return $! (res, fletcher32)
 
 nc_inq_var_chunking :: forall id (t :: NCDataTypeTag) (n :: Nat). KnownNat n =>
        NC id
     -> NCVariableId n t
-    -> IO (Int32, Maybe (StaticVector n Word32))
+    -> IO (CInt, Maybe (StaticVector n Word32))
 nc_inq_var_chunking ncid (NCVariableId varid) =
     allocaArray rank $ \chunkSizesPtr -> do
     alloca $ \storageModePtr -> do
@@ -476,14 +475,14 @@ nc_inq_var_chunking ncid (NCVariableId varid) =
             Just NCChunked ->
                 toStaticVector (Proxy :: Proxy n) . map fromIntegral <$> peekArray rank chunkSizesPtr
             _ -> return Nothing
-        return $! (fromIntegral res, chunkSizes)
+        return $! (res, chunkSizes)
   where
     rank = fromIntegral $! natVal (Proxy :: Proxy n)
 
 nc_inq_var_fill :: forall id a (t :: NCDataTypeTag) (n :: Nat). (a ~ EquivalentHaskellType t, Storable a) =>
        NC id
     -> NCVariableId n t
-    -> IO (Int32, (NCFillMode, a))
+    -> IO (CInt, (NCFillMode, a))
 nc_inq_var_fill ncid (NCVariableId varid) =
     alloca $ \noFillPtr ->
     alloca $ \fillValuePtr -> do
@@ -494,28 +493,28 @@ nc_inq_var_fill ncid (NCVariableId varid) =
             then (,) NCNoFill
             else (,) NCFill
         fillValue <- fillValueB <$> peek fillValuePtr
-        return $! (fromIntegral res, fillValue)
+        return $! (res, fillValue)
 
 nc_inq_var_endian :: forall id (t :: NCDataTypeTag) (n :: Nat).
        NC id
     -> NCVariableId n t
-    -> IO (Int32, NCEndianness)
+    -> IO (CInt, NCEndianness)
 nc_inq_var_endian ncid (NCVariableId varid) =
     alloca $ \endiannessPtr -> do
         res <- c_nc_inq_var_endian (ncRawId ncid) varid endiannessPtr
         endianness <- fromNCEndiannessTypeTag <$> peek endiannessPtr
         case endianness of
-            Just e -> return $! (fromIntegral res, e)
-            Nothing -> return $! (fromIntegral $ toNCErrorCode NC_UNEXPECTED, NCEndianNative)
+            Just e -> return $! (res, e)
+            Nothing -> return $! (toNCErrorCode NC_UNEXPECTED, NCEndianNative)
 
-nc_inq_num_unlimdims :: NC id -> IO (Int32, Int)
+nc_inq_num_unlimdims :: NC id -> IO (CInt, Int)
 nc_inq_num_unlimdims ncid =
     alloca $ \numDimsPtr -> do
         res <- c_nc_inq_unlimdims (ncRawId ncid) numDimsPtr nullPtr
         numDims <- peek numDimsPtr
-        return $! (fromIntegral res, fromIntegral numDims)
+        return $! (res, fromIntegral numDims)
 
-nc_inq_unlimdims :: NC id -> IO (Int32, [NCDimensionId])
+nc_inq_unlimdims :: NC id -> IO (CInt, [NCDimensionId])
 nc_inq_unlimdims ncid = do
     (res1, numDimsPtr) <- nc_inq_num_unlimdims ncid
     if res1 /= 0
@@ -524,14 +523,14 @@ nc_inq_unlimdims ncid = do
             allocaArray numDimsPtr $ \dimIdsPtr -> do
                 res <- c_nc_inq_unlimdims (ncRawId ncid) nullPtr dimIdsPtr
                 dimIds <- peekArray numDimsPtr dimIdsPtr
-                return $! (fromIntegral res, map NCDimensionId dimIds)
+                return $! (res, map NCDimensionId dimIds)
 
 nc_get_vara :: forall id a (t :: NCDataTypeTag) (n :: Nat). (KnownNat n, a ~ EquivalentHaskellType t, Storable a) =>
        NC id
     -> NCVariableId n t
     -> StaticVector n Int
     -> StaticVector n Int
-    -> IO (Int32, VS.Vector a)
+    -> IO (CInt, VS.Vector a)
 nc_get_vara ncid varid start count = do
     (res, (fp, len)) <- nc_get_vara_fptr ncid varid start count
     if res /= 0
@@ -543,7 +542,7 @@ nc_get_vara_fptr :: forall id a (t :: NCDataTypeTag) (n :: Nat). (KnownNat n, a 
     -> NCVariableId n t
     -> StaticVector n Int
     -> StaticVector n Int
-    -> IO (Int32, (ForeignPtr a, Int))
+    -> IO (CInt, (ForeignPtr a, Int))
 nc_get_vara_fptr ncid (NCVariableId varid) start count =
     withStaticVector (fromIntegral <$> start) $ \startPtr ->
     withStaticVector (fromIntegral <$> count) $ \countPtr -> do
@@ -552,25 +551,25 @@ nc_get_vara_fptr ncid (NCVariableId varid) start count =
         res <- withForeignPtr fp $ \ncDataPtr ->
             c_nc_get_vara (ncRawId ncid) varid startPtr countPtr (castPtr ncDataPtr)
         return $!
-            ( fromIntegral res
+            ( res
             , (fp, fromIntegral $ product countList))
 
 nc_get_var1 :: forall id a (t :: NCDataTypeTag) (n :: Nat). (KnownNat n, a ~ EquivalentHaskellType t, Storable a) =>
        NC id
     -> NCVariableId n t
     -> StaticVector n Int
-    -> IO (Int32, a)
+    -> IO (CInt, a)
 nc_get_var1 ncid (NCVariableId varid) start =
     withStaticVector (fromIntegral <$> start) $ \startPtr ->
     alloca $ \ncDataPtr -> do
         res <- c_nc_get_var1 (ncRawId ncid) varid startPtr (castPtr ncDataPtr)
         ncData <- peek ncDataPtr
-        return $! (fromIntegral res, ncData)
+        return $! (res, ncData)
 
 nc_get_var :: forall id a (t :: NCDataTypeTag) (n :: Nat). (KnownNat n, a ~ EquivalentHaskellType t, Storable a) =>
        NC id
     -> NCVariableId n t
-    -> IO (Int32, VS.Vector a)
+    -> IO (CInt, VS.Vector a)
 nc_get_var ncid varid = do
     (res, (fp, len)) <- nc_get_var_fptr ncid varid
     if res /= 0
@@ -580,7 +579,7 @@ nc_get_var ncid varid = do
 nc_get_var_fptr :: forall id a (t :: NCDataTypeTag) (n :: Nat). (KnownNat n, a ~ EquivalentHaskellType t, Storable a) =>
        NC id
     -> NCVariableId n t
-    -> IO (Int32, (ForeignPtr a, Int))
+    -> IO (CInt, (ForeignPtr a, Int))
 nc_get_var_fptr ncid v@(NCVariableId varid) = do
     (res1, maybeDimids) <- nc_inq_vardimid ncid v
     fNullPtr <- newForeignPtr_ nullPtr
@@ -596,7 +595,7 @@ nc_get_var_fptr ncid v@(NCVariableId varid) = do
                     res <- withForeignPtr fp $ \ncDataPtr ->
                         c_nc_get_var (ncRawId ncid) varid (castPtr ncDataPtr)
                     return $!
-                        ( fromIntegral res
+                        ( res
                         , (fp, fromIntegral $ product dimLens))
 
 nc_get_vars :: forall id a (t :: NCDataTypeTag) (n :: Nat). (KnownNat n, a ~ EquivalentHaskellType t, Storable a) =>
@@ -605,7 +604,7 @@ nc_get_vars :: forall id a (t :: NCDataTypeTag) (n :: Nat). (KnownNat n, a ~ Equ
     -> StaticVector n Int
     -> StaticVector n Int
     -> StaticVector n Int
-    -> IO (Int32, VS.Vector a)
+    -> IO (CInt, VS.Vector a)
 nc_get_vars ncid varid start count stride = do
     (res, (fp, len)) <- nc_get_vars_fptr ncid varid start count stride
     if res /= 0
@@ -618,7 +617,7 @@ nc_get_vars_fptr :: forall id a (t :: NCDataTypeTag) (n :: Nat). (KnownNat n, a 
     -> StaticVector n Int
     -> StaticVector n Int
     -> StaticVector n Int
-    -> IO (Int32, (ForeignPtr a, Int))
+    -> IO (CInt, (ForeignPtr a, Int))
 nc_get_vars_fptr ncid (NCVariableId varid) start count stride =
     withStaticVector (fromIntegral <$>  start) $ \startPtr  ->
     withStaticVector (fromIntegral <$>  count) $ \countPtr  ->
@@ -628,7 +627,7 @@ nc_get_vars_fptr ncid (NCVariableId varid) start count stride =
         res <- withForeignPtr fp $ \ncDataPtr ->
             c_nc_get_vars (ncRawId ncid) varid startPtr countPtr stridePtr (castPtr ncDataPtr)
         return $!
-            ( fromIntegral res
+            ( res
             , (fp, fromIntegral $ product countList))
 
 nc_put_vara :: forall id a (t :: NCDataTypeTag) (n :: Nat). (KnownNat n, a ~ EquivalentHaskellType t, Storable a) =>
@@ -637,34 +636,34 @@ nc_put_vara :: forall id a (t :: NCDataTypeTag) (n :: Nat). (KnownNat n, a ~ Equ
     -> StaticVector n Int
     -> StaticVector n Int
     -> VS.Vector a
-    -> IO (Int32, ())
+    -> IO (CInt, ())
 nc_put_vara ncid (NCVariableId varid) start count ncData
   | VS.length ncData /= (product $ fromStaticVector count) =
-      return (fromIntegral $ toNCErrorCode NC_EVARSIZE, ())
+      return (toNCErrorCode NC_EVARSIZE, ())
   | otherwise =
     withStaticVector (fromIntegral <$> start) $ \startPtr ->
     withStaticVector (fromIntegral <$> count) $ \countPtr ->
     VS.unsafeWith ncData $ \ncDataPtr -> do
         res <- c_nc_put_vara (ncRawId ncid) varid startPtr countPtr (castPtr ncDataPtr)
-        return $! (fromIntegral res, ())
+        return $! (res, ())
 
 nc_put_var1 :: forall id a (t :: NCDataTypeTag) (n :: Nat). (KnownNat n, a ~ EquivalentHaskellType t, Storable a) =>
        NC id
     -> NCVariableId n t
     -> StaticVector n Int
     -> a
-    -> IO (Int32, ())
+    -> IO (CInt, ())
 nc_put_var1 ncid (NCVariableId varid) start ncData =
     withStaticVector (fromIntegral <$> start) $ \startPtr ->
     with ncData $ \ncDataPtr -> do
         res <- c_nc_put_var1 (ncRawId ncid) varid startPtr (castPtr ncDataPtr)
-        return $! (fromIntegral res, ())
+        return $! (res, ())
 
 nc_put_var :: forall id a (t :: NCDataTypeTag) (n :: Nat). (KnownNat n, a ~ EquivalentHaskellType t, Storable a) =>
        NC id
     -> NCVariableId n t
     -> VS.Vector a
-    -> IO (Int32, ())
+    -> IO (CInt, ())
 nc_put_var ncid v@(NCVariableId varid) ncData = do
     (res1, maybeDimids) <- nc_inq_vardimid ncid v
     if res1 /= 0
@@ -673,12 +672,12 @@ nc_put_var ncid v@(NCVariableId varid) ncData = do
             let varDimids = maybe [] fromStaticVector maybeDimids
             (ress,dimLens) <- unzip <$> mapM (nc_inq_dimlen ncid) varDimids
             if any (/= 0) ress
-                then return $! (fromIntegral . head $ filter (/= 0) ress, ())
+                then return $! (head $ filter (/= 0) ress, ())
                 else if VS.length ncData /= (fromIntegral $ product dimLens)
-                    then return (fromIntegral $ toNCErrorCode NC_EVARSIZE, ())
+                    then return (toNCErrorCode NC_EVARSIZE, ())
                     else VS.unsafeWith ncData $ \ncDataPtr -> do
                         res <- c_nc_put_var (ncRawId ncid) varid (castPtr ncDataPtr)
-                        return $! (fromIntegral res, ())
+                        return $! (res, ())
 
 nc_put_vars :: forall id a (t :: NCDataTypeTag) (n :: Nat). (KnownNat n, a ~ EquivalentHaskellType t, Storable a) =>
        NC id
@@ -687,34 +686,34 @@ nc_put_vars :: forall id a (t :: NCDataTypeTag) (n :: Nat). (KnownNat n, a ~ Equ
     -> StaticVector n Int
     -> StaticVector n Int
     -> VS.Vector a
-    -> IO (Int32, ())
+    -> IO (CInt, ())
 nc_put_vars ncid (NCVariableId varid) start count stride ncData
   | VS.length ncData /= (product $ fromStaticVector count) =
-      return (fromIntegral $ toNCErrorCode NC_EVARSIZE, ())
+      return (toNCErrorCode NC_EVARSIZE, ())
   | otherwise =
     withStaticVector (fromIntegral <$>  start) $ \startPtr  ->
     withStaticVector (fromIntegral <$>  count) $ \countPtr  ->
     withStaticVector (fromIntegral <$> stride) $ \stridePtr ->
     VS.unsafeWith ncData $ \ncDataPtr -> do
         res <- c_nc_put_vars (ncRawId ncid) varid startPtr countPtr stridePtr (castPtr ncDataPtr)
-        return $! (fromIntegral res, ())
+        return $! (res, ())
 
 nc_get_scalar :: forall id a (t :: NCDataTypeTag). (a ~ EquivalentHaskellType t, Storable a) =>
        NC id
     -> NCVariableId 0 t
-    -> IO (Int32, a)
+    -> IO (CInt, a)
 nc_get_scalar ncid (NCVariableId varid) =
     alloca $ \ncDataPtr -> do
         res <- c_nc_get_var (ncRawId ncid) varid (castPtr ncDataPtr)
         ncData <- peek ncDataPtr
-        return $! (fromIntegral res, ncData)
+        return $! (res, ncData)
 
 nc_put_scalar :: forall id a (t :: NCDataTypeTag). (a ~ EquivalentHaskellType t, Storable a) =>
        NC id
     -> NCVariableId 0 t
     -> a
-    -> IO (Int32, ())
+    -> IO (CInt, ())
 nc_put_scalar ncid (NCVariableId varid) ncData =
     with ncData $ \ncDataPtr -> do
         res <- c_nc_put_var (ncRawId ncid) varid (castPtr ncDataPtr)
-        return $! (fromIntegral res, ())
+        return $! (res, ())

@@ -88,23 +88,23 @@ nc_inq_type_equal :: forall id1 id2 (t1 :: NCDataTypeTag) (t2 :: NCDataTypeTag).
   -> NCType t1
   -> NC id2
   -> NCType t2
-  -> IO (Int32, Bool)
+  -> IO (CInt, Bool)
 nc_inq_type_equal ncid1 typeid1 ncid2 typeid2 =
   alloca $ \typesEqualPtr -> do
     res <- c_nc_inq_type_equal (ncRawId ncid1) (ncRawTypeId typeid1) (ncRawId ncid2) (ncRawTypeId typeid2) typesEqualPtr
     typesEqual <- (/= 0) <$> peek typesEqualPtr
-    return (fromIntegral res, typesEqual)
+    return (res, typesEqual)
 
 nc_inq_typeid :: forall id.
      NC id
   -> String
-  -> IO (Int32, SomeNCType)
+  -> IO (CInt, SomeNCType)
 nc_inq_typeid ncid typeName =
   alloca $ \typeIdPtr ->
   withCString typeName $ \c_typeName -> do
     res <- c_nc_inq_typeid (ncRawId ncid) c_typeName typeIdPtr
     someNCType <- peek typeIdPtr >>= fromNCTypeTag ncid
-    return (fromIntegral res, someNCType)
+    return (res, someNCType)
 
 data NcUserTypeInfo = NcUserTypeInfo {
     ncUserTypeName      :: String
@@ -122,7 +122,7 @@ shouldHaveBaseType _      = False
 nc_inq_user_type :: forall id (t :: NCDataTypeTag).
      NC id
   -> NCType t
-  -> IO (Int32, NcUserTypeInfo)
+  -> IO (CInt, NcUserTypeInfo)
 nc_inq_user_type ncid typeid =
     allocaArray0 (fromIntegral ncMaxNameLen) $ \c_typeName ->
     alloca $ \ncTypeSizePtr ->
@@ -141,20 +141,20 @@ nc_inq_user_type ncid typeid =
             baseType <- if shouldHaveBaseType ncTypeClass
               then Just <$> (fromNCTypeTag ncid =<< peek ncBaseTypePtr)
               else return Nothing
-            return (fromIntegral res, userTypeInfoBuilder baseType)
+            return (res, userTypeInfoBuilder baseType)
           Nothing -> return (-1, undefined)
 
 nc_def_compound :: forall id.
      NC id
   -> Word64
   -> String
-  -> IO (Int32, NCType ('TNCCompound '[]))
+  -> IO (CInt, NCType ('TNCCompound '[]))
 nc_def_compound ncid typeSize typeName =
   withCString typeName $ \c_typeName ->
   alloca $ \typeIdPtr -> do
     res <- c_nc_def_compound (ncRawId ncid) (fromIntegral typeSize) c_typeName typeIdPtr
     typeid <- peek typeIdPtr
-    return (fromIntegral res, NCType typeid SNCCompoundE)
+    return (res, NCType typeid SNCCompoundE)
 
 nc_insert_compound :: forall id (t :: NCDataTypeTag) (ts :: [( NCDataTypeTag, Nat)]) (n :: Nat).
      NC id
@@ -162,11 +162,11 @@ nc_insert_compound :: forall id (t :: NCDataTypeTag) (ts :: [( NCDataTypeTag, Na
   -> String
   -> TernarySNat n
   -> NCType t
-  -> IO (Int32, NCType ('TNCCompound (Insert '(t, n) ts)))
+  -> IO (CInt, NCType ('TNCCompound (Insert '(t, n) ts)))
 nc_insert_compound ncid (NCType ncType typeTag) fieldName fieldOffset (NCType ncFieldType ncFieldTag)=
   withCString fieldName $ \c_fieldName -> do
     res <- c_nc_insert_compound (ncRawId ncid) ncType c_fieldName (fromIntegral $ fromTernarySNat fieldOffset) ncFieldType
-    return (fromIntegral res, NCType ncType (SNCCompound ncFieldTag fieldOffset typeTag))
+    return (res, NCType ncType (SNCCompound ncFieldTag fieldOffset typeTag))
 
 data NCCompoundTypeInfo = NCCompoundTypeInfo {
     ncCompoundTypeName             :: String
@@ -177,7 +177,7 @@ data NCCompoundTypeInfo = NCCompoundTypeInfo {
 nc_inq_compound :: forall id (ts :: [( NCDataTypeTag, Nat)]).
      NC id
   -> NCType ('TNCCompound ts)
-  -> IO (Int32, NCCompoundTypeInfo)
+  -> IO (CInt, NCCompoundTypeInfo)
 nc_inq_compound ncid typeid =
   allocaArray0 (fromIntegral ncMaxNameLen) $ \c_typeName ->
   alloca $ \ncTypeSizePtr ->
@@ -186,37 +186,37 @@ nc_inq_compound ncid typeid =
     typeName <- peekCString c_typeName
     typeSize <- fromIntegral <$> peek ncTypeSizePtr
     typeNFields <- fromIntegral <$> peek ncTypeNFieldsPtr
-    return (fromIntegral res, NCCompoundTypeInfo typeName typeNFields typeSize)
+    return (res, NCCompoundTypeInfo typeName typeNFields typeSize)
 
 nc_inq_compound_name :: forall id (ts :: [( NCDataTypeTag, Nat)]).
      NC id
   -> NCType ('TNCCompound ts)
-  -> IO (Int32, String)
+  -> IO (CInt, String)
 nc_inq_compound_name ncid typeid =
   allocaArray0 (fromIntegral ncMaxNameLen) $ \c_typeName -> do
     res <- c_nc_inq_compound_name (ncRawId ncid) (ncRawTypeId typeid) c_typeName
     typeName <- peekCString c_typeName
-    return (fromIntegral res, typeName)
+    return (res, typeName)
 
 nc_inq_compound_size :: forall id (ts :: [( NCDataTypeTag, Nat)]).
      NC id
   -> NCType ('TNCCompound ts)
-  -> IO (Int32, Word64)
+  -> IO (CInt, Word64)
 nc_inq_compound_size ncid typeid =
   alloca $ \ncTypeSizePtr -> do
     res <- c_nc_inq_compound_size (ncRawId ncid) (ncRawTypeId typeid) ncTypeSizePtr
     typeSize <- peek ncTypeSizePtr
-    return (fromIntegral res, fromIntegral typeSize)
+    return (res, fromIntegral typeSize)
 
 nc_inq_compound_nfields :: forall id (ts :: [( NCDataTypeTag, Nat)]).
      NC id
   -> NCType ('TNCCompound ts)
-  -> IO (Int32, Word32)
+  -> IO (CInt, Word32)
 nc_inq_compound_nfields ncid typeid =
   alloca $ \ncTypeNFieldsPtr -> do
     res <- c_nc_inq_compound_nfields (ncRawId ncid) (ncRawTypeId typeid) ncTypeNFieldsPtr
     typeNFields <- peek ncTypeNFieldsPtr
-    return (fromIntegral res, fromIntegral typeNFields)
+    return (res, fromIntegral typeNFields)
 
 data NCCompoundFieldInfo = NCCompoundFieldInfo {
     ncCompoundFieldName   :: String
@@ -229,7 +229,7 @@ nc_inq_compound_field :: forall id (t :: NCDataTypeTag).
      NC id
   -> NCType t
   -> Word32
-  -> IO (Int32, NCCompoundFieldInfo)
+  -> IO (CInt, NCCompoundFieldInfo)
 nc_inq_compound_field ncid typeid field = do
   (res, fieldNDims, f) <- allocaArray0 (fromIntegral ncMaxNameLen) $ \c_fieldName ->
     alloca $ \ncFieldOffsetPtr ->
@@ -241,7 +241,7 @@ nc_inq_compound_field ncid typeid field = do
       fieldTypeId <- peek ncFieldTypePtr >>= fromNCTypeTag ncid
       fieldNDims <- fromIntegral <$> peek ncFieldNDimsPtr
 
-      return (fromIntegral res, fieldNDims, NCCompoundFieldInfo fieldName fieldTypeId fieldOffset)
+      return (res, fieldNDims, NCCompoundFieldInfo fieldName fieldTypeId fieldOffset)
 
   if fieldNDims == 0
     then return (res, f [])
@@ -256,51 +256,51 @@ nc_inq_compound_fieldname :: forall id (ts :: [( NCDataTypeTag, Nat)]).
      NC id
   -> NCType ('TNCCompound ts)
   -> Word32
-  -> IO (Int32, String)
+  -> IO (CInt, String)
 nc_inq_compound_fieldname ncid typeid fieldid =
   allocaArray0 (fromIntegral ncMaxNameLen) $ \c_fieldName -> do
     res <- c_nc_inq_compound_fieldname (ncRawId ncid) (ncRawTypeId typeid) (fromIntegral fieldid) c_fieldName
     fieldName <- peekCString c_fieldName
-    return (fromIntegral res, fieldName)
+    return (res, fieldName)
 
 nc_inq_compound_fieldoffset :: forall id (ts :: [( NCDataTypeTag, Nat)]).
      NC id
   -> NCType ('TNCCompound ts)
   -> Word32
-  -> IO (Int32, Word64)
+  -> IO (CInt, Word64)
 nc_inq_compound_fieldoffset ncid typeid fieldid =
   alloca $ \fieldOffsetPtr -> do
     res <- c_nc_inq_compound_fieldoffset (ncRawId ncid) (ncRawTypeId typeid) (fromIntegral fieldid) fieldOffsetPtr
     fieldOffset <- peek fieldOffsetPtr
-    return (fromIntegral res, fromIntegral fieldOffset)
+    return (res, fromIntegral fieldOffset)
 
 nc_inq_compound_fieldtype :: forall id (ts :: [( NCDataTypeTag, Nat)]).
      NC id
   -> NCType ('TNCCompound ts)
   -> Word32
-  -> IO (Int32, SomeNCType)
+  -> IO (CInt, SomeNCType)
 nc_inq_compound_fieldtype ncid typeid fieldid =
   alloca $ \fieldTypePtr -> do
     res <- c_nc_inq_compound_fieldtype (ncRawId ncid) (ncRawTypeId typeid) (fromIntegral fieldid) fieldTypePtr
     fieldType <- peek fieldTypePtr >>= fromNCTypeTag ncid
-    return (fromIntegral res, fieldType)
+    return (res, fieldType)
 
 nc_inq_compound_fieldndims :: forall id (ts :: [( NCDataTypeTag, Nat)]).
      NC id
   -> NCType ('TNCCompound ts)
   -> Word32
-  -> IO (Int32, Int)
+  -> IO (CInt, Int)
 nc_inq_compound_fieldndims ncid typeid fieldid =
   alloca $ \fieldNDimsPtr -> do
     res <- c_nc_inq_compound_fieldndims (ncRawId ncid) (ncRawTypeId typeid) (fromIntegral fieldid) fieldNDimsPtr
     fieldNDims <- peek fieldNDimsPtr
-    return (fromIntegral res, fromIntegral fieldNDims)
+    return (res, fromIntegral fieldNDims)
 
 nc_inq_compound_fielddim_sizes :: forall id (ts :: [( NCDataTypeTag, Nat)]).
      NC id
   -> NCType ('TNCCompound ts)
   -> Word32
-  -> IO (Int32, [Int])
+  -> IO (CInt, [Int])
 nc_inq_compound_fielddim_sizes ncid typeid fieldid = do
   (res1, fieldNDims) <- nc_inq_compound_fieldndims ncid typeid fieldid
   if res1 /= 0 || fieldNDims == 0
@@ -308,32 +308,32 @@ nc_inq_compound_fielddim_sizes ncid typeid fieldid = do
     else allocaArray fieldNDims $ \fieldDimSizesPtr -> do
       res <- c_nc_inq_compound_fielddim_sizes (ncRawId ncid) (ncRawTypeId typeid) (fromIntegral fieldid) fieldDimSizesPtr
       fieldDimSizes <- peekArray fieldNDims fieldDimSizesPtr
-      return (fromIntegral res, map fromIntegral fieldDimSizes)
+      return (res, map fromIntegral fieldDimSizes)
 
 nc_inq_compound_fieldindex :: forall id (ts :: [( NCDataTypeTag, Nat)]).
      NC id
   -> NCType ('TNCCompound ts)
   -> String
-  -> IO (Int32, Word32)
+  -> IO (CInt, Word32)
 nc_inq_compound_fieldindex ncid typeid fieldName =
   withCString fieldName $ \c_fieldName ->
   alloca $ \fieldIdxPtr -> do
     res <- c_nc_inq_compound_fieldindex (ncRawId ncid) (ncRawTypeId typeid) c_fieldName fieldIdxPtr
     fieldIdx <- peek fieldIdxPtr
-    return (fromIntegral res, fromIntegral fieldIdx)
+    return (res, fromIntegral fieldIdx)
 
 nc_def_enum :: forall id (t :: NCDataTypeTag).
   (t `OneOf` '[ 'TNCByte, 'TNCUByte, 'TNCShort, 'TNCUShort, 'TNCInt, 'TNCUInt, 'TNCInt64, 'TNCUInt64 ]) =>
      NC id
   -> NCType t
   -> String
-  -> IO (Int32, NCType ('TNCEnum t))
+  -> IO (CInt, NCType ('TNCEnum t))
 nc_def_enum ncid (NCType cBaseType baseTypeTag) typeName =
   withCString typeName $ \c_typeName ->
   alloca $ \typeIdPtr -> do
     res <- c_nc_def_enum (ncRawId ncid) cBaseType c_typeName typeIdPtr
     typeid <- peek typeIdPtr
-    return (fromIntegral res, NCType typeid $ SNCEnum baseTypeTag)
+    return (res, NCType typeid $ SNCEnum baseTypeTag)
 
 nc_insert_enum :: forall id a (t :: NCDataTypeTag).
   (a ~ EquivalentHaskellType t, Storable a) =>
@@ -341,12 +341,12 @@ nc_insert_enum :: forall id a (t :: NCDataTypeTag).
   -> NCType ('TNCEnum t)
   -> String
   -> a
-  -> IO (Int32, ())
+  -> IO (CInt, ())
 nc_insert_enum ncid (NCType ncType _) memberName memberValue =
   withCString memberName $ \c_memberName ->
   with memberValue $ \memberValuePtr -> do
     res <- c_nc_insert_enum (ncRawId ncid) ncType c_memberName (castPtr memberValuePtr)
-    return (fromIntegral res, ())
+    return (res, ())
 
 data NCEnumTypeInfo = NCEnumTypeInfo {
     ncEnumTypeName     :: String
@@ -358,7 +358,7 @@ data NCEnumTypeInfo = NCEnumTypeInfo {
 nc_inq_enum :: forall id (t :: NCDataTypeTag).
      NC id
   -> NCType ('TNCEnum t)
-  -> IO (Int32, NCEnumTypeInfo)
+  -> IO (CInt, NCEnumTypeInfo)
 nc_inq_enum ncid (NCType ncType _) =
   allocaArray0 (fromIntegral ncMaxNameLen) $ \c_typeName ->
   alloca $ \ncBaseTypePtr ->
@@ -369,44 +369,44 @@ nc_inq_enum ncid (NCType ncType _) =
     baseType <- peek ncBaseTypePtr >>= fromNCTypeTag ncid
     baseTypeSize <- fromIntegral <$> peek ncBaseTypeSizePtr
     numMembers <- fromIntegral <$> peek ncNumMembersPtr
-    return (fromIntegral res, NCEnumTypeInfo typeName baseType baseTypeSize numMembers)
+    return (res, NCEnumTypeInfo typeName baseType baseTypeSize numMembers)
 
 nc_inq_enum_member :: forall id a (t :: NCDataTypeTag).
   (a ~ EquivalentHaskellType t, Storable a) =>
      NC id
   -> NCType ('TNCEnum t)
   -> Word32
-  -> IO (Int32, (String, a))
+  -> IO (CInt, (String, a))
 nc_inq_enum_member ncid (NCType ncType _) idx =
   allocaArray0 (fromIntegral ncMaxNameLen) $ \c_memberName ->
   alloca $ \memberValuePtr -> do
     res <- c_nc_inq_enum_member (ncRawId ncid) ncType (fromIntegral idx) c_memberName (castPtr memberValuePtr)
     memberName <- peekCString c_memberName
     memberValue <- peek memberValuePtr
-    return (fromIntegral res, (memberName, memberValue))
+    return (res, (memberName, memberValue))
 
 nc_inq_enum_ident :: forall id (t :: NCDataTypeTag).
      NC id
   -> NCType ('TNCEnum t)
   -> Int64
-  -> IO (Int32, String)
+  -> IO (CInt, String)
 nc_inq_enum_ident ncid (NCType ncType _) value =
   allocaArray0 (fromIntegral ncMaxNameLen) $ \c_memberName -> do
     res <- c_nc_inq_enum_ident (ncRawId ncid) ncType (fromIntegral value) c_memberName
     memberName <- peekCString c_memberName
-    return (fromIntegral res, memberName)
+    return (res, memberName)
 
 nc_def_vlen :: forall id (t :: NCDataTypeTag).
      NC id
   -> NCType t
   -> String
-  -> IO (Int32, NCType ('TNCVLen t))
+  -> IO (CInt, NCType ('TNCVLen t))
 nc_def_vlen ncid (NCType cBaseType baseTypeTag) typeName =
   withCString typeName $ \c_typeName ->
   alloca $ \typeIdPtr -> do
     res <- c_nc_def_vlen (ncRawId ncid) c_typeName cBaseType typeIdPtr
     typeid <- peek typeIdPtr
-    return (fromIntegral res, NCType typeid $ SNCVLen baseTypeTag)
+    return (res, NCType typeid $ SNCVLen baseTypeTag)
 
 data NCVLenTypeInfo = NCVLenTypeInfo {
     ncVLenTypeName     :: String
@@ -417,7 +417,7 @@ data NCVLenTypeInfo = NCVLenTypeInfo {
 nc_inq_vlen :: forall id (t :: NCDataTypeTag).
      NC id
   -> NCType ('TNCVLen t)
-  -> IO (Int32, NCVLenTypeInfo)
+  -> IO (CInt, NCVLenTypeInfo)
 nc_inq_vlen ncid (NCType ncType _) =
   allocaArray0 (fromIntegral ncMaxNameLen) $ \c_typeName ->
   alloca $ \ncBaseTypePtr ->
@@ -426,19 +426,19 @@ nc_inq_vlen ncid (NCType ncType _) =
     typeName <- peekCString c_typeName
     baseType <- peek ncBaseTypePtr >>= fromNCTypeTag ncid
     baseTypeSize <- fromIntegral <$> peek ncBaseTypeSizePtr
-    return (fromIntegral res, NCVLenTypeInfo typeName baseType baseTypeSize)
+    return (res, NCVLenTypeInfo typeName baseType baseTypeSize)
 
-nc_free_vlens :: Word64 -> Ptr (NCVLenContainer U a) -> IO (Int32, ())
+nc_free_vlens :: Word64 -> Ptr (NCVLenContainer U a) -> IO (CInt, ())
 nc_free_vlens size ptr = do
   res <- c_nc_free_vlens (fromIntegral size) (castPtr ptr)
-  return (fromIntegral res, ())
+  return (res, ())
 
-nc_free_vlen :: Ptr (NCVLenContainer U a) -> IO (Int32, ())
+nc_free_vlen :: Ptr (NCVLenContainer U a) -> IO (CInt, ())
 nc_free_vlen ptr = do
   res <- c_nc_free_vlen (castPtr ptr)
-  return (fromIntegral res, ())
+  return (res, ())
 
-freeVLenArray :: VS.Vector (NCVLenContainer U a) -> IO (Int32, ())
+freeVLenArray :: VS.Vector (NCVLenContainer U a) -> IO (CInt, ())
 freeVLenArray vlenVector = VS.unsafeWith vlenVector (nc_free_vlens n)
   where
     n :: Word64
@@ -486,13 +486,13 @@ nc_def_opaque :: forall id (n :: Nat).
      NC id
   -> TernarySNat n
   -> String
-  -> IO (Int32, NCType ('TNCOpaque n))
+  -> IO (CInt, NCType ('TNCOpaque n))
 nc_def_opaque ncid typeSize typeName  =
   withCString typeName $ \c_typeName ->
   alloca $ \typeIdPtr -> do
     res <- c_nc_def_opaque (ncRawId ncid) (fromIntegral $ fromTernarySNat typeSize) c_typeName typeIdPtr
     typeid <- peek typeIdPtr
-    return (fromIntegral res, NCType typeid $ SNCOpaque typeSize)
+    return (res, NCType typeid $ SNCOpaque typeSize)
 
 data NCOpaqueTypeInfo = NCOpaqueTypeInfo {
     ncOpaqueTypeName :: String
@@ -502,14 +502,14 @@ data NCOpaqueTypeInfo = NCOpaqueTypeInfo {
 nc_inq_opaque :: forall id (n :: Nat).
      NC id
   -> NCType ('TNCOpaque n)
-  -> IO (Int32, NCOpaqueTypeInfo)
+  -> IO (CInt, NCOpaqueTypeInfo)
 nc_inq_opaque ncid typeid =
   allocaArray0 (fromIntegral ncMaxNameLen) $ \c_typeName ->
   alloca $ \ncTypeSizePtr -> do
     res <- c_nc_inq_opaque (ncRawId ncid) (ncRawTypeId typeid) c_typeName ncTypeSizePtr
     typeName <- peekCString c_typeName
     typeSize <- fromIntegral <$> peek ncTypeSizePtr
-    return (fromIntegral res, NCOpaqueTypeInfo typeName typeSize)
+    return (res, NCOpaqueTypeInfo typeName typeSize)
 
 data CompoundWrapper where
   CompoundWrapper :: forall a. (NCDataTypeTagS ('TNCCompound a)) -> CompoundWrapper

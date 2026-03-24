@@ -11,7 +11,6 @@ module Data.Format.NetCDF.LowLevel.ChunkCache(
   , nc_set_var_chunk_cache
 ) where
 
-import           Data.Int
 import           Foreign.C.Types
 import           Foreign.Marshal.Alloc
 import           Foreign.Ptr
@@ -32,21 +31,21 @@ data NCChunkCacheParams = NCChunkCacheParams {
   , cachePreemption :: Float
 } deriving (Show, Eq)
 
-nc_set_chunk_cache :: NCChunkCacheParams -> IO (Int32, ())
+nc_set_chunk_cache :: NCChunkCacheParams -> IO (CInt, ())
 nc_set_chunk_cache NCChunkCacheParams{cacheSize=s, cacheNElems=n, cachePreemption=p} = do
     res <- c_nc_set_chunk_cache (fromIntegral s) (fromIntegral n) (realToFrac p)
-    return (fromIntegral res, ())
+    return (res, ())
 
 nc_set_var_chunk_cache :: forall id (t :: NCDataTypeTag) (n :: Nat).
        NC id
     -> NCVariableId n t
     -> NCChunkCacheParams
-    -> IO (Int32, ())
+    -> IO (CInt, ())
 nc_set_var_chunk_cache ncid (NCVariableId varid) NCChunkCacheParams{cacheSize=s, cacheNElems=n, cachePreemption=p} = do
     res <- c_nc_set_var_chunk_cache (ncRawId ncid) varid (fromIntegral s) (fromIntegral n) (realToFrac p)
-    return (fromIntegral res, ())
+    return (res, ())
 
-nc_get_chunk_cache :: IO (Int32, NCChunkCacheParams)
+nc_get_chunk_cache :: IO (CInt, NCChunkCacheParams)
 nc_get_chunk_cache =
     alloca $ \sPtr ->
     alloca $ \nPtr ->
@@ -59,12 +58,12 @@ nc_get_chunk_cache =
             cacheSize=fromIntegral s
           , cacheNElems=fromIntegral n
           , cachePreemption=realToFrac p}
-        return (fromIntegral res, cacheParams)
+        return (res, cacheParams)
 
 nc_get_var_chunk_cache :: forall id (t :: NCDataTypeTag) (n :: Nat).
        NC id
     -> NCVariableId n t
-    -> IO (Int32, NCChunkCacheParams)
+    -> IO (CInt, NCChunkCacheParams)
 nc_get_var_chunk_cache ncid (NCVariableId varid) =
     alloca $ \sPtr ->
     alloca $ \nPtr ->
@@ -77,5 +76,5 @@ nc_get_var_chunk_cache ncid (NCVariableId varid) =
             cacheSize=fromIntegral s
           , cacheNElems=fromIntegral n
           , cachePreemption=realToFrac p}
-        return (fromIntegral res, cacheParams)
+        return (res, cacheParams)
 

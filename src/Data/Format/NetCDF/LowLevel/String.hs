@@ -24,7 +24,6 @@ module Data.Format.NetCDF.LowLevel.String(
 
 import           Control.Monad (void)
 import qualified Data.ByteString as BS
-import           Data.Int
 import           Data.Monoid (Monoid, mempty)
 import qualified Data.Vector.Storable as VS
 import           Foreign.Concurrent (addForeignPtrFinalizer)
@@ -60,11 +59,11 @@ import           Data.Format.NetCDF.LowLevel.Variable
 
 foreign import ccall unsafe "nc_free_string" c_nc_free_string :: CSize -> Ptr CString -> IO CInt
 
-nc_free_string :: NCStringPtr 'U -> IO (Int32, ())
+nc_free_string :: NCStringPtr 'U -> IO (CInt, ())
 nc_free_string (NCStringPtr ncString) =
     with ncString $ \ncStringPtr -> do
         res <- c_nc_free_string 1 ncStringPtr
-        return $! (fromIntegral res, ())
+        return $! (res, ())
 
 nc_free_string' :: Int -> Ptr CString -> IO ()
 nc_free_string' size ncStringPtr = void $ c_nc_free_string (fromIntegral size) ncStringPtr
@@ -75,7 +74,7 @@ fromNCString (NCStringPtr ncString) = BS.packCString ncString
 toNCString :: CString -> NCStringPtr 'U
 toNCString = NCStringPtr
 
-ncStringForeignPtrToVS :: Int32 -> (ForeignPtr (NCStringPtr 'U), Int) -> IO (Int32, VS.Vector (NCStringPtr 'M))
+ncStringForeignPtrToVS :: CInt -> (ForeignPtr (NCStringPtr 'U), Int) -> IO (CInt, VS.Vector (NCStringPtr 'M))
 ncStringForeignPtrToVS res (fp, len) = if res /= 0
     then return (res, VS.empty)
     else do
@@ -87,7 +86,7 @@ nc_get_vara_string :: forall id (n :: Nat). KnownNat n =>
     -> NCVariableId n 'TNCString
     -> StaticVector n Int
     -> StaticVector n Int
-    -> IO (Int32, VS.Vector (NCStringPtr 'M))
+    -> IO (CInt, VS.Vector (NCStringPtr 'M))
 nc_get_vara_string ncid varid start count = do
     (res, fpLen) <- nc_get_vara_fptr ncid varid start count
     ncStringForeignPtrToVS res fpLen
@@ -96,7 +95,7 @@ nc_get_var1_string :: forall id (n :: Nat). KnownNat n =>
        NC id
     -> NCVariableId n 'TNCString
     -> StaticVector n Int
-    -> IO (Int32, BS.ByteString)
+    -> IO (CInt, BS.ByteString)
 nc_get_var1_string ncid varid start = do
     (res, ncStringPtr) <- nc_get_var1 ncid varid start
     if res /= 0
@@ -109,7 +108,7 @@ nc_get_var1_string ncid varid start = do
 nc_get_var_string :: forall id(n :: Nat). KnownNat n =>
        NC id
     -> NCVariableId n 'TNCString
-    -> IO (Int32, VS.Vector (NCStringPtr 'M))
+    -> IO (CInt, VS.Vector (NCStringPtr 'M))
 nc_get_var_string ncid varid = do
     (res, fpLen) <- nc_get_var_fptr ncid varid
     ncStringForeignPtrToVS res fpLen
@@ -120,7 +119,7 @@ nc_get_vars_string :: forall id (n :: Nat). KnownNat n =>
     -> StaticVector n Int
     -> StaticVector n Int
     -> StaticVector n Int
-    -> IO (Int32, VS.Vector (NCStringPtr 'M))
+    -> IO (CInt, VS.Vector (NCStringPtr 'M))
 nc_get_vars_string ncid varid start count stride = do
     (res, fpLen) <- nc_get_vars_fptr ncid varid start count stride
     ncStringForeignPtrToVS res fpLen
@@ -128,7 +127,7 @@ nc_get_vars_string ncid varid start count stride = do
 nc_get_string :: forall id.
        NC id
     -> NCVariableId 0 'TNCString
-    -> IO (Int32, BS.ByteString)
+    -> IO (CInt, BS.ByteString)
 nc_get_string ncid varid = do
     (res, ncStringPtr) <- nc_get_scalar ncid varid
     if res /= 0
@@ -142,7 +141,7 @@ nc_put_string :: forall id.
        NC id
     -> NCVariableId 0 'TNCString
     -> BS.ByteString
-    -> IO (Int32, ())
+    -> IO (CInt, ())
 nc_put_string ncid varid ncData =
     BS.useAsCString ncData $ \ncDataPtr ->
         nc_put_scalar ncid varid (toNCString ncDataPtr)
@@ -152,7 +151,7 @@ nc_put_var1_string :: forall id (n :: Nat). KnownNat n =>
     -> NCVariableId n 'TNCString
     -> StaticVector n Int
     -> BS.ByteString
-    -> IO (Int32, ())
+    -> IO (CInt, ())
 nc_put_var1_string ncid varid start ncData =
     BS.useAsCString ncData $ \ncDataPtr ->
         nc_put_var1 ncid varid start (toNCString ncDataPtr)
@@ -163,7 +162,7 @@ nc_get_string_att' :: forall id r (t :: NCDataTypeTag) (n :: Nat). Monoid r =>
     -> String
     -> (VS.Vector (NCStringPtr 'U) -> IO r)
     -> (BS.ByteString -> r)
-    -> IO (Int32, r)
+    -> IO (CInt, r)
 nc_get_string_att' ncid varid attrName ncStringConvert ncStringWrap = do
     (res, SomeNCAttribute t attr) <- nc_inq_att ncid varid attrName
     if res /= 0
@@ -172,19 +171,19 @@ nc_get_string_att' ncid varid attrName ncStringConvert ncStringWrap = do
             SNCString -> do
                 (res1,v) <- nc_get_att ncid attr
                 attrValue <- ncStringConvert v
-                return $! (fromIntegral res1, attrValue)
+                return $! (res1, attrValue)
             SNCChar -> do
                 (res1,v) <- nc_get_att ncid attr
                 ncString <- VS.unsafeWith v $ \attrDataPtr ->
                     BS.packCStringLen (castPtr attrDataPtr, fromIntegral $ ncAttributeNValues attr)
-                return $! (fromIntegral res1, ncStringWrap ncString)
-            _ -> return $! (fromIntegral $ toNCErrorCode NC_EBADTYPE, mempty)
+                return $! (res1, ncStringWrap ncString)
+            _ -> return $! (toNCErrorCode NC_EBADTYPE, mempty)
 
 nc_get_string_att :: forall id (t :: NCDataTypeTag) (n :: Nat).
        NC id
     -> Maybe (NCVariableId n t)
     -> String
-    -> IO (Int32, [BS.ByteString])
+    -> IO (CInt, [BS.ByteString])
 nc_get_string_att ncid varid attrName =
     nc_get_string_att' ncid varid attrName ncStringConvert (:[])
   where
@@ -198,7 +197,7 @@ nc_get_scalar_string_att :: forall id (t :: NCDataTypeTag) (n :: Nat).
        NC id
     -> Maybe (NCVariableId n t)
     -> String
-    -> IO (Int32, BS.ByteString)
+    -> IO (CInt, BS.ByteString)
 nc_get_scalar_string_att ncid varid attrName =
     nc_get_string_att' ncid varid attrName ncStringConvert id
   where
@@ -214,9 +213,9 @@ nc_get_scalar_string_att ncid varid attrName =
 
 doStringOrChar :: forall id.
        NC id
-    -> IO (Int32, ())
-    -> IO (Int32, ())
-    -> IO (Int32, ())
+    -> IO (CInt, ())
+    -> IO (CInt, ())
+    -> IO (CInt, ())
 doStringOrChar ncid doString doChar = do
     (res, format) <- ifFileOrGroup ncid
         nc_inq_format
@@ -227,7 +226,7 @@ doStringOrChar ncid doString doChar = do
             NCNetCDF4 -> doString
             _         -> doChar
 
-ignoreResult :: (Int32, a) -> (Int32, ())
+ignoreResult :: (CInt, a) -> (CInt, ())
 ignoreResult (r,_) = (r, ())
 
 nc_put_string_att :: forall id (t :: NCDataTypeTag) (n :: Nat).
@@ -235,7 +234,7 @@ nc_put_string_att :: forall id (t :: NCDataTypeTag) (n :: Nat).
     -> Maybe (NCVariableId n t)
     -> String
     -> [BS.ByteString]
-    -> IO (Int32, ())
+    -> IO (CInt, ())
 nc_put_string_att ncid varid attrName attrValue = doStringOrChar ncid doString doChar
   where
     doString = withNCStrings attrValue $ \ncStrings -> do
@@ -245,7 +244,7 @@ nc_put_string_att ncid varid attrName attrValue = doStringOrChar ncid doString d
         fptr <- newForeignPtr_ (castPtr attrValuePtr)
         ignoreResult <$>  nc_put_att ncid varid attrName NCChar (VS.unsafeFromForeignPtr0 fptr attrLen)
 
-withNCStrings :: [BS.ByteString] -> ([NCStringPtr 'U] -> IO (Int32, ())) -> IO (Int32, ())
+withNCStrings :: [BS.ByteString] -> ([NCStringPtr 'U] -> IO (CInt, ())) -> IO (CInt, ())
 withNCStrings strs func = go [] (reverse strs)
   where
     go ncStrings []     = func ncStrings
@@ -256,7 +255,7 @@ nc_put_scalar_string_att :: forall id (t :: NCDataTypeTag) (n :: Nat).
     -> Maybe (NCVariableId n t)
     -> String
     -> BS.ByteString
-    -> IO (Int32, ())
+    -> IO (CInt, ())
 nc_put_scalar_string_att ncid varid attrName attrValue = doStringOrChar ncid doString doChar
   where
     doString = BS.useAsCString attrValue $ \attrValuePtr -> do

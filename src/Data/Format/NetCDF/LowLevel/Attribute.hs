@@ -22,7 +22,6 @@ module Data.Format.NetCDF.LowLevel.Attribute(
   , nc_put_scalar_att
 ) where
 
-import           Data.Int
 import           Data.Maybe (maybe)
 import qualified Data.Vector.Storable as VS
 import           Data.Word
@@ -93,7 +92,7 @@ nc_inq_att :: forall id (t :: NCDataTypeTag) (n :: Nat).
        NC id
     -> Maybe (NCVariableId n t)
     -> String
-    -> IO (Int32, SomeNCAttribute)
+    -> IO (CInt, SomeNCAttribute)
 nc_inq_att ncid varid attrName =
     withCString attrName $ \c_attrName ->
     alloca $ \ncTypePtr ->
@@ -101,62 +100,62 @@ nc_inq_att ncid varid attrName =
         res <- c_nc_inq_att (ncRawId ncid) (fromMaybeVarId varid) c_attrName ncTypePtr attrLenPtr
         (SomeNCType at@NCType{ncTypeTag=t}) <- peek ncTypePtr >>= fromNCTypeTag ncid
         attrLen <- fromIntegral <$> peek attrLenPtr
-        return $! (fromIntegral res, SomeNCAttribute t $ NCAttribute attrName at attrLen varid)
+        return $! (res, SomeNCAttribute t $ NCAttribute attrName at attrLen varid)
 
 nc_inq_attid :: forall id (t :: NCDataTypeTag) (n :: Nat).
        NC id
     -> Maybe (NCVariableId n t)
     -> String
-    -> IO (Int32, Word32)
+    -> IO (CInt, Word32)
 nc_inq_attid ncid varid attrName =
     withCString attrName $ \c_attrName ->
     alloca $ \attrIdPtr -> do
         res <- c_nc_inq_attid (ncRawId ncid) (fromMaybeVarId varid) c_attrName attrIdPtr
         attrId <- peek attrIdPtr
-        return $! (fromIntegral res, fromIntegral attrId)
+        return $! (res, fromIntegral attrId)
 
 nc_inq_attname :: forall id (t :: NCDataTypeTag) (n :: Nat).
        NC id
     -> Maybe (NCVariableId n t)
     -> Word32
-    -> IO (Int32, String)
+    -> IO (CInt, String)
 nc_inq_attname ncid varid attrId =
     allocaArray0 (fromIntegral ncMaxNameLen) $ \c_attrName -> do
         res <- c_nc_inq_attname (ncRawId ncid) (fromMaybeVarId varid) (fromIntegral attrId) c_attrName
         attrName <- peekCString c_attrName
-        return $! (fromIntegral res, attrName)
+        return $! (res, attrName)
 
 nc_inq_natts :: forall id.
        NC id
-    -> IO (Int32, Word32)
+    -> IO (CInt, Word32)
 nc_inq_natts ncid = alloca $ \numAttrPtr -> do
     res <- c_nc_inq_natts (ncRawId ncid) numAttrPtr
     numAttr <- peek numAttrPtr
-    return $! (fromIntegral res, fromIntegral numAttr)
+    return $! (res, fromIntegral numAttr)
 
 nc_inq_atttype :: forall id (t :: NCDataTypeTag) (n :: Nat).
        NC id
     -> Maybe (NCVariableId n t)
     -> String
-    -> IO (Int32, SomeNCType)
+    -> IO (CInt, SomeNCType)
 nc_inq_atttype ncid varid attrName =
     withCString attrName $ \c_attrName ->
     alloca $ \ncTypePtr -> do
         res <- c_nc_inq_atttype (ncRawId ncid) (fromMaybeVarId varid) c_attrName ncTypePtr
         ncType <- peek ncTypePtr >>= fromNCTypeTag ncid
-        return $! (fromIntegral res, ncType)
+        return $! (res, ncType)
 
 nc_inq_attlen :: forall id (t :: NCDataTypeTag) (n :: Nat).
        NC id
     -> Maybe (NCVariableId n t)
     -> String
-    -> IO (Int32, Word32)
+    -> IO (CInt, Word32)
 nc_inq_attlen ncid varid attrName =
     withCString attrName $ \c_attrName ->
     alloca $ \attrLenPtr -> do
         res <- c_nc_inq_attlen (ncRawId ncid) (fromMaybeVarId varid) c_attrName attrLenPtr
         attrLen <- peek attrLenPtr
-        return $! (fromIntegral res, fromIntegral attrLen)
+        return $! (res, fromIntegral attrLen)
 
 nc_copy_att :: forall id1 (t1 :: NCDataTypeTag) (n1 :: Nat) id2 (t2 :: NCDataTypeTag) (n2 :: Nat).
        NC id1
@@ -164,7 +163,7 @@ nc_copy_att :: forall id1 (t1 :: NCDataTypeTag) (n1 :: Nat) id2 (t2 :: NCDataTyp
     -> String
     -> NC id2
     -> Maybe (NCVariableId n2 t2)
-    -> IO (Int32, ())
+    -> IO (CInt, ())
 nc_copy_att ncidS varidS attrName ncidD varidD =
     withCString attrName $ \c_attrName -> do
         res <- c_nc_copy_att
@@ -173,34 +172,34 @@ nc_copy_att ncidS varidS attrName ncidD varidD =
             c_attrName
             (ncRawId ncidD)
             (fromMaybeVarId varidD)
-        return $! (fromIntegral res, ())
+        return $! (res, ())
 
 nc_rename_att :: forall id (t :: NCDataTypeTag) (n :: Nat).
        NC id
     -> Maybe (NCVariableId n t)
     -> String
     -> String
-    -> IO (Int32, ())
+    -> IO (CInt, ())
 nc_rename_att ncid varid attrName attrNewName =
     withCString attrName $ \c_attrName ->
     withCString attrNewName $ \c_attrNewName -> do
         res <- c_nc_rename_att (ncRawId ncid) (fromMaybeVarId varid) c_attrName c_attrNewName
-        return $! (fromIntegral res, ())
+        return $! (res, ())
 
 nc_del_att :: forall id (t :: NCDataTypeTag) (n :: Nat).
        NC id
     -> Maybe (NCVariableId n t)
     -> String
-    -> IO (Int32, ())
+    -> IO (CInt, ())
 nc_del_att ncid varid attrName =
     withCString attrName $ \c_attrName -> do
         res <- c_nc_del_att (ncRawId ncid) (fromMaybeVarId varid) c_attrName
-        return $! (fromIntegral res, ())
+        return $! (res, ())
 
 nc_get_att :: forall id a (t :: NCDataTypeTag). (a ~ EquivalentHaskellType t, Storable a) =>
        NC id
     -> NCAttribute t
-    -> IO (Int32, VS.Vector a)
+    -> IO (CInt, VS.Vector a)
 nc_get_att ncid attr@NCAttribute{ncAttributeParentVariable=varid} =
     withCString (ncAttributeName attr) $ \c_attrName -> do
         -- (fp :: ForeignPtr (EquivalentHaskellType dt)) <- mallocForeignPtrArray $ fromIntegral attrLen
@@ -209,19 +208,19 @@ nc_get_att ncid attr@NCAttribute{ncAttributeParentVariable=varid} =
         res <- withForeignPtr fp $ \attrDataPtr -> do
             c_nc_get_att (ncRawId ncid) (fromMaybeVarId varid) c_attrName (castPtr attrDataPtr)
         return $!
-            ( fromIntegral res
+            ( res
             , VS.unsafeFromForeignPtr0 fp (fromIntegral attrLen))
 
 nc_get_scalar_att :: forall id a (t :: NCDataTypeTag). (a ~ EquivalentHaskellType t, Storable a) =>
        NC id
     -> NCAttribute t
-    -> IO (Int32, a)
+    -> IO (CInt, a)
 nc_get_scalar_att ncid attr@NCAttribute{ncAttributeParentVariable=varid} =
     withCString (ncAttributeName attr) $ \c_attrName ->
     allocaArray (fromIntegral $ ncAttributeNValues attr) $ \attrDataPtr -> do
         res <- c_nc_get_att (ncRawId ncid) (fromMaybeVarId varid) c_attrName (castPtr attrDataPtr)
         attrValue <- peek attrDataPtr
-        return $! (fromIntegral res, attrValue)
+        return $! (res, attrValue)
 
 class NCAttributeContainer t where
     withAttributePtr :: Storable a => t a -> (Ptr a -> IO b) -> IO b
@@ -241,7 +240,7 @@ nc_put_att :: forall id a attr (vt :: NCDataTypeTag) (at :: NCDataTypeTag) (n ::
     -> String
     -> NCType at
     -> attr a
-    -> IO (Int32, NCAttribute at)
+    -> IO (CInt, NCAttribute at)
 nc_put_att ncid varid attrName attrType attrValue =
     withCString attrName $ \c_attrName ->
     withAttributePtr attrValue $ \attrValuePtr -> do
@@ -252,7 +251,7 @@ nc_put_att ncid varid attrName attrType attrValue =
                 (ncRawTypeId attrType)
                 (fromIntegral $ attrNVals)
                 (castPtr attrValuePtr)
-        return $! (fromIntegral res, NCAttribute attrName attrType (fromIntegral attrNVals) varid)
+        return $! (res, NCAttribute attrName attrType (fromIntegral attrNVals) varid)
   where
     attrNVals :: Int
     attrNVals = attributeLen attrValue
@@ -263,7 +262,7 @@ nc_put_scalar_att :: forall id a (vt :: NCDataTypeTag) (at :: NCDataTypeTag) (n 
     -> String
     -> NCType at
     -> a
-    -> IO (Int32, NCAttribute at)
+    -> IO (CInt, NCAttribute at)
 nc_put_scalar_att ncid varid attrName attrType attrValue =
     withCString attrName $ \c_attrName ->
     with attrValue $ \attrValuePtr -> do
@@ -274,4 +273,4 @@ nc_put_scalar_att ncid varid attrName attrType attrValue =
                 (ncRawTypeId attrType)
                 1
                 (castPtr attrValuePtr)
-        return $! (fromIntegral res, NCAttribute attrName attrType 1 varid)
+        return $! (res, NCAttribute attrName attrType 1 varid)

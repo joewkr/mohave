@@ -17,7 +17,6 @@ module Data.Format.NetCDF.LowLevel.File(
 ) where
 
 import           Data.Bits as B
-import           Data.Int
 import           Foreign.Ptr
 import           Foreign.C.String
 import           Foreign.C.Types
@@ -56,41 +55,41 @@ foreign import ccall safe "nc_set_fill" c_nc_set_fill :: CInt -> CInt -> Ptr CIn
 foreign import ccall safe "nc_sync" c_nc_sync :: CInt -> IO CInt
 -- nc_var_par_access -- no parallel NetCDF support in this version of Haskell bindings
 
-nc_open :: String -> NCOpenMode -> IO (Int32, NC FileId)
+nc_open :: String -> NCOpenMode -> IO (CInt, NC FileId)
 nc_open fileName mode =
     withCString fileName $ \c_fileName ->
     alloca $ \ncIDPtr -> do
         res <- c_nc_open c_fileName (toNCOpenModeTag mode) ncIDPtr
         ncid <- peek ncIDPtr
-        return $! (fromIntegral res, NCFile ncid)
+        return $! (res, NCFile ncid)
 
-nc_close :: NC FileId -> IO (Int32, ())
+nc_close :: NC FileId -> IO (CInt, ())
 nc_close (NCFile ncid) = do
    res <- c_nc_close ncid
-   return $! (fromIntegral res, ())
+   return $! (res, ())
 
-nc_sync :: NC FileId -> IO (Int32, ())
+nc_sync :: NC FileId -> IO (CInt, ())
 nc_sync (NCFile ncid) = do
    res <- c_nc_sync ncid
-   return $! (fromIntegral res, ())
+   return $! (res, ())
 
-nc_redef :: NC FileId -> IO (Int32, ())
+nc_redef :: NC FileId -> IO (CInt, ())
 nc_redef (NCFile ncid) = do
    res <- c_nc_redef ncid
-   return $! (fromIntegral res, ())
+   return $! (res, ())
 
-nc_enddef :: NC FileId -> IO (Int32, ())
+nc_enddef :: NC FileId -> IO (CInt, ())
 nc_enddef (NCFile ncid) = do
    res <- c_nc_enddef ncid
-   return $! (fromIntegral res, ())
+   return $! (res, ())
 
-nc_create :: String -> NCFormat -> NCOpenMode -> IO (Int32, NC FileId)
+nc_create :: String -> NCFormat -> NCOpenMode -> IO (CInt, NC FileId)
 nc_create fileName format mode =
     withCString fileName $ \c_fileName ->
     alloca $ \ncIDPtr -> do
         res <- c_nc_create c_fileName ncCreateFlags ncIDPtr
         ncid <- peek ncIDPtr
-        return $! (fromIntegral res, NCFile ncid)
+        return $! (res, NCFile ncid)
   where
     ncCreateFlags :: CInt
     ncCreateFlags = (toNCFormatTag format) B..|. (toNCOpenModeTag mode)
@@ -102,7 +101,7 @@ data NCInfo = NCInfo {
   , ncUnlimitedDimId :: Maybe Int
 } deriving (Show, Eq)
 
-nc_inq :: NC id -> IO (Int32, NCInfo)
+nc_inq :: NC id -> IO (CInt, NCInfo)
 nc_inq ncid =
     alloca $ \nDimsPtr ->
     alloca $ \nVarsPtr ->
@@ -113,18 +112,18 @@ nc_inq ncid =
         nVars      <- fromIntegral <$> peek nVarsPtr
         nAtts      <- fromIntegral <$> peek nAttsPtr
         unlimDimId <- (\x -> if x == (-1) then Nothing else Just (fromIntegral x)) <$> peek unlimDimIdPtr
-        return $! (fromIntegral res, NCInfo nDims nVars nAtts unlimDimId)
+        return $! (res, NCInfo nDims nVars nAtts unlimDimId)
 
-nc_inq_format :: NC FileId -> IO (Int32, NCFormat)
+nc_inq_format :: NC FileId -> IO (CInt, NCFormat)
 nc_inq_format (NCFile ncid) =
     alloca $ \ncFormatPtr -> do
         res <- c_nc_inq_format ncid ncFormatPtr
         ncFormat <- fromNCInqFormatTag <$> peek ncFormatPtr
         case ncFormat of
-            Just format -> return $! (fromIntegral res, format)
+            Just format -> return $! (res, format)
             Nothing -> return (ncErrorOrUnexpected res, undefined)
 
-nc_inq_format_extended :: NC FileId -> IO (Int32, (NCFormatX, NCOpenMode))
+nc_inq_format_extended :: NC FileId -> IO (CInt, (NCFormatX, NCOpenMode))
 nc_inq_format_extended (NCFile ncid) =
     alloca $ \ncFormatPtr ->
     alloca $ \ncModePtr -> do
@@ -132,30 +131,30 @@ nc_inq_format_extended (NCFile ncid) =
         ncFormat <- fromNCFormatXTag <$> peek ncFormatPtr
         mode <- fromNCOpenModeTag <$> peek ncModePtr
         case ncFormat of
-            Just format -> return $! (fromIntegral res, (format, mode))
+            Just format -> return $! (res, (format, mode))
             Nothing -> return (ncErrorOrUnexpected res, undefined)
 
-nc_inq_path :: NC FileId -> IO (Int32, String)
+nc_inq_path :: NC FileId -> IO (CInt, String)
 nc_inq_path (NCFile ncid) = do
     (res1, pathLen) <- alloca $ \pathLenPtr -> do
         res <- c_nc_inq_path ncid pathLenPtr nullPtr
         ((,) res) <$> peek pathLenPtr
     if res1 /= 0
-        then return (fromIntegral res1, "")
+        then return (res1, "")
         else
             allocaArray0 (fromIntegral pathLen) $ \pathPtr -> do
                 res2 <- c_nc_inq_path ncid nullPtr pathPtr
                 path <- peekCString pathPtr
-                return $! (fromIntegral res2, path)
+                return $! (res2, path)
 
-nc_set_fill :: NC FileId -> NCFillMode -> IO (Int32, NCFillMode)
+nc_set_fill :: NC FileId -> NCFillMode -> IO (CInt, NCFillMode)
 nc_set_fill (NCFile ncid) fillMode =
     alloca $ \oldModePtr -> do
         res <- c_nc_set_fill ncid (toNCFillTag fillMode) oldModePtr
         oldMode <- fromNCFillTag <$> peek oldModePtr
         case oldMode of
-            Just mode -> return $! (fromIntegral res, mode)
+            Just mode -> return $! (res, mode)
             Nothing -> return (ncErrorOrUnexpected res, undefined)
 
-ncErrorOrUnexpected :: CInt -> Int32
-ncErrorOrUnexpected e = fromIntegral $ if e /= 0 then e else (toNCErrorCode NC_UNEXPECTED)
+ncErrorOrUnexpected :: CInt -> CInt
+ncErrorOrUnexpected e = if e /= 0 then e else (toNCErrorCode NC_UNEXPECTED)

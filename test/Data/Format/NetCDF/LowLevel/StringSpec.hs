@@ -152,7 +152,7 @@ spec = do
                     nc_id                  <- checkNC =<< nc_open "test-data/nc/test4.nc" NCNoWrite
                     (e,_)                  <-             nc_get_scalar_string_att nc_id Nothing "version"
                     _                      <- checkNC =<< nc_close nc_id
-                    (fromNCErrorCode $ fromIntegral e) `shouldBe` NC_EBADTYPE
+                    (fromNCErrorCode e) `shouldBe` NC_EBADTYPE
             context "nc_put_scalar_string_att" $ do
                 it "correctly sets a string attribute - NetCDF4" $ do
                     nc_id                  <- checkNC =<< nc_create (testOutputPath </> "str1_attr.nc") NCNetCDF4 NCClobber
