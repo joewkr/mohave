@@ -38,6 +38,7 @@ import           GHC.TypeNats (Nat, KnownNat)
 import           Internal.Definitions
 import           Data.Format.NetCDF.LowLevel.Definitions
 import           Data.Format.NetCDF.LowLevel.C.Definitions
+import           Data.Format.NetCDF.LowLevel.Error
 import           Data.Format.NetCDF.LowLevel.Attribute
                   ( nc_inq_att
                   , nc_put_scalar_att

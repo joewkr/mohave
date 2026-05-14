@@ -26,6 +26,7 @@ import           Foreign.Storable
 
 import           Data.Format.NetCDF.LowLevel.C.Definitions
 import           Data.Format.NetCDF.LowLevel.Definitions
+import           Data.Format.NetCDF.LowLevel.Error
 
 -- int     nc__create (const char *path, int cmode, size_t initialsz, size_t *chunksizehintp, int *ncidp)
 -- int     nc__enddef (int ncid, size_t h_minfree, size_t v_align, size_t v_minfree, size_t r_align)

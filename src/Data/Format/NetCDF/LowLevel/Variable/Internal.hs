@@ -65,6 +65,7 @@ import           GHC.TypeNats (natVal, someNatVal, SomeNat(..), Nat, KnownNat)
 
 import           Internal.Definitions
 import           Data.Format.NetCDF.LowLevel.Definitions
+import           Data.Format.NetCDF.LowLevel.Error
 import           Data.Format.NetCDF.LowLevel.C.Definitions
 import           Data.Format.NetCDF.LowLevel.Dimension (nc_inq_dimlen)
 import           Data.Format.NetCDF.LowLevel.User.Type
