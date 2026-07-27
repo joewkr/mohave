@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -62,7 +63,10 @@ instance Eq a => Eq (StaticVector n a) where
 
 instance Functor (StaticVector n) where
     fmap f (D a)       = D $! f a
-    fmap f (rest :| a) = (fmap f rest) :| (f a)
+    fmap f (rest :| a) = rest' :| a'
+      where
+        !rest' = fmap f rest
+        !a'    = f a
 
 instance Foldable (StaticVector n) where
     foldMap f = foldMap f . fromStaticVector
