@@ -14,14 +14,11 @@
 {-# LANGUAGE ViewPatterns #-}
 module Internal.Definitions where
 
-import           Data.Int
 import           Data.Function (on)
 import           Data.Kind
 import           Data.Proxy (Proxy(..))
 import           Data.Type.Equality (TestEquality, testEquality, (:~:)(Refl), type(==))
 import qualified Data.Vector.Storable as VS
-import           Data.Word
-import           Foreign.C.Types (CChar)
 import           Foreign.Ptr (Ptr)
 import           Foreign.Storable (Storable(..))
 import           Foreign.Marshal.Array (allocaArray, advancePtr)
