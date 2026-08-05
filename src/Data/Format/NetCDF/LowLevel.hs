@@ -26,6 +26,7 @@ import           Data.Format.NetCDF.LowLevel.C.Definitions (
 import           Internal.Definitions (
                      StaticVector(..)
                    , TypedValue(..)
+                   , toStaticVector
                    , fromStaticVector
                    , pattern Var0D, pattern Var1D, pattern Var2D, pattern Var3D, pattern Var4D, pattern Var5D, pattern Var6D)
 import           Internal.Numerals.Ternary
