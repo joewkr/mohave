@@ -21,6 +21,7 @@ library
                      , Data.Format.HDF.LowLevel.Definitions
                      , Data.Format.HDF.LowLevel.HE
                      , Data.Format.HDF.LowLevel.SD
+                     , Data.Format.HDF.LowLevel.Util
                      , Data.Format.HDF.SD
                      , Data.Format.NetCDF.LowLevel
                      , Data.Format.NetCDF.LowLevel.Attribute

@@ -5,7 +5,6 @@
 module Data.Format.HDF.LowLevel.SDSpec(spec) where
 
 import           Data.Int (Int32)
-import           Data.Proxy
 import           Data.Word (Word8, Word16)
 import           Test.Hspec
 
@@ -14,6 +13,7 @@ import qualified Data.ByteString.Char8 as BS8
 import           Data.Format.HDF.LowLevel.Definitions
 import           Data.Format.HDF.LowLevel.HE
 import           Data.Format.HDF.LowLevel.SD
+import           Data.Format.HDF.LowLevel.Util (hdfVarNDimsProxy)
 import qualified Data.Vector.Storable as VS
 import           Foreign.Ptr (castPtr)
 import           System.IO
@@ -1204,10 +1204,10 @@ spec = do
         context "SDreaddata" $ do
             it "reads data from SDS - 1" $ do
                 sd_id              <- check =<< sd_start "test-data/sd/test1.hdf" HDFRead
-                (SomeSDS t (sds_id :: SDataSetId n a)) <-
+                (SomeSDS t sds_id) <-
                                       check =<< sd_select sd_id 0
                 case t of
-                    SHFloat32 -> case (Proxy :: Proxy n) of
+                    SHFloat32 -> case hdfVarNDimsProxy sds_id of
                         Var2D -> do
                             v <- check =<< sd_readdata sds_id (D 1:|1) (D 1:|1) (D 3:|3)
                             _ <- check =<< sd_endaccess sds_id
@@ -1217,10 +1217,10 @@ spec = do
                     _ -> expectationFailure "Unexpected dimension data type"
             it "reads data from SDS - 2" $ do
                 sd_id              <- check =<< sd_start "test-data/sd/test1.hdf" HDFRead
-                (SomeSDS t (sds_id :: SDataSetId n a)) <-
+                (SomeSDS t sds_id) <-
                                       check =<< sd_select sd_id 0
                 case t of
-                    SHFloat32 -> case (Proxy :: Proxy n) of
+                    SHFloat32 -> case hdfVarNDimsProxy sds_id of
                         Var2D -> do
                             v <- check =<< sd_readdata sds_id (D 1:|1) (D 2:|1) (D 2:|1)
                             _ <- check =<< sd_endaccess sds_id
