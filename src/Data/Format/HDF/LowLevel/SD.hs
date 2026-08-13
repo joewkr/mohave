@@ -1729,7 +1729,7 @@ sd_readdata :: forall a (t :: HDataType a) (n :: Nat). (Storable a, KnownNat n) 
   -> IO (Int32, VS.Vector a)
 sd_readdata (SDataSetId sds_id) start stride edges =
     withStaticVector start $ \startPtr ->
-    withStaticVector stride $ \stridePtr ->
+    withStaticVectorOrNull stride $ \stridePtr ->
     withStaticVector edges $ \edgesPtr -> do
         edgesList <- peekArray (fromIntegral $! natVal (Proxy :: Proxy n)) edgesPtr
         fp <- mallocForeignPtrArray . fromIntegral $ product edgesList
@@ -1738,6 +1738,8 @@ sd_readdata (SDataSetId sds_id) start stride edges =
         return $!
             ( fromIntegral h_result
             , VS.unsafeFromForeignPtr0 fp (fromIntegral $ product edgesList))
+  where
+    withStaticVectorOrNull vec f = if all (==1) vec then f nullPtr else withStaticVector vec f
 
 {- | Writes a subsample of data to a data set or to a coordinate variable.
 
